@@ -219,100 +219,6 @@ function buildImportantColumns(allHeaders) {
     <div v-else-if="error" class="error">Erreur: {{ error }}</div>
 
     <template v-else>
-      <section class="panel">
-        <h2>Colonnes principales</h2>
-        <details class="panel" @toggle="onToggleMapping">
-          <summary>Mapping des colonnes</summary>
-          <div class="mapping">
-            <div class="map-row">
-              <label>Titre</label>
-              <select v-model="mapping.Titre" class="select">
-                <option value="">—</option>
-                <option v-for="h in allHeaders" :key="h" :value="h">{{ h }}</option>
-              </select>
-            </div>
-            <div class="map-row">
-              <label>Plateforme</label>
-              <select v-model="mapping.Plateforme" class="select">
-                <option value="">—</option>
-                <option v-for="h in allHeaders" :key="h" :value="h">{{ h }}</option>
-              </select>
-            </div>
-            <div class="map-row">
-              <label>Note</label>
-              <select v-model="mapping.Note" class="select">
-                <option value="">—</option>
-                <option v-for="h in allHeaders" :key="h" :value="h">{{ h }}</option>
-              </select>
-            </div>
-            <div class="map-row">
-              <label>Année</label>
-              <select v-model="mapping.Année" class="select">
-                <option value="">—</option>
-                <option v-for="h in allHeaders" :key="h" :value="h">{{ h }}</option>
-              </select>
-            </div>
-            <div class="map-row">
-              <label>Magazine</label>
-              <select v-model="mapping.Magazine" class="select">
-                <option value="">—</option>
-                <option v-for="h in allHeaders" :key="h" :value="h">{{ h }}</option>
-              </select>
-            </div>
-            <div class="map-row">
-              <label>Auteur</label>
-              <select v-model="mapping.Auteur" class="select">
-                <option value="">—</option>
-                <option v-for="h in allHeaders" :key="h" :value="h">{{ h }}</option>
-              </select>
-            </div>
-            <div class="map-row">
-              <label>Pays</label>
-              <select v-model="mapping.Pays" class="select">
-                <option value="">—</option>
-                <option v-for="h in allHeaders" :key="h" :value="h">{{ h }}</option>
-              </select>
-            </div>
-          </div>
-        </details>
-
-        <section class="panel">
-          <h3>Requête: Top / Bottom par note moyenne</h3>
-          <div class="toolbar">
-            <label>Mode</label>
-            <select v-model="reqMode" class="select">
-              <option value="top">Top</option>
-              <option value="bottom">Bottom</option>
-            </select>
-            <label>Grouper par</label>
-            <select v-model="reqGroupBy" class="select">
-              <option value="Jeu">Jeu</option>
-              <option value="Année">Année</option>
-              <option value="Plateforme">Plateforme</option>
-              <option value="Magazine">Magazine</option>
-            </select>
-            <label>Limiter à</label>
-            <input class="input" type="number" min="1" max="100" v-model.number="reqLimit" />
-          </div>
-          <div class="table-wrap" v-if="reqResults.length">
-            <table class="data">
-              <thead>
-                <tr>
-                  <th>Libellé</th>
-                  <th>Moyenne</th>
-                  <th>Nombre</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(r,i) in reqResults" :key="i">
-                  <td>{{ r.Libellé }}</td>
-                  <td>{{ r.Moyenne }}</td>
-                  <td>{{ r.Nombre }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
         <div class="toolbar">
           <input class="input" type="search" v-model="query" placeholder="Rechercher… (titre, plateforme, etc.)" />
           <div class="sort">
@@ -345,7 +251,6 @@ function buildImportantColumns(allHeaders) {
             <button class="btn" :disabled="page>=totalPages" @click="page = Math.min(totalPages, page+1)">Suivant</button>
           </div>
         </div>
-      </section>
 
       <section class="panel" v-if="showRaw">
         <h2>Aperçu brut (toutes colonnes)</h2>
