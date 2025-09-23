@@ -1,7 +1,8 @@
+[build]
+  base = "equipe4"
+  command = "rm -rf node_modules package-lock.json && npm install && npm run build"
+  publish = "dist"
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-[build]
-  command = "npm run build"
-  publish = "dist"
