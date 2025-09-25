@@ -5,6 +5,9 @@ import App from './App.vue'
 import Home from './pages/Home.vue'
 import Critiques from './pages/Critiques.vue'
 import faviconUrl from './assets/favicon.png'
+import VueApexCharts from "vue3-apexcharts";
+
+
 
 const router = createRouter({
   history: createWebHistory(),
@@ -15,7 +18,8 @@ const router = createRouter({
   scrollBehavior() { return { top: 0 } },
 })
 
-createApp(App).use(router).mount('#app')
+const app = createApp(App).use(router).mount('#app')
+app.use(VueApexCharts);
 
 const link = document.querySelector('link[rel="icon"]') || document.createElement('link')
 link.rel = 'icon'

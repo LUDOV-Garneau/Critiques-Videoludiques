@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import ReviewsList from '../components/ReviewsList.vue'
 import FiltersSidebar from '../components/FiltersSidebar.vue'
+import ChartsGraphique from '../components/Graphique.vue'
 
 const isLoading = ref(false)
 const error = ref('')
@@ -363,6 +364,19 @@ function buildImportantColumns(allHeaders) {
         <div v-else-if="error" class="error">Erreur: {{ error }}</div>
 
         <template v-else>
+        <div>
+          <ChartsGraphique/>
+
+
+        </div>
+
+
+
+
+
+
+
+
         <div class="toolbar">
           <input class="input" type="search" v-model="query" placeholder="Rechercher… (titre, plateforme, etc.)" />
           <div class="sort">
