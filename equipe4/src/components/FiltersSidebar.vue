@@ -1039,7 +1039,7 @@ watch(() => props.facets, (newFacets) => {
   cursor: pointer;
 }
 
-/* Styles pour le select d'auteurs */
+/* Styles pour le select d'auteurs avec validation des données */
 .author-select {
   width: 100%;
   padding: 8px 12px;
