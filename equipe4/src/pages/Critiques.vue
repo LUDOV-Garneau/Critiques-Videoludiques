@@ -622,7 +622,7 @@ tbody tr:hover {
   background: #f9fafb;
 }
 
-/* Pagination */
+/* Pagination avec style noir */
 .pager {
   display: flex;
   justify-content: center;
