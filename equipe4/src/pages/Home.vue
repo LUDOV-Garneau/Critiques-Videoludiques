@@ -17,7 +17,7 @@ const latest = ref(
     <section class="hero">
       <div class="hero-content">
         <h1>Ludov</h1>
-        <p>Des critiques vidéoludiques claires et honnêtes, sans le bruit !.</p>
+        <p>Des critiques vidéoludiques claires et honnêtes, sans le bruit asdasdsdasdasdasd.</p>
       </div>
       <span class="spacer"></span>
     </section>
