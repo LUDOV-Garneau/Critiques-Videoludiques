@@ -1,61 +1,69 @@
 <script setup>
-import { ref } from 'vue'
-import ApexCharts from 'vue3-apexcharts'
+import { ref, watch } from 'vue'
+import ApexChart from 'vue3-apexcharts'
 
-const checkedTypeCharts = ref([])
+const checkedTypeCharts = ref('line')
 
-const chartsValue = ref({
-  options: {
-    chart: {
-      id: 'vuechart-example'
-    },
-    xaxis: {
-      categories: [1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998]
-    }
+const chartOptions = ref({
+  chart: {
+    type: checkedTypeCharts.value,
+    height: 300
   },
-  series: [{
-    name: 'series-1',
-    data: [30, 40, 45, 50, 49, 60, 70, 91]
-  }]
+  title: {
+    text: 'Product Trends by Month',
+    align: 'left'
+  },
+  xaxis: {
+    categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep']
+  }
 })
 
+const chartSeries = ref([
+  {
+    name: 'Sales',
+    data: [16.4, 5.4, 21.7, 2, 25.4, 3, 19, 2, 10.9]
+  }
+])
 
+watch(checkedTypeCharts, (newType) => {
+  chartOptions.value = {
+    ...chartOptions.value,
+    chart: {
+      ...chartOptions.value.chart,
+      type: newType
+    }
+  }
+})
 </script>
-
 
 <template>
   <div>
+    <div>
+      <div>Checked chart type: {{ checkedTypeCharts }}</div>
+
+      <input type="radio" id="line" name="charts" value="line" v-model="checkedTypeCharts" />
+      <label for="line">Line</label>
+
+      <input type="radio" id="bar" name="charts" value="bar" v-model="checkedTypeCharts" />
+      <label for="bar">Bar</label>
+
+      <input type="radio" id="scatter" name="charts" value="scatter" v-model="checkedTypeCharts" />
+      <label for="scatter">Scatter</label>
+    </div>
+
     <apexchart
-        height="300"
-        type= {{checkedTypeCharts}}
-        :options="chartsValue.options"
-        :series="chartsValue.series"
+      width="100%"
+      height="300"
+      :options="chartOptions"
+      :series="chartSeries"
     />
-  </div>
-  <div>
-    <div>Checked names: {{ checkedTypeCharts }}</div>
-
-    <input type="radio" id="line" value="line" v-model="checkedTypeCharts" checked />
-    <label for="line">Line</label>
-
-    <input type="radio" id="bar" value="Bar" v-model="checkedTypeCharts" />
-    <label for="bar">Bar</label>
-
-    <input type="radio" id="scatter" value="Scatter" v-model="checkedTypeCharts" />
-    <label for="scatter">Scatter</label>
-
   </div>
 </template>
 
 <script>
 export default {
   components: {
-    apexchart: ApexCharts
+    apexchart: ApexChart
   }
 }
-
-
-
-
-
 </script>
