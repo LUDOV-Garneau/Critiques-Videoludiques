@@ -291,6 +291,14 @@ const allAuthors = computed(() => {
   return Array.from(allAuthorsSet).sort()
 })
 
+// Recherche dans la liste des auteurs
+const authorQuery = ref('')
+const filteredAuthors = computed(() => {
+  const q = (authorQuery.value || '').toLowerCase().trim()
+  if (!q) return allAuthors.value
+  return allAuthors.value.filter(a => a.toLowerCase().includes(q))
+})
+
 // Formatage des années pour l'affichage
 function formatYear(year) {
   return year.toString()
@@ -382,6 +390,7 @@ watch(() => props.facets, (newFacets) => {
                 type="checkbox"
                 :checked="localFilters.magazines.includes(magazine)"
                 @change="toggleArrayFilter('magazines', magazine)"
+                style="margin-right: 5px;"
               />
               <span>{{ magazine }}</span>
             </label>
@@ -411,6 +420,7 @@ watch(() => props.facets, (newFacets) => {
                 type="checkbox"
                 :checked="localFilters.countries.includes(country)"
                 @change="toggleArrayFilter('countries', country)"
+                style="margin-right: 5px;"
               />
               <span>{{ country }}</span>
             </label>
@@ -441,6 +451,7 @@ watch(() => props.facets, (newFacets) => {
                   value=""
                   :checked="localFilters.platformsPresence === ''"
                   @change="setPlatformsPresence('')"
+                  style="margin-right: 5px;"
                 />
                 <span class="radio-label">Toutes</span>
               </label>
@@ -451,6 +462,7 @@ watch(() => props.facets, (newFacets) => {
                   value="avec"
                   :checked="localFilters.platformsPresence === 'avec'"
                   @change="setPlatformsPresence('avec')"
+                  style="margin-right: 5px;"
                 />
                 <span class="radio-label">Avec indication (1)</span>
               </label>
@@ -461,6 +473,7 @@ watch(() => props.facets, (newFacets) => {
                   value="sans"
                   :checked="localFilters.platformsPresence === 'sans'"
                   @change="setPlatformsPresence('sans')"
+                  style="margin-right: 5px;"
                 />
                 <span class="radio-label">Sans indication (0)</span>
               </label>
@@ -469,7 +482,7 @@ watch(() => props.facets, (newFacets) => {
 
           <!-- Filtre par plateformes spécifiques -->
           <div class="filter-group">
-            <label class="filter-group-label">Plateformes spécifiques</label>
+            <label class="filter-group-label" style="margin-bottom: 5px;">Plateformes spécifiques</label>
             <div class="filter-options">
               <label
                 v-for="platform in facets.platforms.slice(0, 20)"
@@ -480,6 +493,7 @@ watch(() => props.facets, (newFacets) => {
                   type="checkbox"
                   :checked="localFilters.platforms.includes(platform)"
                   @change="toggleArrayFilter('platforms', platform)"
+                  style="margin-right: 5px;"
                 />
                 <span>{{ platform }}</span>
               </label>
@@ -510,6 +524,7 @@ watch(() => props.facets, (newFacets) => {
                 <input
                   type="radio"
                   name="authorGender"
+                  style="margin-right: 5px;"
                   value=""
                   :checked="localFilters.authorGender === ''"
                   @change="setAuthorGender('')"
@@ -520,6 +535,7 @@ watch(() => props.facets, (newFacets) => {
                 <input
                   type="radio"
                   name="authorGender"
+                  style="margin-right: 5px;"
                   value="masculin"
                   :checked="localFilters.authorGender === 'masculin'"
                   @change="setAuthorGender('masculin')"
@@ -530,6 +546,7 @@ watch(() => props.facets, (newFacets) => {
                 <input
                   type="radio"
                   name="authorGender"
+                  style="margin-right: 5px;"
                   value="féminin"
                   :checked="localFilters.authorGender === 'féminin'"
                   @change="setAuthorGender('féminin')"
@@ -541,17 +558,33 @@ watch(() => props.facets, (newFacets) => {
 
           <div class="author-name-filter">
             <label for="authorName">Nom de l'auteur :</label>
-            <select
-              id="authorName"
-              v-model="localFilters.authorName"
-              @change="setAuthorName($event.target.value)"
-              class="author-select"
-            >
-              <option value="">Tous les auteurs</option>
-              <option v-for="author in allAuthors" :key="author" :value="author">
-                {{ author }}
-              </option>
-            </select>
+            <input
+              type="search"
+              v-model="authorQuery"
+              placeholder="Rechercher un auteur…"
+              class="text-input"
+              autocomplete="off"
+            />
+            <div class="filter-options" style="max-height: 180px; margin-top: 8px;">
+              <label
+                v-for="author in filteredAuthors"
+                :key="author"
+                class="checkbox-option"
+              >
+                <input
+                  type="radio"
+                  name="authorName"
+                  :checked="localFilters.authorName === author"
+                  @change="setAuthorName(author)"
+                />
+                <span>{{ author }}</span>
+              </label>
+              <div v-if="filteredAuthors.length === 0" class="no-active-filters">Aucun auteur</div>
+            </div>
+            <div style="margin-top: 8px; display: flex; gap: 8px;">
+              <button class="clear-all-btn" @click="setAuthorName('')">Effacer</button>
+              <span v-if="localFilters.authorName" style="font-size:12px;color:#6b7280;align-self:center;">Sélectionné: {{ localFilters.authorName }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -661,6 +694,7 @@ watch(() => props.facets, (newFacets) => {
                   value=""
                   :checked="localFilters.scorePresence === ''"
                   @change="setScorePresence('')"
+                  style="margin-right: 5px;"
                 />
                 <span class="radio-label">Toutes</span>
               </label>
@@ -671,6 +705,7 @@ watch(() => props.facets, (newFacets) => {
                   value="noté"
                   :checked="localFilters.scorePresence === 'noté'"
                   @change="setScorePresence('noté')"
+                  style="margin-right: 5px;"
                 />
                 <span class="radio-label">Avec note (1)</span>
               </label>
@@ -681,6 +716,7 @@ watch(() => props.facets, (newFacets) => {
                   value="non-noté"
                   :checked="localFilters.scorePresence === 'non-noté'"
                   @change="setScorePresence('non-noté')"
+                  style="margin-right: 5px;"
                 />
                 <span class="radio-label">Sans note (0)</span>
               </label>
@@ -896,7 +932,7 @@ watch(() => props.facets, (newFacets) => {
 .filter-options {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   max-height: 200px;
   overflow-y: auto;
 }
@@ -904,9 +940,9 @@ watch(() => props.facets, (newFacets) => {
 .checkbox-option {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
-  padding: 4px 0;
+  padding: 6px 0;
 }
 
 .checkbox-option input[type="checkbox"] {
@@ -939,13 +975,13 @@ watch(() => props.facets, (newFacets) => {
 
 .radio-group {
   display: flex;
-  gap: 12px;
+  gap: 14px;
 }
 
 .radio-option {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   cursor: pointer;
 }
 
@@ -967,10 +1003,11 @@ watch(() => props.facets, (newFacets) => {
 
 .text-input {
   width: 100%;
-  padding: 8px 12px;
+  padding: 10px 12px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 14px;
+  margin-top: 6px;
 }
 
 .text-input:focus {
@@ -1000,7 +1037,7 @@ watch(() => props.facets, (newFacets) => {
   display: block;
   font-weight: 600;
   color: #374151;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   font-size: 14px;
 }
 
@@ -1023,7 +1060,7 @@ watch(() => props.facets, (newFacets) => {
 .radio-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  margin-right: 5px;
   cursor: pointer;
   padding: 4px 0;
 }
