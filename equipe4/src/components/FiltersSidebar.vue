@@ -27,10 +27,13 @@ const emit = defineEmits(['update:filters', 'clear-filter'])
 const localFilters = ref({
   magazines: [],
   countries: [],
-  platforms: [],
+  platforms: [], // Plateformes spécifiques (PC, PlayStation, etc.)
+  platformsPresence: '', // 'avec' ou 'sans' plateforme indiquée
   authorGender: '', // 'masculin', 'féminin', ou ''
   authorName: '',
-  yearRange: [props.facets.minYear || 1980, props.facets.maxYear || 2025],
+  yearRange: [1981, 2021], // Valeurs par défaut basées sur les données réelles
+  monthRange: [1, 12], // Janvier (1) à Décembre (12)
+  scorePresence: '', // 'noté' ou 'non-noté'
   scoreRange: [0, 100]
 })
 
@@ -74,6 +77,15 @@ const activeFiltersList = computed(() => {
       count: localFilters.value.platforms.length
     })
   }
+
+  if (localFilters.value.platformsPresence) {
+    filters.push({
+      type: 'platformsPresence',
+      label: 'Indication plateforme',
+      value: localFilters.value.platformsPresence === 'avec' ? 'Avec indication' : 'Sans indication',
+      count: 1
+    })
+  }
   
   if (localFilters.value.authorGender) {
     filters.push({
@@ -94,20 +106,38 @@ const activeFiltersList = computed(() => {
   }
   
   const [minYear, maxYear] = localFilters.value.yearRange
-  if (minYear !== (props.facets.minYear || 1980) || maxYear !== (props.facets.maxYear || 2025)) {
+  const [minMonth, maxMonth] = localFilters.value.monthRange
+  const hasYearFilter = minYear !== 1981 || maxYear !== 2021
+  const hasMonthFilter = minMonth !== 1 || maxMonth !== 12
+
+  if (hasYearFilter || hasMonthFilter) {
+    let periodValue = `${minYear} - ${maxYear}`
+    if (hasMonthFilter) {
+      const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc']
+      periodValue += ` (${monthNames[minMonth - 1]} - ${monthNames[maxMonth - 1]})`
+    }
     filters.push({
       type: 'yearRange',
       label: 'Période',
-      value: `${minYear} - ${maxYear}`,
+      value: periodValue,
       count: 1
     })
   }
-  
+
+  if (localFilters.value.scorePresence) {
+    filters.push({
+      type: 'scorePresence',
+      label: 'Notation',
+      value: localFilters.value.scorePresence === 'noté' ? 'Avec note' : 'Sans note',
+      count: 1
+    })
+  }
+
   const [minScore, maxScore] = localFilters.value.scoreRange
   if (minScore !== 0 || maxScore !== 100) {
     filters.push({
       type: 'scoreRange',
-      label: 'Notes',
+      label: 'Plage de notes',
       value: `${minScore} - ${maxScore}`,
       count: 1
     })
@@ -139,8 +169,23 @@ function updateYearRange(newRange) {
   emitFilters()
 }
 
+function updateMonthRange(newRange) {
+  localFilters.value.monthRange = [Number(newRange[0]), Number(newRange[1])]
+  emitFilters()
+}
+
 function updateScoreRange(newRange) {
   localFilters.value.scoreRange = [Number(newRange[0]), Number(newRange[1])]
+  emitFilters()
+}
+
+function setPlatformsPresence(presence) {
+  localFilters.value.platformsPresence = presence
+  emitFilters()
+}
+
+function setScorePresence(presence) {
+  localFilters.value.scorePresence = presence
   emitFilters()
 }
 
@@ -165,6 +210,9 @@ function clearFilter(filterType) {
     case 'platforms':
       localFilters.value.platforms = []
       break
+    case 'platformsPresence':
+      localFilters.value.platformsPresence = ''
+      break
     case 'authorGender':
       localFilters.value.authorGender = ''
       break
@@ -172,7 +220,11 @@ function clearFilter(filterType) {
       localFilters.value.authorName = ''
       break
     case 'yearRange':
-      localFilters.value.yearRange = [props.facets.minYear || 1980, props.facets.maxYear || 2025]
+      localFilters.value.yearRange = [1981, 2021]
+      localFilters.value.monthRange = [1, 12]
+      break
+    case 'scorePresence':
+      localFilters.value.scorePresence = ''
       break
     case 'scoreRange':
       localFilters.value.scoreRange = [0, 100]
@@ -186,9 +238,12 @@ function clearAllFilters() {
     magazines: [],
     countries: [],
     platforms: [],
+    platformsPresence: '',
     authorGender: '',
     authorName: '',
-    yearRange: [props.facets.minYear || 1980, props.facets.maxYear || 2025],
+    yearRange: [1981, 2021],
+    monthRange: [1, 12],
+    scorePresence: '',
     scoreRange: [0, 100]
   }
   emitFilters()
@@ -198,18 +253,70 @@ function emitFilters() {
   emit('update:filters', { ...localFilters.value })
 }
 
+// Constantes pour les mois
+const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc']
+
+// Liste de tous les auteurs disponibles
+const allAuthors = computed(() => {
+  const male = props.facets.authors?.male || []
+  const female = props.facets.authors?.female || []
+
+  // Créer un Set pour éviter les doublons et séparer les auteurs multiples
+  const allAuthorsSet = new Set()
+
+  // Ajouter les auteurs masculins
+  male.forEach(author => {
+    if (author && author !== '0') {
+      // Séparer les auteurs multiples (séparés par des virgules, points-virgules, etc.)
+      const authors = author.split(/[,;]+/).map(a => a.trim()).filter(a => {
+        // Exclure les chiffres seuls, les valeurs vides, et les "0"
+        return a && a !== '0' && !/^\d+$/.test(a)
+      })
+      authors.forEach(a => allAuthorsSet.add(a))
+    }
+  })
+
+  // Ajouter les autrices féminines
+  female.forEach(author => {
+    if (author && author !== '0') {
+      // Séparer les auteurs multiples
+      const authors = author.split(/[,;]+/).map(a => a.trim()).filter(a => {
+        // Exclure les chiffres seuls, les valeurs vides, et les "0"
+        return a && a !== '0' && !/^\d+$/.test(a)
+      })
+      authors.forEach(a => allAuthorsSet.add(a))
+    }
+  })
+
+  return Array.from(allAuthorsSet).sort()
+})
+
+// Recherche dans la liste des auteurs
+const authorQuery = ref('')
+const filteredAuthors = computed(() => {
+  const q = (authorQuery.value || '').toLowerCase().trim()
+  if (!q) return allAuthors.value
+  return allAuthors.value.filter(a => a.toLowerCase().includes(q))
+})
+
 // Formatage des années pour l'affichage
 function formatYear(year) {
-  const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc']
-  // Pour l'exemple, on affiche juste l'année, mais on pourrait ajouter des mois
   return year.toString()
 }
 
-// Initialiser les filtres avec les valeurs des facets
+// Formatage des mois pour l'affichage
+function formatMonth(monthNumber) {
+  return monthNames[monthNumber - 1] || monthNumber.toString()
+}
+
+// Initialiser les filtres avec les valeurs des facets (seulement si pas encore initialisé)
+let isInitialized = false
 watch(() => props.facets, (newFacets) => {
-  if (newFacets.minYear && newFacets.maxYear) {
-    if (localFilters.value.yearRange[0] === 1980 && localFilters.value.yearRange[1] === 2025) {
+  if (newFacets.minYear && newFacets.maxYear && !isInitialized) {
+    // Initialiser seulement si les valeurs sont encore par défaut
+    if (localFilters.value.yearRange[0] === 1981 && localFilters.value.yearRange[1] === 2021) {
       localFilters.value.yearRange = [newFacets.minYear, newFacets.maxYear]
+      isInitialized = true
     }
   }
 }, { immediate: true, deep: true })
@@ -283,6 +390,7 @@ watch(() => props.facets, (newFacets) => {
                 type="checkbox"
                 :checked="localFilters.magazines.includes(magazine)"
                 @change="toggleArrayFilter('magazines', magazine)"
+                style="margin-right: 5px;"
               />
               <span>{{ magazine }}</span>
             </label>
@@ -312,6 +420,7 @@ watch(() => props.facets, (newFacets) => {
                 type="checkbox"
                 :checked="localFilters.countries.includes(country)"
                 @change="toggleArrayFilter('countries', country)"
+                style="margin-right: 5px;"
               />
               <span>{{ country }}</span>
             </label>
@@ -331,21 +440,66 @@ watch(() => props.facets, (newFacets) => {
         </button>
         
         <div v-if="expandedCards.platforms" class="card-content">
-          <div class="filter-options">
-            <label 
-              v-for="platform in facets.platforms.slice(0, 20)" 
-              :key="platform"
-              class="checkbox-option"
-            >
-              <input 
-                type="checkbox"
-                :checked="localFilters.platforms.includes(platform)"
-                @change="toggleArrayFilter('platforms', platform)"
-              />
-              <span>{{ platform }}</span>
-            </label>
-            <div v-if="facets.platforms.length > 20" class="more-options">
-              ... et {{ facets.platforms.length - 20 }} autres
+          <!-- Filtre par présence d'indication de plateforme -->
+          <div class="filter-group">
+            <label class="filter-group-label">Indication de plateforme</label>
+            <div class="radio-group">
+              <label class="radio-item">
+                <input
+                  type="radio"
+                  name="platformsPresence"
+                  value=""
+                  :checked="localFilters.platformsPresence === ''"
+                  @change="setPlatformsPresence('')"
+                  style="margin-right: 5px;"
+                />
+                <span class="radio-label">Toutes</span>
+              </label>
+              <label class="radio-item">
+                <input
+                  type="radio"
+                  name="platformsPresence"
+                  value="avec"
+                  :checked="localFilters.platformsPresence === 'avec'"
+                  @change="setPlatformsPresence('avec')"
+                  style="margin-right: 5px;"
+                />
+                <span class="radio-label">Avec indication (1)</span>
+              </label>
+              <label class="radio-item">
+                <input
+                  type="radio"
+                  name="platformsPresence"
+                  value="sans"
+                  :checked="localFilters.platformsPresence === 'sans'"
+                  @change="setPlatformsPresence('sans')"
+                  style="margin-right: 5px;"
+                />
+                <span class="radio-label">Sans indication (0)</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Filtre par plateformes spécifiques -->
+          <div class="filter-group">
+            <label class="filter-group-label" style="margin-bottom: 5px;">Plateformes spécifiques</label>
+            <div class="filter-options">
+              <label
+                v-for="platform in facets.platforms.slice(0, 20)"
+                :key="platform"
+                class="checkbox-option"
+              >
+                <input
+                  type="checkbox"
+                  :checked="localFilters.platforms.includes(platform)"
+                  @change="toggleArrayFilter('platforms', platform)"
+                  style="margin-right: 5px;"
+                />
+                <span>{{ platform }}</span>
+              </label>
+              <div v-if="facets.platforms.length > 20" class="more-options">
+                ... et {{ facets.platforms.length - 20 }} autres
+              </div>
             </div>
           </div>
         </div>
@@ -370,6 +524,7 @@ watch(() => props.facets, (newFacets) => {
                 <input
                   type="radio"
                   name="authorGender"
+                  style="margin-right: 5px;"
                   value=""
                   :checked="localFilters.authorGender === ''"
                   @change="setAuthorGender('')"
@@ -380,6 +535,7 @@ watch(() => props.facets, (newFacets) => {
                 <input
                   type="radio"
                   name="authorGender"
+                  style="margin-right: 5px;"
                   value="masculin"
                   :checked="localFilters.authorGender === 'masculin'"
                   @change="setAuthorGender('masculin')"
@@ -390,6 +546,7 @@ watch(() => props.facets, (newFacets) => {
                 <input
                   type="radio"
                   name="authorGender"
+                  style="margin-right: 5px;"
                   value="féminin"
                   :checked="localFilters.authorGender === 'féminin'"
                   @change="setAuthorGender('féminin')"
@@ -402,13 +559,32 @@ watch(() => props.facets, (newFacets) => {
           <div class="author-name-filter">
             <label for="authorName">Nom de l'auteur :</label>
             <input
-              id="authorName"
-              type="text"
-              v-model="localFilters.authorName"
-              @input="setAuthorName($event.target.value)"
-              placeholder="Rechercher un auteur..."
+              type="search"
+              v-model="authorQuery"
+              placeholder="Rechercher un auteur…"
               class="text-input"
+              autocomplete="off"
             />
+            <div class="filter-options" style="max-height: 180px; margin-top: 8px;">
+              <label
+                v-for="author in filteredAuthors"
+                :key="author"
+                class="checkbox-option"
+              >
+                <input
+                  type="radio"
+                  name="authorName"
+                  :checked="localFilters.authorName === author"
+                  @change="setAuthorName(author)"
+                />
+                <span>{{ author }}</span>
+              </label>
+              <div v-if="filteredAuthors.length === 0" class="no-active-filters">Aucun auteur</div>
+            </div>
+            <div style="margin-top: 8px; display: flex; gap: 8px;">
+              <button class="clear-all-btn" @click="setAuthorName('')">Effacer</button>
+              <span v-if="localFilters.authorName" style="font-size:12px;color:#6b7280;align-self:center;">Sélectionné: {{ localFilters.authorName }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -426,30 +602,70 @@ watch(() => props.facets, (newFacets) => {
 
         <div v-if="expandedCards.years" class="card-content">
           <div class="timeline-filter">
-            <div class="timeline-labels">
-              <span>{{ formatYear(localFilters.yearRange[0]) }}</span>
-              <span>{{ formatYear(localFilters.yearRange[1]) }}</span>
+            <!-- Filtre par années -->
+            <div class="filter-group">
+              <label class="filter-group-label">Années</label>
+              <div class="timeline-labels">
+                <span>{{ formatYear(localFilters.yearRange[0]) }}</span>
+                <span>{{ formatYear(localFilters.yearRange[1]) }}</span>
+              </div>
+              <div class="range-slider">
+                <input
+                  type="range"
+                  :min="facets.minYear || 1981"
+                  :max="facets.maxYear || 2025"
+                  :value="localFilters.yearRange[0]"
+                  @input="updateYearRange([$event.target.value, localFilters.yearRange[1]])"
+                  class="range-input range-min"
+                />
+                <input
+                  type="range"
+                  :min="facets.minYear || 1981"
+                  :max="facets.maxYear || 2021"
+                  :value="localFilters.yearRange[1]"
+                  @input="updateYearRange([localFilters.yearRange[0], $event.target.value])"
+                  class="range-input range-max"
+                />
+              </div>
+              <div class="timeline-info">
+                <span>De {{ localFilters.yearRange[0] }} à {{ localFilters.yearRange[1] }}</span>
+              </div>
             </div>
-            <div class="range-slider">
-              <input
-                type="range"
-                :min="facets.minYear || 1980"
-                :max="facets.maxYear || 2025"
-                :value="localFilters.yearRange[0]"
-                @input="updateYearRange([$event.target.value, localFilters.yearRange[1]])"
-                class="range-input range-min"
-              />
-              <input
-                type="range"
-                :min="facets.minYear || 1980"
-                :max="facets.maxYear || 2025"
-                :value="localFilters.yearRange[1]"
-                @input="updateYearRange([localFilters.yearRange[0], $event.target.value])"
-                class="range-input range-max"
-              />
-            </div>
-            <div class="timeline-info">
-              <span>De {{ localFilters.yearRange[0] }} à {{ localFilters.yearRange[1] }}</span>
+
+            <!-- Filtre par mois -->
+            <div class="filter-group">
+              <label class="filter-group-label">Mois</label>
+              <div class="month-selector">
+                <div class="month-range">
+                  <div class="month-select">
+                    <label>De :</label>
+                    <select
+                      :value="localFilters.monthRange[0]"
+                      @change="updateMonthRange([$event.target.value, localFilters.monthRange[1]])"
+                      class="month-dropdown"
+                    >
+                      <option v-for="(month, index) in monthNames" :key="index + 1" :value="index + 1">
+                        {{ month }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="month-select">
+                    <label>À :</label>
+                    <select
+                      :value="localFilters.monthRange[1]"
+                      @change="updateMonthRange([localFilters.monthRange[0], $event.target.value])"
+                      class="month-dropdown"
+                    >
+                      <option v-for="(month, index) in monthNames" :key="index + 1" :value="index + 1">
+                        {{ month }}
+                      </option>
+                    </select>
+                  </div>
+                </div>
+                <div class="month-info">
+                  <span>{{ formatMonth(localFilters.monthRange[0]) }} - {{ formatMonth(localFilters.monthRange[1]) }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -467,31 +683,75 @@ watch(() => props.facets, (newFacets) => {
         </button>
 
         <div v-if="expandedCards.scores" class="card-content">
-          <div class="score-filter">
-            <div class="score-labels">
-              <span>{{ localFilters.scoreRange[0] }}</span>
-              <span>{{ localFilters.scoreRange[1] }}</span>
+          <!-- Filtre par présence de note -->
+          <div class="filter-group">
+            <label class="filter-group-label">Présence de note</label>
+            <div class="radio-group">
+              <label class="radio-item">
+                <input
+                  type="radio"
+                  name="scorePresence"
+                  value=""
+                  :checked="localFilters.scorePresence === ''"
+                  @change="setScorePresence('')"
+                  style="margin-right: 5px;"
+                />
+                <span class="radio-label">Toutes</span>
+              </label>
+              <label class="radio-item">
+                <input
+                  type="radio"
+                  name="scorePresence"
+                  value="noté"
+                  :checked="localFilters.scorePresence === 'noté'"
+                  @change="setScorePresence('noté')"
+                  style="margin-right: 5px;"
+                />
+                <span class="radio-label">Avec note (1)</span>
+              </label>
+              <label class="radio-item">
+                <input
+                  type="radio"
+                  name="scorePresence"
+                  value="non-noté"
+                  :checked="localFilters.scorePresence === 'non-noté'"
+                  @change="setScorePresence('non-noté')"
+                  style="margin-right: 5px;"
+                />
+                <span class="radio-label">Sans note (0)</span>
+              </label>
             </div>
-            <div class="range-slider">
-              <input
-                type="range"
-                min="0"
-                max="100"
-                :value="localFilters.scoreRange[0]"
-                @input="updateScoreRange([$event.target.value, localFilters.scoreRange[1]])"
-                class="range-input range-min"
-              />
-              <input
-                type="range"
-                min="0"
-                max="100"
-                :value="localFilters.scoreRange[1]"
-                @input="updateScoreRange([localFilters.scoreRange[0], $event.target.value])"
-                class="range-input range-max"
-              />
-            </div>
-            <div class="score-info">
-              <span>Notes entre {{ localFilters.scoreRange[0] }} et {{ localFilters.scoreRange[1] }}</span>
+          </div>
+
+          <!-- Filtre par plage de notes -->
+          <div class="filter-group">
+            <label class="filter-group-label">Plage de notes</label>
+            <div class="score-filter">
+              <div class="score-labels">
+                <span>{{ localFilters.scoreRange[0] }}</span>
+                <span>{{ localFilters.scoreRange[1] }}</span>
+              </div>
+              <div class="range-slider">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  :value="localFilters.scoreRange[0]"
+                  @input="updateScoreRange([$event.target.value, localFilters.scoreRange[1]])"
+                  class="range-input range-min"
+                />
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  :value="localFilters.scoreRange[1]"
+                  @input="updateScoreRange([localFilters.scoreRange[0], $event.target.value])"
+                  class="range-input range-max"
+                />
+              </div>
+              <div class="score-info">
+                <span>Notes entre {{ localFilters.scoreRange[0] }} et {{ localFilters.scoreRange[1] }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -660,10 +920,19 @@ watch(() => props.facets, (newFacets) => {
   background: #ffffff;
 }
 
+/* Styles généraux pour les labels */
+.card-content label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
 .filter-options {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   max-height: 200px;
   overflow-y: auto;
 }
@@ -671,9 +940,9 @@ watch(() => props.facets, (newFacets) => {
 .checkbox-option {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
-  padding: 4px 0;
+  padding: 6px 0;
 }
 
 .checkbox-option input[type="checkbox"] {
@@ -706,13 +975,13 @@ watch(() => props.facets, (newFacets) => {
 
 .radio-group {
   display: flex;
-  gap: 12px;
+  gap: 14px;
 }
 
 .radio-option {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   cursor: pointer;
 }
 
@@ -734,10 +1003,11 @@ watch(() => props.facets, (newFacets) => {
 
 .text-input {
   width: 100%;
-  padding: 8px 12px;
+  padding: 10px 12px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 14px;
+  margin-top: 6px;
 }
 
 .text-input:focus {
@@ -752,6 +1022,25 @@ watch(() => props.facets, (newFacets) => {
   padding: 8px 0;
 }
 
+.filter-group {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.filter-group:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.filter-group-label {
+  display: block;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 14px;
+  font-size: 14px;
+}
+
 .timeline-labels,
 .score-labels {
   display: flex;
@@ -759,6 +1048,96 @@ watch(() => props.facets, (newFacets) => {
   margin-bottom: 8px;
   font-size: 12px;
   color: #6b7280;
+}
+
+/* Styles pour les groupes radio */
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.radio-item {
+  display: flex;
+  align-items: center;
+  margin-right: 5px;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.radio-item input[type="radio"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.radio-label {
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+}
+
+/* Styles pour le select d'auteurs avec validation des données */
+.author-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.author-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+/* Styles pour le sélecteur de mois */
+.month-selector {
+  margin-top: 8px;
+}
+
+.month-range {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.month-select {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.month-select label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.month-dropdown {
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 13px;
+  background: white;
+  color: #374151;
+}
+
+.month-dropdown:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.month-info {
+  text-align: center;
+  font-size: 12px;
+  color: #6b7280;
+  font-style: italic;
 }
 
 .range-slider {

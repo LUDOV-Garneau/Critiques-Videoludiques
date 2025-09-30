@@ -1,6 +1,5 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
-import ReviewsList from '../components/ReviewsList.vue'
 import FiltersSidebar from '../components/FiltersSidebar.vue'
 import ChartsGraphique from '../components/Graphique.vue'
 
@@ -18,10 +17,34 @@ const query = ref('')
 const sortKey = ref('Année')
 const sortDir = ref('desc')
 
+// Modal state & handlers
+const isModalOpen = ref(false)
+const modalItem = ref(null)
+
+function openModal(item) {
+  modalItem.value = item || null
+  isModalOpen.value = true
+}
+
+function closeModal() {
+  isModalOpen.value = false
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal()
+  })
+}
+
 const filteredAndSorted = computed(() => {
   const keys = filteredHeaders.value
   // Utiliser les données filtrées par la sidebar au lieu de filteredRows
-  let items = filteredRowsObjects.value.map(r => Object.fromEntries(r.map((v, i) => [keys[i], v])))
+  let items = filteredRowsObjects.value.map((r, idx) => {
+    const obj = Object.fromEntries(r.map((v, i) => [keys[i], v]))
+    // Conserver l'objet source complet pour l'affichage en modal
+    obj._full = filteredByFilters.value[idx]
+    return obj
+  })
 
   // Appliquer la recherche textuelle
   if (query.value.trim()) {
@@ -52,10 +75,12 @@ const mapping = ref({
   Note: '',
   Année: '',
   Magazine: '',
-  Auteur: '',
+  Auteurs: '',
   Pays: '',
+  CritiqueTitre: '',
+  PDF: '',
 })
-const allHeaders = computed(() => headers.value || [])
+
 function initMapping() {
   const lower = (headers.value || []).map(h => String(h || '').toLowerCase())
   function find(labels) { const i = lower.findIndex(h => labels.some(l => h.includes(l))); return i>=0 ? headers.value[i] : '' }
@@ -64,22 +89,59 @@ function initMapping() {
   mapping.value.Note = find(['score','rating','note'])
   mapping.value.Année = find(['year','release year','annee','année','date'])
   mapping.value.Magazine = find(['magazine','revue','journal','publication'])
-  mapping.value.Auteur = find(['author','auteur','autrice','writer'])
+  mapping.value.Auteurs = find(['author','auteur','autrice','writer'])
   mapping.value.Pays = find(['country','pays','region'])
+  mapping.value.CritiqueTitre = find(['titre de la critique','review title','article title','titre article'])
+  mapping.value.PDF = find(['pdf','lien','link','url','document','fichier'])
 }
 
 const mappedObjects = computed(() => {
   if (!headers.value.length) return []
   const idx = Object.fromEntries(Object.entries(mapping.value).map(([k,v]) => [k, headers.value.indexOf(v)]))
-  const mapped = rows.value.map(r => ({
-    Titre: idx.Titre>=0 ? r[idx.Titre] : undefined,
-    Plateforme: idx.Plateforme>=0 ? r[idx.Plateforme] : undefined,
-    Note: idx.Note>=0 ? Number(r[idx.Note]) : undefined,
-    Année: idx.Année>=0 ? Number(String(r[idx.Année]).slice(0,4)) : undefined,
-    Magazine: idx.Magazine>=0 ? r[idx.Magazine] : undefined,
-    Auteur: idx.Auteur>=0 ? r[idx.Auteur] : undefined,
-    Pays: idx.Pays>=0 ? r[idx.Pays] : undefined,
-  }))
+
+  // Indices pour les colonnes d'auteurs spécifiques
+  const maleAuthorIndex = headers.value.indexOf('Nom des auteurs masculins')
+  const femaleAuthorIndex = headers.value.indexOf('Nom des autrices féminin')
+
+  const mapped = rows.value.map(r => {
+    // Combiner les noms d'auteurs masculins et féminins
+    let authorNames = []
+    if (maleAuthorIndex !== -1 && r[maleAuthorIndex] && r[maleAuthorIndex] !== '0') {
+      // Séparer les auteurs multiples s'ils sont dans la même cellule
+      const authors = String(r[maleAuthorIndex]).split(/[,;]+/).map(a => a.trim()).filter(a => a)
+      authorNames.push(...authors)
+    }
+    if (femaleAuthorIndex !== -1 && r[femaleAuthorIndex] && r[femaleAuthorIndex] !== '0') {
+      // Séparer les auteurs multiples s'ils sont dans la même cellule
+      const authors = String(r[femaleAuthorIndex]).split(/[,;]+/).map(a => a.trim()).filter(a => a)
+      authorNames.push(...authors)
+    }
+
+    // Si aucun auteur spécifique, utiliser la colonne générale
+    if (authorNames.length === 0 && idx.Auteurs >= 0 && r[idx.Auteurs]) {
+      const authors = String(r[idx.Auteurs]).split(/[,;]+/).map(a => a.trim()).filter(a => a)
+      authorNames.push(...authors)
+    }
+
+    // Filtrer les auteurs valides (pas de chiffres seuls, pas de valeurs vides)
+    const validAuthors = authorNames.filter(author => {
+      const trimmed = String(author).trim()
+      // Exclure les chiffres seuls, les valeurs vides, et les "0"
+      return trimmed && trimmed !== '0' && !/^\d+$/.test(trimmed)
+    })
+
+    return {
+      Titre: idx.Titre>=0 ? r[idx.Titre] : undefined,
+      Plateforme: idx.Plateforme>=0 ? r[idx.Plateforme] : undefined,
+      Note: idx.Note>=0 ? Number(r[idx.Note]) : undefined,
+      Année: idx.Année>=0 ? Number(String(r[idx.Année]).slice(0,4)) : undefined,
+      Magazine: idx.Magazine>=0 ? r[idx.Magazine] : undefined,
+      Auteurs: validAuthors.length > 0 ? validAuthors.join(', ') : '-', // Afficher "-" si pas d'auteurs
+      Pays: idx.Pays>=0 ? r[idx.Pays] : undefined,
+      CritiqueTitre: idx.CritiqueTitre>=0 ? r[idx.CritiqueTitre] : undefined,
+      PDF: idx.PDF>=0 ? r[idx.PDF] : undefined,
+    }
+  })
 
   if (mapped.length > 0) {
     console.log('Objets mappés:', {
@@ -93,43 +155,19 @@ const mappedObjects = computed(() => {
   return mapped
 })
 
-const reqMode = ref('top') 
-const reqGroupBy = ref('Jeu') 
-const reqLimit = ref(10)
-const reqResults = computed(() => {
-  const arr = mappedObjects.value
-  if (!arr.length) return []
-  const keyField = reqGroupBy.value === 'Jeu' ? 'Titre' : reqGroupBy.value
-  const groups = new Map()
-  for (const it of arr) {
-    const key = it[keyField]
-    const sc = it.Note
-    if (key == null || sc == null || Number.isNaN(sc)) continue
-    const g = groups.get(key) || { key, sum: 0, count: 0 }
-    g.sum += Number(sc); g.count += 1
-    groups.set(key, g)
-  }
-  let agg = Array.from(groups.values()).map(g => ({
-    Libellé: g.key,
-    Moyenne: +(g.sum / g.count).toFixed(2),
-    Nombre: g.count,
-  }))
-  agg.sort((a,b) => (reqMode.value === 'top' ? (b.Moyenne - a.Moyenne) : (a.Moyenne - b.Moyenne)))
-  return agg.slice(0, reqLimit.value)
-})
 
-function onToggleMapping(ev) {
-  if (ev?.target?.open) initMapping()
-}
 
 // Nouveaux filtres pour la sidebar
 const sidebarFilters = ref({
   magazines: [],
   countries: [],
   platforms: [],
+  platformsPresence: '',
   authorGender: '',
   authorName: '',
-  yearRange: [1980, 2025],
+  yearRange: [1981, 2021], // Valeurs par défaut basées sur les données réelles
+  monthRange: [1, 12],
+  scorePresence: '',
   scoreRange: [0, 100]
 })
 
@@ -188,9 +226,50 @@ const filteredByFilters = computed(() => {
     const year = x.Année ?? 0
     if (year < f.yearRange[0] || year > f.yearRange[1]) return false
 
-    // Filtre par note
-    const score = x.Note ?? 0
-    if (score < f.scoreRange[0] || score > f.scoreRange[1]) return false
+    // Filtre par mois (utiliser les données brutes)
+    if (f.monthRange[0] !== 1 || f.monthRange[1] !== 12) {
+      if (headers.value.length > 0 && index < rows.value.length) {
+        const monthIndex = headers.value.indexOf('Mois')
+        if (monthIndex !== -1) {
+          const month = Number(rows.value[index][monthIndex]) || 0
+          if (month < f.monthRange[0] || month > f.monthRange[1]) return false
+        }
+      }
+    }
+
+    // Filtre par présence de plateforme (colonnes binaires 0/1)
+    if (f.platformsPresence) {
+      if (headers.value.length > 0 && index < rows.value.length) {
+        // Chercher les colonnes de plateformes (qui contiennent des 0 et 1)
+        const platformColumns = headers.value.filter(h =>
+          h && (h.includes('PC') || h.includes('PlayStation') || h.includes('Xbox') ||
+                h.includes('Nintendo') || h.includes('Console') || h.includes('Plateforme'))
+        )
+
+        if (platformColumns.length > 0) {
+          const hasPlatformIndication = platformColumns.some(col => {
+            const colIndex = headers.value.indexOf(col)
+            return colIndex !== -1 && Number(rows.value[index][colIndex]) === 1
+          })
+
+          if (f.platformsPresence === 'avec' && !hasPlatformIndication) return false
+          if (f.platformsPresence === 'sans' && hasPlatformIndication) return false
+        }
+      }
+    }
+
+    // Filtre par présence de note
+    if (f.scorePresence) {
+      const hasScore = x.Note && x.Note > 0
+      if (f.scorePresence === 'noté' && !hasScore) return false
+      if (f.scorePresence === 'non-noté' && hasScore) return false
+    }
+
+    // Filtre par plage de notes (seulement si une note existe)
+    if (x.Note && x.Note > 0) {
+      const score = x.Note
+      if (score < f.scoreRange[0] || score > f.scoreRange[1]) return false
+    }
 
     // Filtre par plateformes
     if (f.platforms.length > 0 && !f.platforms.includes(String(x.Plateforme))) return false
@@ -201,8 +280,37 @@ const filteredByFilters = computed(() => {
     // Filtre par pays
     if (f.countries.length > 0 && !f.countries.includes(String(x.Pays))) return false
 
-    // Filtre par nom d'auteur
-    if (f.authorName && !String(x.Auteur || '').toLowerCase().includes(f.authorName.toLowerCase())) return false
+    // Filtre par nom d'auteur (match exact insensible à la casse sur les tokens)
+    if (f.authorName) {
+      const normalize = (s) => String(s || '').toLowerCase().trim()
+      const target = normalize(f.authorName)
+
+      // Construire la liste complète des auteurs de la critique à partir
+      // du champ combiné et des colonnes spécifiques brutes
+      const tokens = new Set()
+
+      const pushTokens = (val) => {
+        String(val || '')
+          .split(/[,;]+/)
+          .map(v => normalize(v))
+          .filter(v => v && v !== '0' && !/^\d+$/.test(v))
+          .forEach(v => tokens.add(v))
+      }
+
+      // Auteurs combinés mappés
+      pushTokens(x.Auteurs)
+
+      // Auteurs spécifiques (données brutes)
+      if (headers.value.length > 0 && index < rows.value.length) {
+        const row = rows.value[index]
+        const maleAuthorIndex = headers.value.indexOf('Nom des auteurs masculins')
+        const femaleAuthorIndex = headers.value.indexOf('Nom des autrices féminin')
+        if (maleAuthorIndex !== -1) pushTokens(row[maleAuthorIndex])
+        if (femaleAuthorIndex !== -1) pushTokens(row[femaleAuthorIndex])
+      }
+
+      if (!Array.from(tokens).includes(target)) return false
+    }
 
     // Filtre par genre d'auteur
     if (f.authorGender && headers.value.length > 0) {
@@ -258,7 +366,7 @@ const filteredRowsObjects = computed(() => {
         case 'Note': return item.Note
         case 'Année': return item.Année
         case 'Pays': return item.Pays
-        case 'Genre': return item.Genre
+        case 'Auteurs': return item.Auteurs
         case 'Développeur': return item.Développeur
         case 'Éditeur': return item.Éditeur
         default: return item[key] || ''
@@ -320,13 +428,13 @@ function buildImportantColumns(allHeaders) {
 
   const want = [
     { key: 'title', labels: ['title','game','name','titre','jeu'], display: 'Titre' },
-    { key: 'platform', labels: ['platform','console','system','plateforme'], display: 'Plateforme' },
-    { key: 'score', labels: ['score','rating','note'], display: 'Note' },
+    // Retirer Plateforme et Note de l'affichage principal
     { key: 'year', labels: ['year','release year','annee','année','date'], display: 'Année' },
     { key: 'country', labels: ['country','pays','region'], display: 'Pays' },
-    { key: 'genre', labels: ['genre','category','type'], display: 'Genre' },
+    { key: 'author', labels: ['author','auteur','autrice','writer'], display: 'Auteurs' },
     { key: 'developer', labels: ['developer','dev','studio'], display: 'Développeur' },
     { key: 'publisher', labels: ['publisher','éditeur','editeur'], display: 'Éditeur' },
+    { key: 'magazine', labels: ['magazine','revue','journal','publication'], display: 'Magazine' },
   ]
 
   const selected = []
@@ -364,20 +472,11 @@ function buildImportantColumns(allHeaders) {
         <div v-else-if="error" class="error">Erreur: {{ error }}</div>
 
         <template v-else>
-        <div>
-          <ChartsGraphique/>
+          <div>
+            <ChartsGraphique/>
+          </div>
 
-
-        </div>
-
-
-
-
-
-
-
-
-        <div class="toolbar">
+          <div class="toolbar">
           <input class="input" type="search" v-model="query" placeholder="Rechercher… (titre, plateforme, etc.)" />
           <div class="sort">
             <label>Trier par</label>
@@ -398,7 +497,7 @@ function buildImportantColumns(allHeaders) {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(it, i) in pageSlice" :key="i">
+              <tr v-for="(it, i) in pageSlice" :key="i" class="clickable-row" @click="openModal(it._full || it)">
                 <td v-for="h in filteredHeaders" :key="h">{{ it[h] }}</td>
               </tr>
             </tbody>
@@ -427,6 +526,38 @@ function buildImportantColumns(allHeaders) {
           </table>
         </div>
       </section>
+        <!-- Modal Détail de la critique (version simple) -->
+        <div v-if="isModalOpen" class="modal-overlay" @click.self="closeModal">
+          <div class="modal-card" role="dialog" aria-modal="true">
+            <header class="modal-header">
+              <h3 class="modal-title">{{ modalItem?.Titre || 'Critique' }}</h3>
+              <button class="modal-close" @click="closeModal" aria-label="Fermer">×</button>
+            </header>
+            <div class="modal-body">
+              <div class="modal-grid">
+                <div class="modal-field">
+                  <div class="label">Magazine</div>
+                  <div class="value">{{ modalItem?.Magazine || '-' }}</div>
+                </div>
+                  <div class="modal-field">
+                    <div class="label">Jeu</div>
+                    <div class="value">{{ modalItem?.Titre || '-' }}</div>
+                  </div>
+                <div class="modal-field">
+                  <div class="label">Pays</div>
+                  <div class="value">{{ modalItem?.Pays || '-' }}</div>
+                </div>
+                <div class="modal-field">
+                  <div class="label">Auteurs</div>
+                  <div class="value">{{ modalItem?.Auteurs || '-' }}</div>
+                </div>
+              </div>
+            </div>
+            <footer class="modal-footer">
+              <button class="btn" @click="closeModal">Fermer</button>
+            </footer>
+          </div>
+        </div>
         </template>
       </div>
     </div>
@@ -468,7 +599,7 @@ h1 {
 }
 
 .btn {
-  background: #3b82f6;
+  background: #000000;
   color: white;
   border: none;
   padding: 8px 16px;
@@ -479,7 +610,7 @@ h1 {
 }
 
 .btn:hover {
-  background: #2563eb;
+  background: #333333;
 }
 
 /* Toolbar de recherche et tri */
@@ -559,7 +690,16 @@ tbody tr:hover {
   background: #f9fafb;
 }
 
-/* Pagination */
+.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.05s;
+}
+
+.clickable-row:active {
+  transform: scale(0.998);
+}
+
+/* Pagination avec style noir */
 .pager {
   display: flex;
   justify-content: center;
@@ -570,20 +710,24 @@ tbody tr:hover {
 
 .pager button {
   padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  background: white;
+  border: 1px solid #000000;
+  background: #000000;
+  color: white;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
 }
 
 .pager button:hover:not(:disabled) {
-  background: #f3f4f6;
+  background: #333333;
+  border-color: #333333;
 }
 
 .pager button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  background: #666666;
+  border-color: #666666;
 }
 
 .pager .current {
@@ -604,8 +748,8 @@ tbody tr:hover {
 .spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid #e5e7eb;
-  border-top: 3px solid #3b82f6;
+  border: 3px solid var(--border);
+  border-top: 3px solid #02dcde;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -633,6 +777,80 @@ tbody tr:hover {
   color: #4b5563;
   margin-top: 12px;
   font-size: 14px;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 50;
+}
+
+.modal-card {
+  width: min(800px, 95vw);
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #111827;
+  color: #ffffff;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 18px;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+/* PDF styles removed in simple modal */
+
+.modal-field .label {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.modal-field .value {
+  font-size: 14px;
+  color: #111827;
+}
+
+.modal-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* Responsive */
@@ -663,5 +881,3 @@ tbody tr:hover {
   }
 }
 </style>
-
-
