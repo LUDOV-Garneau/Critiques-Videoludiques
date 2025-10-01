@@ -130,14 +130,15 @@ const mappedObjects = computed(() => {
 const sidebarFilters = ref({
   magazines: [],
   countries: [],
-  platforms: [],
-  platformsPresence: '',
+  platformTypes: [],
+  consoles: [],
   authorGender: '',
   authorName: '',
   yearRange: [1981, 2021], // Valeurs par défaut basées sur les données réelles
   monthRange: [1, 12],
-  scorePresence: '',
-  scoreRange: [0, 100]
+  scoreTypes: [],
+  scoreRange: [0, 100],
+  includeUnscored: true
 })
 
 const facets = computed(() => {
@@ -171,8 +172,24 @@ const facets = computed(() => {
     }
   }
 
+  // Extraire les types de plateformes depuis les données brutes
+  const platformTypes = new Set()
+  if (headers.value.length > 0) {
+    const platformTypeIndex = headers.value.findIndex(h =>
+      h && h.toLowerCase().includes('type') && h.toLowerCase().includes('plateforme')
+    )
+    if (platformTypeIndex !== -1) {
+      rows.value.forEach(row => {
+        const platformType = row[platformTypeIndex]
+        if (platformType && platformType !== '' && platformType !== '0') {
+          platformTypes.add(platformType)
+        }
+      })
+    }
+  }
+
   return {
-    platforms: uniq(arr.map(x => x.Plateforme)),
+    platformTypes: Array.from(platformTypes).sort(),
     magazines: uniq(arr.map(x => x.Magazine)),
     countries: uniq(arr.map(x => x.Pays)),
     authors: {
@@ -206,42 +223,75 @@ const filteredByFilters = computed(() => {
       }
     }
 
-    // Filtre par présence de plateforme (colonnes binaires 0/1)
-    if (f.platformsPresence) {
+    // Filtre par type de plateforme
+    if (f.platformTypes.length > 0) {
       if (headers.value.length > 0 && index < rows.value.length) {
-        // Chercher les colonnes de plateformes (qui contiennent des 0 et 1)
-        const platformColumns = headers.value.filter(h =>
-          h && (h.includes('PC') || h.includes('PlayStation') || h.includes('Xbox') ||
-                h.includes('Nintendo') || h.includes('Console') || h.includes('Plateforme'))
+        const platformTypeIndex = headers.value.findIndex(h =>
+          h && h.toLowerCase().includes('type') && h.toLowerCase().includes('plateforme')
         )
-
-        if (platformColumns.length > 0) {
-          const hasPlatformIndication = platformColumns.some(col => {
-            const colIndex = headers.value.indexOf(col)
-            return colIndex !== -1 && Number(rows.value[index][colIndex]) === 1
-          })
-
-          if (f.platformsPresence === 'avec' && !hasPlatformIndication) return false
-          if (f.platformsPresence === 'sans' && hasPlatformIndication) return false
+        if (platformTypeIndex !== -1) {
+          const platformType = rows.value[index][platformTypeIndex]
+          if (!f.platformTypes.includes(platformType)) return false
         }
       }
     }
 
-    // Filtre par présence de note
-    if (f.scorePresence) {
-      const hasScore = x.Note && x.Note > 0
-      if (f.scorePresence === 'noté' && !hasScore) return false
-      if (f.scorePresence === 'non-noté' && hasScore) return false
+    // Filtre par consoles spécifiques (colonnes binaires 0/1)
+    if (f.consoles.length > 0) {
+      if (headers.value.length > 0 && index < rows.value.length) {
+        // Vérifier si au moins une des consoles sélectionnées est active (valeur 1)
+        const hasSelectedConsole = f.consoles.some(consoleName => {
+          const consoleIndex = headers.value.indexOf(consoleName)
+          return consoleIndex !== -1 && Number(rows.value[index][consoleIndex]) === 1
+        })
+
+        if (!hasSelectedConsole) return false
+      }
     }
 
-    // Filtre par plage de notes (seulement si une note existe)
-    if (x.Note && x.Note > 0) {
-      const score = x.Note
-      if (score < f.scoreRange[0] || score > f.scoreRange[1]) return false
+    // Filtre par types de scores et plage (sélection multiple)
+    if (f.scoreTypes && f.scoreTypes.length > 0 && f.scoreRange) {
+      if (headers.value.length > 0 && index < rows.value.length) {
+        // Mapping des types de scores vers les indices de colonnes
+        const scoreTypeMapping = {
+          'general': 35,    // Moyenne des critères généraux
+          'visual': 39,     // Moyenne des critères visuels
+          'sound': 43,      // Moyenne des critères sonores
+          'content': 47,    // Moyenne des critères de contenu
+          'gameplay': 51,   // Moyenne des critères de jouabilité
+          'playtime': 63,   // Moyenne des critères sur le temps de jeu
+          'difficulty': 67, // Moyenne des critères sur la difficulté
+          'price': 75,      // Moyenne des critères sur le prix
+          'other': 83       // Moyenne des autres critères
+        }
+
+        // Vérifier chaque type de score sélectionné
+        for (const scoreType of f.scoreTypes) {
+          const scoreColumnIndex = scoreTypeMapping[scoreType]
+          if (scoreColumnIndex !== undefined) {
+            const scoreValue = rows.value[index][scoreColumnIndex]
+            if (scoreValue && scoreValue !== '' && scoreValue !== 0) {
+              // La critique a une note pour ce type de critère
+              const numericScore = Number(scoreValue)
+              if (!isNaN(numericScore)) {
+                if (numericScore < f.scoreRange[0] || numericScore > f.scoreRange[1]) {
+                  return false // La note n'est pas dans la plage pour ce critère
+                }
+              }
+            } else {
+              // La critique n'a pas de note pour ce type de critère
+              if (!f.includeUnscored) {
+                return false // Exclure si l'utilisateur ne veut pas les critiques sans note
+              }
+              // Si includeUnscored est true, on continue avec les autres critères
+            }
+          }
+        }
+        // Si on arrive ici, la critique satisfait tous les critères sélectionnés
+      }
     }
 
-    // Filtre par plateformes
-    if (f.platforms.length > 0 && !f.platforms.includes(String(x.Plateforme))) return false
+
 
     // Filtre par magazines
     if (f.magazines.length > 0 && !f.magazines.includes(String(x.Magazine))) return false
