@@ -134,7 +134,7 @@ const sidebarFilters = ref({
   consoles: [],
   authorGender: '',
   authorName: '',
-  yearRange: [1981, 2021], // Valeurs par défaut basées sur les données réelles
+  yearRange: [1980, 2025], // Plage complète par défaut (pas de filtre actif)
   monthRange: [1, 12],
   scoreTypes: [],
   scoreRange: [0, 100],

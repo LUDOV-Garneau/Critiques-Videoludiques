@@ -31,7 +31,7 @@ const localFilters = ref({
   consoles: [], // Consoles spécifiques (Nintendo64, PlayStation, etc.)
   authorGender: '', // 'masculin', 'féminin', ou ''
   authorName: '',
-  yearRange: [1981, 2021], // Valeurs par défaut basées sur les données réelles
+  yearRange: [1980, 2025], // Plage complète par défaut (pas de filtre actif)
   monthRange: [1, 12], // Janvier (1) à Décembre (12)
   scoreTypes: [], // Types de notes à filtrer (sélection multiple)
   scoreRange: [0, 100], // Plage de scores pour le type sélectionné
@@ -109,7 +109,7 @@ const activeFiltersList = computed(() => {
   
   const [minYear, maxYear] = localFilters.value.yearRange
   const [minMonth, maxMonth] = localFilters.value.monthRange
-  const hasYearFilter = minYear !== 1981 || maxYear !== 2021
+  const hasYearFilter = minYear !== (props.facets.minYear || 1980) || maxYear !== (props.facets.maxYear || 2025)
   const hasMonthFilter = minMonth !== 1 || maxMonth !== 12
 
   if (hasYearFilter || hasMonthFilter) {
@@ -236,7 +236,7 @@ function clearFilter(filterType) {
       localFilters.value.authorName = ''
       break
     case 'yearRange':
-      localFilters.value.yearRange = [1981, 2021]
+      localFilters.value.yearRange = [props.facets.minYear || 1980, props.facets.maxYear || 2025]
       localFilters.value.monthRange = [1, 12]
       break
     case 'scoreTypes':
@@ -257,7 +257,7 @@ function clearAllFilters() {
     consoles: [],
     authorGender: '',
     authorName: '',
-    yearRange: [1981, 2021],
+    yearRange: [props.facets.minYear || 1980, props.facets.maxYear || 2025],
     monthRange: [1, 12],
     scoreTypes: [],
     scoreRange: [0, 100],
@@ -433,7 +433,7 @@ let isInitialized = false
 watch(() => props.facets, (newFacets) => {
   if (newFacets.minYear && newFacets.maxYear && !isInitialized) {
     // Initialiser seulement si les valeurs sont encore par défaut
-    if (localFilters.value.yearRange[0] === 1981 && localFilters.value.yearRange[1] === 2021) {
+    if (localFilters.value.yearRange[0] === 1980 && localFilters.value.yearRange[1] === 2025) {
       localFilters.value.yearRange = [newFacets.minYear, newFacets.maxYear]
       isInitialized = true
     }
