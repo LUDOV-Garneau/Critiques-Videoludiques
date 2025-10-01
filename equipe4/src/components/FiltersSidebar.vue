@@ -313,6 +313,14 @@ const allAuthors = computed(() => {
   return Array.from(allAuthorsSet).sort()
 })
 
+// Recherche dans la liste des auteurs
+const authorQuery = ref('')
+const filteredAuthors = computed(() => {
+  const q = (authorQuery.value || '').toLowerCase().trim()
+  if (!q) return allAuthors.value
+  return allAuthors.value.filter(a => a.toLowerCase().includes(q))
+})
+
 // Liste des types de plateformes disponibles (basée sur la colonne "Type de plateforme")
 const allPlatformTypes = computed(() => {
   return ['Console', 'Microordinateur', 'Portable', 'Mobile', 'Autre']
@@ -664,17 +672,33 @@ watch(() => props.facets, (newFacets) => {
 
           <div class="author-name-filter">
             <label for="authorName">Nom de l'auteur :</label>
-            <select
-              id="authorName"
-              v-model="localFilters.authorName"
-              @change="setAuthorName($event.target.value)"
-              class="author-select"
-            >
-              <option value="">Tous les auteurs</option>
-              <option v-for="author in allAuthors" :key="author" :value="author">
-                {{ author }}
-              </option>
-            </select>
+            <input
+              type="search"
+              v-model="authorQuery"
+              placeholder="Rechercher un auteur…"
+              class="text-input"
+              autocomplete="off"
+            />
+            <div class="filter-options" style="max-height: 180px; margin-top: 8px;">
+              <label
+                v-for="author in filteredAuthors"
+                :key="author"
+                class="checkbox-option"
+              >
+                <input
+                  type="radio"
+                  name="authorName"
+                  :checked="localFilters.authorName === author"
+                  @change="setAuthorName(author)"
+                />
+                <span>{{ author }}</span>
+              </label>
+              <div v-if="filteredAuthors.length === 0" class="no-active-filters">Aucun auteur trouvé</div>
+            </div>
+            <div v-if="localFilters.authorName" style="margin-top: 8px; display: flex; gap: 8px;">
+              <button class="clear-all-btn" @click="setAuthorName('')">Effacer la sélection</button>
+              <span style="font-size:12px;color:#6b7280;align-self:center;">Sélectionné: {{ localFilters.authorName }}</span>
+            </div>
           </div>
         </div>
       </div>
