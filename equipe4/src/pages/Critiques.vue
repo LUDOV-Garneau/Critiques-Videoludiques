@@ -248,20 +248,13 @@ const filteredByFilters = computed(() => {
   const f = sidebarFilters.value
 
   return arr.filter((x, index) => {
-    // Filtre par année
+    // Filtre par année - seulement si l'année est valide
     const year = x.Année
-    // Seulement filtrer par année si l'année est valide
     if (year !== '-' && year !== undefined && typeof year === 'number') {
+      // Appliquer le filtre d'année seulement si l'année est un nombre valide
       if (year < f.yearRange[0] || year > f.yearRange[1]) return false
-    } else {
-      // Si pas d'année valide et que le filtre d'année n'est pas à la plage complète, exclure
-      const facetMinYear = 1980
-      const facetMaxYear = 2025
-      if (f.yearRange[0] !== facetMinYear || f.yearRange[1] !== facetMaxYear) {
-        // L'utilisateur a modifié le filtre d'année, donc exclure les critiques sans année
-        return false
-      }
     }
+    // Si pas d'année valide, on garde la critique (ne pas filtrer)
 
     // Filtre par mois (utiliser les données brutes)
     if (f.monthRange[0] !== 1 || f.monthRange[1] !== 12) {
