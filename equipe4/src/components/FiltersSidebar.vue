@@ -1059,11 +1059,14 @@ watch(() => props.facets, (newFacets) => {
 
 .checkbox-option input[type="checkbox"] {
   margin: 0;
+  margin-right: 8px;
+  cursor: pointer;
 }
 
 .checkbox-option span {
   font-size: 14px;
   color: #374151;
+  cursor: pointer;
 }
 
 .more-options {
@@ -1099,11 +1102,14 @@ watch(() => props.facets, (newFacets) => {
 
 .radio-option input[type="radio"] {
   margin: 0;
+  margin-right: 8px;
+  cursor: pointer;
 }
 
 .radio-option span {
   font-size: 14px;
   color: #374151;
+  cursor: pointer;
 }
 
 .author-name-filter label {
@@ -1178,6 +1184,7 @@ watch(() => props.facets, (newFacets) => {
 
 .radio-item input[type="radio"] {
   margin: 0;
+  margin-right: 8px;
   cursor: pointer;
 }
 
@@ -1336,6 +1343,7 @@ watch(() => props.facets, (newFacets) => {
 
 .checkbox-item input[type="checkbox"] {
   margin: 0;
+  margin-right: 8px;
   cursor: pointer;
   accent-color: #3b82f6;
 }
