@@ -70,7 +70,9 @@ const pageSlice = computed(() => filteredAndSorted.value.slice((page.value-1)*pa
 
 const mapping = ref({
   Titre: '',
+  TitreJeu: '', // Colonne M - Titre du jeu
   Plateforme: '',
+  TypePlateforme: '', // Type de plateforme
   Note: '',
   Année: '',
   Magazine: '',
@@ -78,13 +80,25 @@ const mapping = ref({
   Pays: '',
   CritiqueTitre: '',
   PDF: '',
+  // Notations par critères (9 types)
+  NoteGenerale: '',
+  NoteVisuelle: '',
+  NoteSonore: '',
+  NoteContenu: '',
+  NoteJouabilite: '',
+  NoteTempsJeu: '',
+  NoteDifficulte: '',
+  NotePrix: '',
+  NoteAutre: '',
 })
 
 function initMapping() {
   const lower = (headers.value || []).map(h => String(h || '').toLowerCase())
   function find(labels) { const i = lower.findIndex(h => labels.some(l => h.includes(l))); return i>=0 ? headers.value[i] : '' }
   mapping.value.Titre = find(['title','game','name','titre','jeu'])
+  mapping.value.TitreJeu = find(['titre du jeu', 'game title', 'nom du jeu'])
   mapping.value.Plateforme = find(['platform','console','system','plateforme'])
+  mapping.value.TypePlateforme = find(['type de plateforme', 'platform type'])
   mapping.value.Note = find(['score','rating','note'])
   mapping.value.Année = find(['year','release year','annee','année','date'])
   mapping.value.Magazine = find(['magazine','revue','journal','publication'])
@@ -92,6 +106,16 @@ function initMapping() {
   mapping.value.Pays = find(['country','pays','region'])
   mapping.value.CritiqueTitre = find(['titre de la critique','review title','article title','titre article'])
   mapping.value.PDF = find(['pdf','lien','link','url','document','fichier'])
+  // Notations par critères
+  mapping.value.NoteGenerale = find(['critères généraux', 'criteres generaux', 'general score'])
+  mapping.value.NoteVisuelle = find(['critères visuels', 'criteres visuels', 'visual score'])
+  mapping.value.NoteSonore = find(['critères sonores', 'criteres sonores', 'sound score'])
+  mapping.value.NoteContenu = find(['critères de contenu', 'criteres de contenu', 'content score'])
+  mapping.value.NoteJouabilite = find(['critères de jouabilité', 'criteres de jouabilite', 'gameplay score'])
+  mapping.value.NoteTempsJeu = find(['critères sur le temps de jeu', 'criteres sur le temps de jeu', 'playtime score'])
+  mapping.value.NoteDifficulte = find(['critères sur la difficulté', 'criteres sur la difficulte', 'difficulty score'])
+  mapping.value.NotePrix = find(['critères sur le prix', 'criteres sur le prix', 'price score'])
+  mapping.value.NoteAutre = find(['autres critères', 'autres criteres', 'other score'])
 }
 
 const mappedObjects = computed(() => {
@@ -136,9 +160,35 @@ const mappedObjects = computed(() => {
       annee = !isNaN(yearValue) && yearValue > 0 ? yearValue : '-'
     }
 
+    // Récupérer les consoles actives (colonnes 114-141, valeur = 1)
+    const consoleMapping = {
+      114: 'Atari 2600', 115: 'ColecoVision', 116: 'Odyssey2', 117: 'Intellivision',
+      118: 'Atari 7800', 119: 'NES', 120: 'Videopac G7400', 121: 'MasterSystem',
+      122: 'SuperNES', 123: 'CDi', 124: 'SegaGenesis', 125: 'TurboGrafx16',
+      126: 'AtariJaguar', 127: 'Nintendo64', 128: 'SegaSaturn', 129: 'PCFX',
+      130: 'PlayStation', 131: 'GameCube', 132: 'Dreamcast', 133: 'PlayStation2',
+      134: 'Xbox', 135: 'Wii', 136: 'HyperScan', 137: 'PlayStation3',
+      138: 'Xbox360', 139: 'NintendoSwitch', 140: 'PlayStation4', 141: 'XboxOne'
+    }
+    const activeConsoles = []
+    for (const [colIndex, consoleName] of Object.entries(consoleMapping)) {
+      if (Number(r[colIndex]) === 1) {
+        activeConsoles.push(consoleName)
+      }
+    }
+
+    // Fonction helper pour parser les notes
+    const parseScore = (value) => {
+      if (value === undefined || value === null || value === '') return undefined
+      const num = Number(value)
+      return !isNaN(num) && num > 0 ? num : undefined
+    }
+
     return {
       Titre: idx.Titre>=0 ? r[idx.Titre] : undefined,
+      TitreJeu: idx.TitreJeu>=0 ? r[idx.TitreJeu] : undefined,
       Plateforme: idx.Plateforme>=0 ? r[idx.Plateforme] : undefined,
+      TypePlateforme: idx.TypePlateforme>=0 ? r[idx.TypePlateforme] : undefined,
       Note: idx.Note>=0 ? Number(r[idx.Note]) : undefined,
       Année: annee,
       Magazine: idx.Magazine>=0 ? r[idx.Magazine] : undefined,
@@ -146,6 +196,17 @@ const mappedObjects = computed(() => {
       Pays: idx.Pays>=0 ? r[idx.Pays] : undefined,
       CritiqueTitre: idx.CritiqueTitre>=0 ? r[idx.CritiqueTitre] : undefined,
       PDF: idx.PDF>=0 ? r[idx.PDF] : undefined,
+      Consoles: activeConsoles.length > 0 ? activeConsoles.join(', ') : '-',
+      // Notations par critères
+      NoteGenerale: parseScore(idx.NoteGenerale>=0 ? r[idx.NoteGenerale] : undefined),
+      NoteVisuelle: parseScore(idx.NoteVisuelle>=0 ? r[idx.NoteVisuelle] : undefined),
+      NoteSonore: parseScore(idx.NoteSonore>=0 ? r[idx.NoteSonore] : undefined),
+      NoteContenu: parseScore(idx.NoteContenu>=0 ? r[idx.NoteContenu] : undefined),
+      NoteJouabilite: parseScore(idx.NoteJouabilite>=0 ? r[idx.NoteJouabilite] : undefined),
+      NoteTempsJeu: parseScore(idx.NoteTempsJeu>=0 ? r[idx.NoteTempsJeu] : undefined),
+      NoteDifficulte: parseScore(idx.NoteDifficulte>=0 ? r[idx.NoteDifficulte] : undefined),
+      NotePrix: parseScore(idx.NotePrix>=0 ? r[idx.NotePrix] : undefined),
+      NoteAutre: parseScore(idx.NoteAutre>=0 ? r[idx.NoteAutre] : undefined),
     }
   })
 
@@ -425,6 +486,7 @@ const filteredRowsObjects = computed(() => {
       // Mapper les clés d'affichage vers les propriétés de l'objet
       switch(key) {
         case 'Titre': return item.Titre
+        case 'Type de plateforme': return item.TypePlateforme
         case 'Plateforme': return item.Plateforme
         case 'Note': return item.Note
         case 'Année': return item.Année
@@ -432,6 +494,7 @@ const filteredRowsObjects = computed(() => {
         case 'Auteurs': return item.Auteurs
         case 'Développeur': return item.Développeur
         case 'Éditeur': return item.Éditeur
+        case 'Magazine': return item.Magazine
         default: return item[key] || ''
       }
     })
@@ -491,6 +554,7 @@ function buildImportantColumns(allHeaders) {
 
   const want = [
     { key: 'title', labels: ['title','game','name','titre','jeu'], display: 'Titre' },
+    { key: 'platformType', labels: ['type de plateforme','platform type'], display: 'Type de plateforme' },
     // Retirer Plateforme et Note de l'affichage principal
     { key: 'year', labels: ['year','release year','annee','année','date'], display: 'Année' },
     { key: 'country', labels: ['country','pays','region'], display: 'Pays' },
@@ -593,22 +657,100 @@ function buildImportantColumns(allHeaders) {
               <button class="modal-close" @click="closeModal" aria-label="Fermer">×</button>
             </header>
             <div class="modal-body">
-              <div class="modal-grid">
-                <div class="modal-field">
-                  <div class="label">Magazine</div>
-                  <div class="value">{{ modalItem?.Magazine || '-' }}</div>
-                </div>
+              <!-- Section: Informations générales -->
+              <div class="modal-section">
+                <h4 class="section-title">Informations générales</h4>
+                <div class="modal-grid">
                   <div class="modal-field">
-                    <div class="label">Jeu</div>
+                    <div class="label">Titre de la critique</div>
                     <div class="value">{{ modalItem?.Titre || '-' }}</div>
                   </div>
-                <div class="modal-field">
-                  <div class="label">Pays</div>
-                  <div class="value">{{ modalItem?.Pays || '-' }}</div>
+                  <div class="modal-field">
+                    <div class="label">Titre du jeu</div>
+                    <div class="value">{{ modalItem?.TitreJeu || '-' }}</div>
+                  </div>
+                  <div class="modal-field">
+                    <div class="label">Magazine</div>
+                    <div class="value">{{ modalItem?.Magazine || '-' }}</div>
+                  </div>
+                  <div class="modal-field">
+                    <div class="label">Année</div>
+                    <div class="value">{{ modalItem?.Année || '-' }}</div>
+                  </div>
+                  <div class="modal-field">
+                    <div class="label">Pays</div>
+                    <div class="value">{{ modalItem?.Pays || '-' }}</div>
+                  </div>
+                  <div class="modal-field">
+                    <div class="label">Auteurs</div>
+                    <div class="value">{{ modalItem?.Auteurs || '-' }}</div>
+                  </div>
                 </div>
-                <div class="modal-field">
-                  <div class="label">Auteurs</div>
-                  <div class="value">{{ modalItem?.Auteurs || '-' }}</div>
+              </div>
+
+              <!-- Section: Plateformes -->
+              <div class="modal-section">
+                <h4 class="section-title">Plateformes</h4>
+                <div class="modal-grid">
+                  <div class="modal-field">
+                    <div class="label">Type de plateforme</div>
+                    <div class="value">{{ modalItem?.TypePlateforme || '-' }}</div>
+                  </div>
+                  <div class="modal-field">
+                    <div class="label">Plateforme</div>
+                    <div class="value">{{ modalItem?.Plateforme || '-' }}</div>
+                  </div>
+                  <div class="modal-field modal-field-full">
+                    <div class="label">Console(s) spécifique(s)</div>
+                    <div class="value">{{ modalItem?.Consoles || '-' }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Section: Notations -->
+              <div class="modal-section">
+                <h4 class="section-title">Notations</h4>
+                <div class="modal-grid">
+                  <div class="modal-field">
+                    <div class="label">Note générale</div>
+                    <div class="value">{{ modalItem?.Note || '-' }}</div>
+                  </div>
+                  <div class="modal-field">
+                    <div class="label">Critères généraux</div>
+                    <div class="value">{{ modalItem?.NoteGenerale || '-' }}</div>
+                  </div>
+                  <div class="modal-field">
+                    <div class="label">Critères visuels</div>
+                    <div class="value">{{ modalItem?.NoteVisuelle || '-' }}</div>
+                  </div>
+                  <div class="modal-field">
+                    <div class="label">Critères sonores</div>
+                    <div class="value">{{ modalItem?.NoteSonore || '-' }}</div>
+                  </div>
+                  <div class="modal-field">
+                    <div class="label">Critères de contenu</div>
+                    <div class="value">{{ modalItem?.NoteContenu || '-' }}</div>
+                  </div>
+                  <div class="modal-field">
+                    <div class="label">Critères de jouabilité</div>
+                    <div class="value">{{ modalItem?.NoteJouabilite || '-' }}</div>
+                  </div>
+                  <div class="modal-field">
+                    <div class="label">Critères sur le temps de jeu</div>
+                    <div class="value">{{ modalItem?.NoteTempsJeu || '-' }}</div>
+                  </div>
+                  <div class="modal-field">
+                    <div class="label">Critères sur la difficulté</div>
+                    <div class="value">{{ modalItem?.NoteDifficulte || '-' }}</div>
+                  </div>
+                  <div class="modal-field">
+                    <div class="label">Critères sur le prix</div>
+                    <div class="value">{{ modalItem?.NotePrix || '-' }}</div>
+                  </div>
+                  <div class="modal-field">
+                    <div class="label">Autres critères</div>
+                    <div class="value">{{ modalItem?.NoteAutre || '-' }}</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -884,6 +1026,25 @@ tbody tr:hover {
 
 .modal-body {
   padding: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.modal-section {
+  margin-bottom: 24px;
+}
+
+.modal-section:last-child {
+  margin-bottom: 0;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 12px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e5e7eb;
 }
 
 .modal-grid {
@@ -892,17 +1053,27 @@ tbody tr:hover {
   gap: 16px;
 }
 
+.modal-field {
+  min-width: 0;
+}
+
+.modal-field-full {
+  grid-column: 1 / -1;
+}
+
 /* PDF styles removed in simple modal */
 
 .modal-field .label {
   font-size: 12px;
   color: #6b7280;
   margin-bottom: 4px;
+  font-weight: 500;
 }
 
 .modal-field .value {
   font-size: 14px;
   color: #111827;
+  word-wrap: break-word;
 }
 
 .modal-footer {
