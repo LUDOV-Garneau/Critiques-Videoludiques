@@ -16,10 +16,34 @@ const query = ref('')
 const sortKey = ref('Année')
 const sortDir = ref('desc')
 
+// Modal state & handlers
+const isModalOpen = ref(false)
+const modalItem = ref(null)
+
+function openModal(item) {
+  modalItem.value = item || null
+  isModalOpen.value = true
+}
+
+function closeModal() {
+  isModalOpen.value = false
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal()
+  })
+}
+
 const filteredAndSorted = computed(() => {
   const keys = filteredHeaders.value
   // Utiliser les données filtrées par la sidebar au lieu de filteredRows
-  let items = filteredRowsObjects.value.map(r => Object.fromEntries(r.map((v, i) => [keys[i], v])))
+  let items = filteredRowsObjects.value.map((r, idx) => {
+    const obj = Object.fromEntries(r.map((v, i) => [keys[i], v]))
+    // Conserver l'objet source complet pour l'affichage en modal
+    obj._full = filteredByFilters.value[idx]
+    return obj
+  })
 
   // Appliquer la recherche textuelle
   if (query.value.trim()) {
@@ -52,6 +76,8 @@ const mapping = ref({
   Magazine: '',
   Auteurs: '',
   Pays: '',
+  CritiqueTitre: '',
+  PDF: '',
 })
 
 function initMapping() {
@@ -64,6 +90,8 @@ function initMapping() {
   mapping.value.Magazine = find(['magazine','revue','journal','publication'])
   mapping.value.Auteurs = find(['author','auteur','autrice','writer'])
   mapping.value.Pays = find(['country','pays','region'])
+  mapping.value.CritiqueTitre = find(['titre de la critique','review title','article title','titre article'])
+  mapping.value.PDF = find(['pdf','lien','link','url','document','fichier'])
 }
 
 const mappedObjects = computed(() => {
@@ -116,6 +144,8 @@ const mappedObjects = computed(() => {
       Magazine: idx.Magazine>=0 ? r[idx.Magazine] : undefined,
       Auteurs: validAuthors.length > 0 ? validAuthors.join(', ') : '-', // Afficher "-" si pas d'auteurs
       Pays: idx.Pays>=0 ? r[idx.Pays] : undefined,
+      CritiqueTitre: idx.CritiqueTitre>=0 ? r[idx.CritiqueTitre] : undefined,
+      PDF: idx.PDF>=0 ? r[idx.PDF] : undefined,
     }
   })
 
@@ -137,15 +167,15 @@ const mappedObjects = computed(() => {
 const sidebarFilters = ref({
   magazines: [],
   countries: [],
-  platformTypes: [],
-  consoles: [],
+  platformTypes: [], // Types de plateformes (Console, Microordinateur, etc.)
+  consoles: [], // Consoles spécifiques (Nintendo64, PlayStation, etc.)
   authorGender: '',
   authorName: '',
   yearRange: [1980, 2025], // Plage complète par défaut (pas de filtre actif)
   monthRange: [1, 12],
-  scoreTypes: [],
+  scoreTypes: [], // Types de notes à filtrer (sélection multiple)
   scoreRange: [0, 100],
-  includeUnscored: true
+  includeUnscored: true // Inclure les critiques sans notation
 })
 
 const facets = computed(() => {
@@ -179,17 +209,15 @@ const facets = computed(() => {
     }
   }
 
-  // Extraire les types de plateformes depuis les données brutes
+  // Récupérer les types de plateformes depuis les données brutes
   const platformTypes = new Set()
   if (headers.value.length > 0) {
-    const platformTypeIndex = headers.value.findIndex(h =>
-      h && h.toLowerCase().includes('type') && h.toLowerCase().includes('plateforme')
-    )
+    const platformTypeIndex = headers.value.indexOf('Type de plateforme')
     if (platformTypeIndex !== -1) {
       rows.value.forEach(row => {
-        const platformType = row[platformTypeIndex]
-        if (platformType && platformType !== '' && platformType !== '0') {
-          platformTypes.add(platformType)
+        const type = row[platformTypeIndex]
+        if (type && type !== '' && type !== '0') {
+          platformTypes.add(type)
         }
       })
     }
@@ -239,12 +267,10 @@ const filteredByFilters = computed(() => {
       }
     }
 
-    // Filtre par type de plateforme
+    // Filtre par types de plateformes
     if (f.platformTypes.length > 0) {
       if (headers.value.length > 0 && index < rows.value.length) {
-        const platformTypeIndex = headers.value.findIndex(h =>
-          h && h.toLowerCase().includes('type') && h.toLowerCase().includes('plateforme')
-        )
+        const platformTypeIndex = headers.value.indexOf('Type de plateforme')
         if (platformTypeIndex !== -1) {
           const platformType = rows.value[index][platformTypeIndex]
           if (!f.platformTypes.includes(platformType)) return false
@@ -252,62 +278,64 @@ const filteredByFilters = computed(() => {
       }
     }
 
-    // Filtre par consoles spécifiques (colonnes binaires 0/1)
+    // Filtre par consoles spécifiques (colonnes binaires DK-EL, indices 114-141)
     if (f.consoles.length > 0) {
       if (headers.value.length > 0 && index < rows.value.length) {
-        // Vérifier si au moins une des consoles sélectionnées est active (valeur 1)
-        const hasSelectedConsole = f.consoles.some(consoleName => {
-          const consoleIndex = headers.value.indexOf(consoleName)
-          return consoleIndex !== -1 && Number(rows.value[index][consoleIndex]) === 1
+        // Mapping des consoles vers leurs indices de colonnes
+        const consoleMapping = {
+          'Atari 2600': 114, 'ColecoVision': 115, 'Odyssey2': 116, 'Intellivision': 117,
+          'Atari 7800': 118, 'NES': 119, 'Videopac G7400': 120, 'MasterSystem': 121,
+          'SuperNES': 122, 'CDi': 123, 'SegaGenesis': 124, 'TurboGrafx16': 125,
+          'AtariJaguar': 126, 'Nintendo64': 127, 'SegaSaturn': 128, 'PCFX': 129,
+          'PlayStation': 130, 'GameCube': 131, 'Dreamcast': 132, 'PlayStation2': 133,
+          'Xbox': 134, 'Wii': 135, 'HyperScan': 136, 'PlayStation3': 137,
+          'Xbox360': 138, 'NintendoSwitch': 139, 'PlayStation4': 140, 'XboxOne': 141
+        }
+
+        // Vérifier si au moins une des consoles sélectionnées est présente (logique OR)
+        const hasSelectedConsole = f.consoles.some(console => {
+          const colIndex = consoleMapping[console]
+          return colIndex !== undefined && Number(rows.value[index][colIndex]) === 1
         })
 
         if (!hasSelectedConsole) return false
       }
     }
 
-    // Filtre par types de scores et plage (sélection multiple)
-    if (f.scoreTypes && f.scoreTypes.length > 0 && f.scoreRange) {
+    // Filtre par types de notes (scoreTypes)
+    if (f.scoreTypes.length > 0) {
       if (headers.value.length > 0 && index < rows.value.length) {
-        // Mapping des types de scores vers les indices de colonnes
+        // Mapping des types de scores vers leurs indices de colonnes
         const scoreTypeMapping = {
-          'general': 35,    // Moyenne des critères généraux
-          'visual': 39,     // Moyenne des critères visuels
-          'sound': 43,      // Moyenne des critères sonores
-          'content': 47,    // Moyenne des critères de contenu
-          'gameplay': 51,   // Moyenne des critères de jouabilité
-          'playtime': 63,   // Moyenne des critères sur le temps de jeu
-          'difficulty': 67, // Moyenne des critères sur la difficulté
-          'price': 75,      // Moyenne des critères sur le prix
-          'other': 83       // Moyenne des autres critères
+          'general': 35, 'visual': 39, 'sound': 43, 'content': 47,
+          'gameplay': 51, 'playtime': 63, 'difficulty': 67, 'price': 75, 'other': 83
         }
 
-        // Vérifier chaque type de score sélectionné
+        // Vérifier si au moins un des types de scores sélectionnés a une valeur
+        let hasValidScore = false
         for (const scoreType of f.scoreTypes) {
-          const scoreColumnIndex = scoreTypeMapping[scoreType]
-          if (scoreColumnIndex !== undefined) {
-            const scoreValue = rows.value[index][scoreColumnIndex]
-            if (scoreValue && scoreValue !== '' && scoreValue !== 0) {
-              // La critique a une note pour ce type de critère
-              const numericScore = Number(scoreValue)
-              if (!isNaN(numericScore)) {
-                if (numericScore < f.scoreRange[0] || numericScore > f.scoreRange[1]) {
-                  return false // La note n'est pas dans la plage pour ce critère
-                }
+          const colIndex = scoreTypeMapping[scoreType]
+          if (colIndex !== undefined) {
+            const scoreValue = Number(rows.value[index][colIndex])
+            if (!isNaN(scoreValue) && scoreValue > 0) {
+              // Vérifier si le score est dans la plage
+              if (scoreValue >= f.scoreRange[0] && scoreValue <= f.scoreRange[1]) {
+                hasValidScore = true
+                break
               }
-            } else {
-              // La critique n'a pas de note pour ce type de critère
-              if (!f.includeUnscored) {
-                return false // Exclure si l'utilisateur ne veut pas les critiques sans note
-              }
-              // Si includeUnscored est true, on continue avec les autres critères
             }
           }
         }
-        // Si on arrive ici, la critique satisfait tous les critères sélectionnés
+
+        // Si includeUnscored est false, exclure les critiques sans note pour ces critères
+        if (!hasValidScore && !f.includeUnscored) return false
+
+        // Si on a trouvé un score valide, vérifier qu'il est dans la plage
+        if (hasValidScore) {
+          // Le score est déjà vérifié dans la boucle ci-dessus
+        }
       }
     }
-
-
 
     // Filtre par magazines
     if (f.magazines.length > 0 && !f.magazines.includes(String(x.Magazine))) return false
@@ -315,35 +343,36 @@ const filteredByFilters = computed(() => {
     // Filtre par pays
     if (f.countries.length > 0 && !f.countries.includes(String(x.Pays))) return false
 
-    // Filtre par nom d'auteur (recherche dans tous les auteurs de la critique)
+    // Filtre par nom d'auteur (match exact insensible à la casse sur les tokens)
     if (f.authorName) {
-      const authorToFind = f.authorName.toLowerCase()
-      const authorString = String(x.Auteurs || '').toLowerCase()
+      const normalize = (s) => String(s || '').toLowerCase().trim()
+      const target = normalize(f.authorName)
 
-      // Ignorer les critiques sans auteurs (marquées avec "-")
-      if (authorString === '-') return false
+      // Construire la liste complète des auteurs de la critique à partir
+      // du champ combiné et des colonnes spécifiques brutes
+      const tokens = new Set()
 
-      // Vérifier si l'auteur recherché est présent dans la liste des auteurs
-      if (!authorString.includes(authorToFind)) {
-        // Vérifier aussi dans les colonnes spécifiques d'auteurs
-        if (headers.value.length > 0 && index < rows.value.length) {
-          const row = rows.value[index]
-          const maleAuthorIndex = headers.value.indexOf('Nom des auteurs masculins')
-          const femaleAuthorIndex = headers.value.indexOf('Nom des autrices féminin')
-
-          let found = false
-          if (maleAuthorIndex !== -1 && row[maleAuthorIndex]) {
-            found = String(row[maleAuthorIndex]).toLowerCase().includes(authorToFind)
-          }
-          if (!found && femaleAuthorIndex !== -1 && row[femaleAuthorIndex]) {
-            found = String(row[femaleAuthorIndex]).toLowerCase().includes(authorToFind)
-          }
-
-          if (!found) return false
-        } else {
-          return false
-        }
+      const pushTokens = (val) => {
+        String(val || '')
+          .split(/[,;]+/)
+          .map(v => normalize(v))
+          .filter(v => v && v !== '0' && !/^\d+$/.test(v))
+          .forEach(v => tokens.add(v))
       }
+
+      // Auteurs combinés mappés
+      pushTokens(x.Auteurs)
+
+      // Auteurs spécifiques (données brutes)
+      if (headers.value.length > 0 && index < rows.value.length) {
+        const row = rows.value[index]
+        const maleAuthorIndex = headers.value.indexOf('Nom des auteurs masculins')
+        const femaleAuthorIndex = headers.value.indexOf('Nom des autrices féminin')
+        if (maleAuthorIndex !== -1) pushTokens(row[maleAuthorIndex])
+        if (femaleAuthorIndex !== -1) pushTokens(row[femaleAuthorIndex])
+      }
+
+      if (!Array.from(tokens).includes(target)) return false
     }
 
     // Filtre par genre d'auteur
@@ -462,13 +491,13 @@ function buildImportantColumns(allHeaders) {
 
   const want = [
     { key: 'title', labels: ['title','game','name','titre','jeu'], display: 'Titre' },
-    { key: 'platform', labels: ['platform','console','system','plateforme'], display: 'Plateforme' },
-    { key: 'score', labels: ['score','rating','note'], display: 'Note' },
+    // Retirer Plateforme et Note de l'affichage principal
     { key: 'year', labels: ['year','release year','annee','année','date'], display: 'Année' },
     { key: 'country', labels: ['country','pays','region'], display: 'Pays' },
     { key: 'author', labels: ['author','auteur','autrice','writer'], display: 'Auteurs' },
     { key: 'developer', labels: ['developer','dev','studio'], display: 'Développeur' },
     { key: 'publisher', labels: ['publisher','éditeur','editeur'], display: 'Éditeur' },
+    { key: 'magazine', labels: ['magazine','revue','journal','publication'], display: 'Magazine' },
   ]
 
   const selected = []
@@ -527,8 +556,8 @@ function buildImportantColumns(allHeaders) {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(it, i) in pageSlice" :key="i">
-                <td v-for="h in filteredHeaders" :key="h" :class="{ 'cell-centered': it[h] === '-' }">{{ it[h] }}</td>
+              <tr v-for="(it, i) in pageSlice" :key="i" class="clickable-row" @click="openModal(it._full || it)">
+                <td v-for="h in filteredHeaders" :key="h">{{ it[h] }}</td>
               </tr>
             </tbody>
           </table>
@@ -556,6 +585,38 @@ function buildImportantColumns(allHeaders) {
           </table>
         </div>
       </section>
+        <!-- Modal Détail de la critique (version simple) -->
+        <div v-if="isModalOpen" class="modal-overlay" @click.self="closeModal">
+          <div class="modal-card" role="dialog" aria-modal="true">
+            <header class="modal-header">
+              <h3 class="modal-title">{{ modalItem?.Titre || 'Critique' }}</h3>
+              <button class="modal-close" @click="closeModal" aria-label="Fermer">×</button>
+            </header>
+            <div class="modal-body">
+              <div class="modal-grid">
+                <div class="modal-field">
+                  <div class="label">Magazine</div>
+                  <div class="value">{{ modalItem?.Magazine || '-' }}</div>
+                </div>
+                  <div class="modal-field">
+                    <div class="label">Jeu</div>
+                    <div class="value">{{ modalItem?.Titre || '-' }}</div>
+                  </div>
+                <div class="modal-field">
+                  <div class="label">Pays</div>
+                  <div class="value">{{ modalItem?.Pays || '-' }}</div>
+                </div>
+                <div class="modal-field">
+                  <div class="label">Auteurs</div>
+                  <div class="value">{{ modalItem?.Auteurs || '-' }}</div>
+                </div>
+              </div>
+            </div>
+            <footer class="modal-footer">
+              <button class="btn" @click="closeModal">Fermer</button>
+            </footer>
+          </div>
+        </div>
         </template>
       </div>
     </div>
@@ -688,9 +749,13 @@ tbody tr:hover {
   background: #f9fafb;
 }
 
-/* Cellule centrée pour les valeurs "-" */
-.cell-centered {
-  text-align: center;
+.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.05s;
+}
+
+.clickable-row:active {
+  transform: scale(0.998);
 }
 
 /* Pagination avec style noir */
@@ -742,8 +807,8 @@ tbody tr:hover {
 .spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid #e5e7eb;
-  border-top: 3px solid #3b82f6;
+  border: 3px solid var(--border);
+  border-top: 3px solid #02dcde;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -771,6 +836,80 @@ tbody tr:hover {
   color: #4b5563;
   margin-top: 12px;
   font-size: 14px;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 50;
+}
+
+.modal-card {
+  width: min(800px, 95vw);
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #111827;
+  color: #ffffff;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 18px;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+/* PDF styles removed in simple modal */
+
+.modal-field .label {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.modal-field .value {
+  font-size: 14px;
+  color: #111827;
+}
+
+.modal-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* Responsive */
