@@ -27,21 +27,23 @@ const emit = defineEmits(['update:filters', 'clear-filter'])
 const localFilters = ref({
   magazines: [],
   countries: [],
-  platforms: [], // Plateformes spécifiques (PC, PlayStation, etc.)
-  platformsPresence: '', // 'avec' ou 'sans' plateforme indiquée
+  platformTypes: [], // Types de plateformes (Console, Microordinateur, Portable, Mobile, Autre)
+  consoles: [], // Consoles spécifiques (Nintendo64, PlayStation, etc.)
   authorGender: '', // 'masculin', 'féminin', ou ''
   authorName: '',
-  yearRange: [1981, 2021], // Valeurs par défaut basées sur les données réelles
+  yearRange: [1980, 2025], // Plage complète par défaut (pas de filtre actif)
   monthRange: [1, 12], // Janvier (1) à Décembre (12)
-  scorePresence: '', // 'noté' ou 'non-noté'
-  scoreRange: [0, 100]
+  scoreTypes: [], // Types de notes à filtrer (sélection multiple)
+  scoreRange: [0, 100], // Plage de scores pour le type sélectionné
+  includeUnscored: true // Inclure les critiques sans notation
 })
 
 // État des cartes déroulantes
 const expandedCards = ref({
   magazines: false,
   countries: false,
-  platforms: false,
+  platformTypes: false,
+  consoles: false,
   authors: false,
   years: false,
   scores: false
@@ -69,24 +71,24 @@ const activeFiltersList = computed(() => {
     })
   }
   
-  if (localFilters.value.platforms.length > 0) {
+  if (localFilters.value.platformTypes.length > 0) {
     filters.push({
-      type: 'platforms',
-      label: 'Plateformes',
-      value: localFilters.value.platforms.join(', '),
-      count: localFilters.value.platforms.length
+      type: 'platformTypes',
+      label: 'Types de plateformes',
+      value: localFilters.value.platformTypes.join(', '),
+      count: localFilters.value.platformTypes.length
     })
   }
 
-  if (localFilters.value.platformsPresence) {
+  if (localFilters.value.consoles.length > 0) {
     filters.push({
-      type: 'platformsPresence',
-      label: 'Indication plateforme',
-      value: localFilters.value.platformsPresence === 'avec' ? 'Avec indication' : 'Sans indication',
-      count: 1
+      type: 'consoles',
+      label: 'Consoles',
+      value: localFilters.value.consoles.join(', '),
+      count: localFilters.value.consoles.length
     })
   }
-  
+
   if (localFilters.value.authorGender) {
     filters.push({
       type: 'authorGender',
@@ -107,7 +109,12 @@ const activeFiltersList = computed(() => {
   
   const [minYear, maxYear] = localFilters.value.yearRange
   const [minMonth, maxMonth] = localFilters.value.monthRange
-  const hasYearFilter = minYear !== 1981 || maxYear !== 2021
+
+  // Obtenir les valeurs min/max des facets, en gérant Infinity
+  const facetMinYear = (props.facets.minYear && isFinite(props.facets.minYear)) ? props.facets.minYear : 1980
+  const facetMaxYear = (props.facets.maxYear && isFinite(props.facets.maxYear)) ? props.facets.maxYear : 2025
+
+  const hasYearFilter = minYear !== facetMinYear || maxYear !== facetMaxYear
   const hasMonthFilter = minMonth !== 1 || maxMonth !== 12
 
   if (hasYearFilter || hasMonthFilter) {
@@ -124,12 +131,20 @@ const activeFiltersList = computed(() => {
     })
   }
 
-  if (localFilters.value.scorePresence) {
+  if (localFilters.value.scoreTypes.length > 0) {
+    const selectedTypes = localFilters.value.scoreTypes.map(key => {
+      const scoreType = allScoreTypes.value.find(s => s.key === key)
+      return scoreType ? scoreType.label : key
+    })
+    let scoreTypeValue = selectedTypes.join(', ')
+    if (!localFilters.value.includeUnscored) {
+      scoreTypeValue += ' (seulement avec notes)'
+    }
     filters.push({
-      type: 'scorePresence',
-      label: 'Notation',
-      value: localFilters.value.scorePresence === 'noté' ? 'Avec note' : 'Sans note',
-      count: 1
+      type: 'scoreTypes',
+      label: 'Types de notes',
+      value: scoreTypeValue,
+      count: localFilters.value.scoreTypes.length
     })
   }
 
@@ -179,13 +194,22 @@ function updateScoreRange(newRange) {
   emitFilters()
 }
 
-function setPlatformsPresence(presence) {
-  localFilters.value.platformsPresence = presence
+
+
+function toggleScoreType(scoreType) {
+  const index = localFilters.value.scoreTypes.indexOf(scoreType)
+  if (index > -1) {
+    // Retirer le type s'il est déjà sélectionné
+    localFilters.value.scoreTypes.splice(index, 1)
+  } else {
+    // Ajouter le type s'il n'est pas sélectionné
+    localFilters.value.scoreTypes.push(scoreType)
+  }
   emitFilters()
 }
 
-function setScorePresence(presence) {
-  localFilters.value.scorePresence = presence
+function setIncludeUnscored(include) {
+  localFilters.value.includeUnscored = include
   emitFilters()
 }
 
@@ -207,11 +231,8 @@ function clearFilter(filterType) {
     case 'countries':
       localFilters.value.countries = []
       break
-    case 'platforms':
-      localFilters.value.platforms = []
-      break
-    case 'platformsPresence':
-      localFilters.value.platformsPresence = ''
+    case 'platformTypes':
+      localFilters.value.platformTypes = []
       break
     case 'authorGender':
       localFilters.value.authorGender = ''
@@ -220,11 +241,11 @@ function clearFilter(filterType) {
       localFilters.value.authorName = ''
       break
     case 'yearRange':
-      localFilters.value.yearRange = [1981, 2021]
+      localFilters.value.yearRange = [props.facets.minYear || 1980, props.facets.maxYear || 2025]
       localFilters.value.monthRange = [1, 12]
       break
-    case 'scorePresence':
-      localFilters.value.scorePresence = ''
+    case 'scoreTypes':
+      localFilters.value.scoreTypes = []
       break
     case 'scoreRange':
       localFilters.value.scoreRange = [0, 100]
@@ -237,14 +258,15 @@ function clearAllFilters() {
   localFilters.value = {
     magazines: [],
     countries: [],
-    platforms: [],
-    platformsPresence: '',
+    platformTypes: [],
+    consoles: [],
     authorGender: '',
     authorName: '',
-    yearRange: [1981, 2021],
+    yearRange: [props.facets.minYear || 1980, props.facets.maxYear || 2025],
     monthRange: [1, 12],
-    scorePresence: '',
-    scoreRange: [0, 100]
+    scoreTypes: [],
+    scoreRange: [0, 100],
+    includeUnscored: true
   }
   emitFilters()
 }
@@ -299,6 +321,116 @@ const filteredAuthors = computed(() => {
   return allAuthors.value.filter(a => a.toLowerCase().includes(q))
 })
 
+// Liste des types de plateformes disponibles (basée sur la colonne "Type de plateforme")
+const allPlatformTypes = computed(() => {
+  return ['Console', 'Microordinateur', 'Portable', 'Mobile', 'Autre']
+})
+
+// Liste des types de scores disponibles (basée sur l'analyse du fichier Excel)
+const allScoreTypes = computed(() => {
+  return [
+    {
+      key: 'general',
+      label: 'Critères généraux',
+      column: 'Moyenne des critères généraux',
+      index: 35,
+      description: '432 critiques notées'
+    },
+    {
+      key: 'visual',
+      label: 'Critères visuels',
+      column: 'Moyenne des critères visuels',
+      index: 39,
+      description: '145 critiques notées'
+    },
+    {
+      key: 'sound',
+      label: 'Critères sonores',
+      column: 'Moyenne des critères sonores',
+      index: 43,
+      description: '131 critiques notées'
+    },
+    {
+      key: 'content',
+      label: 'Critères de contenu',
+      column: 'Moyenne des critères de contenu',
+      index: 47,
+      description: '177 critiques notées'
+    },
+    {
+      key: 'gameplay',
+      label: 'Critères de jouabilité',
+      column: 'Moyenne des critères de jouabilité',
+      index: 51,
+      description: '14 critiques notées'
+    },
+    {
+      key: 'playtime',
+      label: 'Critères sur le temps de jeu',
+      column: 'Moyenne des critères sur le temps de jeu',
+      index: 63,
+      description: '94 critiques notées'
+    },
+    {
+      key: 'difficulty',
+      label: 'Critères sur la difficulté',
+      column: 'Moyenne des critères sur la difficulté',
+      index: 67,
+      description: '294 critiques notées'
+    },
+    {
+      key: 'price',
+      label: 'Critères sur le prix',
+      column: 'Moyenne des critères sur le prix',
+      index: 75,
+      description: '297 critiques notées'
+    },
+    {
+      key: 'other',
+      label: 'Autres critères',
+      column: 'Moyenne des autres critères',
+      index: 83,
+      description: '474 critiques notées'
+    }
+  ]
+})
+
+// Liste de toutes les consoles disponibles (basée sur les colonnes Excel DK-EL, indices 114-141)
+const allConsoles = computed(() => {
+  // Liste complète des consoles trouvées dans le fichier Excel (colonnes binaires 0/1)
+  // Ordre exact selon les colonnes Excel de DK (114) à EL (141)
+  return [
+    'Atari 2600',        // 114
+    'ColecoVision',      // 115
+    'Odyssey2',          // 116
+    'Intellivision',     // 117
+    'Atari 7800',        // 118
+    'NES',               // 119
+    'Videopac G7400',    // 120
+    'MasterSystem',      // 121
+    'SuperNES',          // 122
+    'CDi',               // 123
+    'SegaGenesis',       // 124
+    'TurboGrafx16',      // 125
+    'AtariJaguar',       // 126
+    'Nintendo64',        // 127
+    'SegaSaturn',        // 128
+    'PCFX',              // 129
+    'PlayStation',       // 130
+    'GameCube',          // 131
+    'Dreamcast',         // 132
+    'PlayStation2',      // 133
+    'Xbox',              // 134
+    'Wii',               // 135
+    'HyperScan',         // 136
+    'PlayStation3',      // 137
+    'Xbox360',           // 138
+    'NintendoSwitch',    // 139
+    'PlayStation4',      // 140
+    'XboxOne'            // 141
+  ]
+})
+
 // Formatage des années pour l'affichage
 function formatYear(year) {
   return year.toString()
@@ -314,7 +446,7 @@ let isInitialized = false
 watch(() => props.facets, (newFacets) => {
   if (newFacets.minYear && newFacets.maxYear && !isInitialized) {
     // Initialiser seulement si les valeurs sont encore par défaut
-    if (localFilters.value.yearRange[0] === 1981 && localFilters.value.yearRange[1] === 2021) {
+    if (localFilters.value.yearRange[0] === 1980 && localFilters.value.yearRange[1] === 2025) {
       localFilters.value.yearRange = [newFacets.minYear, newFacets.maxYear]
       isInitialized = true
     }
@@ -390,7 +522,6 @@ watch(() => props.facets, (newFacets) => {
                 type="checkbox"
                 :checked="localFilters.magazines.includes(magazine)"
                 @change="toggleArrayFilter('magazines', magazine)"
-                style="margin-right: 5px;"
               />
               <span>{{ magazine }}</span>
             </label>
@@ -420,7 +551,6 @@ watch(() => props.facets, (newFacets) => {
                 type="checkbox"
                 :checked="localFilters.countries.includes(country)"
                 @change="toggleArrayFilter('countries', country)"
-                style="margin-right: 5px;"
               />
               <span>{{ country }}</span>
             </label>
@@ -428,78 +558,65 @@ watch(() => props.facets, (newFacets) => {
         </div>
       </div>
 
-      <!-- Filtre par Plateforme -->
+      <!-- Filtre par Type de Plateforme -->
       <div class="filter-card">
-        <button 
-          @click="toggleCard('platforms')"
+        <button
+          @click="toggleCard('platformTypes')"
           class="card-header"
-          :class="{ expanded: expandedCards.platforms }"
+          :class="{ expanded: expandedCards.platformTypes }"
         >
-          <span>Plateformes / Consoles</span>
-          <span class="expand-icon">{{ expandedCards.platforms ? '−' : '+' }}</span>
+          <span>Types de plateformes</span>
+          <span class="expand-icon">{{ expandedCards.platformTypes ? '−' : '+' }}</span>
         </button>
-        
-        <div v-if="expandedCards.platforms" class="card-content">
-          <!-- Filtre par présence d'indication de plateforme -->
-          <div class="filter-group">
-            <label class="filter-group-label">Indication de plateforme</label>
-            <div class="radio-group">
-              <label class="radio-item">
-                <input
-                  type="radio"
-                  name="platformsPresence"
-                  value=""
-                  :checked="localFilters.platformsPresence === ''"
-                  @change="setPlatformsPresence('')"
-                  style="margin-right: 5px;"
-                />
-                <span class="radio-label">Toutes</span>
-              </label>
-              <label class="radio-item">
-                <input
-                  type="radio"
-                  name="platformsPresence"
-                  value="avec"
-                  :checked="localFilters.platformsPresence === 'avec'"
-                  @change="setPlatformsPresence('avec')"
-                  style="margin-right: 5px;"
-                />
-                <span class="radio-label">Avec indication (1)</span>
-              </label>
-              <label class="radio-item">
-                <input
-                  type="radio"
-                  name="platformsPresence"
-                  value="sans"
-                  :checked="localFilters.platformsPresence === 'sans'"
-                  @change="setPlatformsPresence('sans')"
-                  style="margin-right: 5px;"
-                />
-                <span class="radio-label">Sans indication (0)</span>
-              </label>
-            </div>
-          </div>
 
-          <!-- Filtre par plateformes spécifiques -->
+        <div v-if="expandedCards.platformTypes" class="card-content">
           <div class="filter-group">
-            <label class="filter-group-label" style="margin-bottom: 5px;">Plateformes spécifiques</label>
+            <label class="filter-group-label">Sélectionner les types</label>
             <div class="filter-options">
               <label
-                v-for="platform in facets.platforms.slice(0, 20)"
-                :key="platform"
+                v-for="platformType in allPlatformTypes"
+                :key="platformType"
                 class="checkbox-option"
               >
                 <input
                   type="checkbox"
-                  :checked="localFilters.platforms.includes(platform)"
-                  @change="toggleArrayFilter('platforms', platform)"
-                  style="margin-right: 5px;"
+                  :checked="localFilters.platformTypes.includes(platformType)"
+                  @change="toggleArrayFilter('platformTypes', platformType)"
                 />
-                <span>{{ platform }}</span>
+                <span>{{ platformType }}</span>
               </label>
-              <div v-if="facets.platforms.length > 20" class="more-options">
-                ... et {{ facets.platforms.length - 20 }} autres
-              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtre par Consoles -->
+      <div class="filter-card">
+        <button
+          @click="toggleCard('consoles')"
+          class="card-header"
+          :class="{ expanded: expandedCards.consoles }"
+        >
+          <span>Consoles spécifiques</span>
+          <span class="expand-icon">{{ expandedCards.consoles ? '−' : '+' }}</span>
+        </button>
+
+        <div v-if="expandedCards.consoles" class="card-content">
+          <div class="filter-group">
+            <label class="filter-group-label">Sélectionner les consoles</label>
+            <div class="filter-options">
+              <label
+                v-for="console in allConsoles"
+                :key="console"
+                class="checkbox-option"
+              >
+                <input
+                  type="checkbox"
+                  :checked="localFilters.consoles.includes(console)"
+                  @change="toggleArrayFilter('consoles', console)"
+                />
+                <span>{{ console }}</span>
+              </label>
             </div>
           </div>
         </div>
@@ -524,7 +641,6 @@ watch(() => props.facets, (newFacets) => {
                 <input
                   type="radio"
                   name="authorGender"
-                  style="margin-right: 5px;"
                   value=""
                   :checked="localFilters.authorGender === ''"
                   @change="setAuthorGender('')"
@@ -535,7 +651,6 @@ watch(() => props.facets, (newFacets) => {
                 <input
                   type="radio"
                   name="authorGender"
-                  style="margin-right: 5px;"
                   value="masculin"
                   :checked="localFilters.authorGender === 'masculin'"
                   @change="setAuthorGender('masculin')"
@@ -546,7 +661,6 @@ watch(() => props.facets, (newFacets) => {
                 <input
                   type="radio"
                   name="authorGender"
-                  style="margin-right: 5px;"
                   value="féminin"
                   :checked="localFilters.authorGender === 'féminin'"
                   @change="setAuthorGender('féminin')"
@@ -579,11 +693,11 @@ watch(() => props.facets, (newFacets) => {
                 />
                 <span>{{ author }}</span>
               </label>
-              <div v-if="filteredAuthors.length === 0" class="no-active-filters">Aucun auteur</div>
+              <div v-if="filteredAuthors.length === 0" class="no-active-filters">Aucun auteur trouvé</div>
             </div>
-            <div style="margin-top: 8px; display: flex; gap: 8px;">
-              <button class="clear-all-btn" @click="setAuthorName('')">Effacer</button>
-              <span v-if="localFilters.authorName" style="font-size:12px;color:#6b7280;align-self:center;">Sélectionné: {{ localFilters.authorName }}</span>
+            <div v-if="localFilters.authorName" style="margin-top: 8px; display: flex; gap: 8px;">
+              <button class="clear-all-btn" @click="setAuthorName('')">Effacer la sélection</button>
+              <span style="font-size:12px;color:#6b7280;align-self:center;">Sélectionné: {{ localFilters.authorName }}</span>
             </div>
           </div>
         </div>
@@ -683,48 +797,46 @@ watch(() => props.facets, (newFacets) => {
         </button>
 
         <div v-if="expandedCards.scores" class="card-content">
-          <!-- Filtre par présence de note -->
+          <!-- Filtre par types de notes (sélection multiple) -->
           <div class="filter-group">
-            <label class="filter-group-label">Présence de note</label>
-            <div class="radio-group">
-              <label class="radio-item">
+            <label class="filter-group-label">Types de critères (sélection multiple)</label>
+            <div class="checkbox-group">
+              <label
+                v-for="scoreType in allScoreTypes"
+                :key="scoreType.key"
+                class="checkbox-item"
+              >
                 <input
-                  type="radio"
-                  name="scorePresence"
-                  value=""
-                  :checked="localFilters.scorePresence === ''"
-                  @change="setScorePresence('')"
-                  style="margin-right: 5px;"
+                  type="checkbox"
+                  :value="scoreType.key"
+                  :checked="localFilters.scoreTypes.includes(scoreType.key)"
+                  @change="toggleScoreType(scoreType.key)"
                 />
-                <span class="radio-label">Toutes</span>
-              </label>
-              <label class="radio-item">
-                <input
-                  type="radio"
-                  name="scorePresence"
-                  value="noté"
-                  :checked="localFilters.scorePresence === 'noté'"
-                  @change="setScorePresence('noté')"
-                  style="margin-right: 5px;"
-                />
-                <span class="radio-label">Avec note (1)</span>
-              </label>
-              <label class="radio-item">
-                <input
-                  type="radio"
-                  name="scorePresence"
-                  value="non-noté"
-                  :checked="localFilters.scorePresence === 'non-noté'"
-                  @change="setScorePresence('non-noté')"
-                  style="margin-right: 5px;"
-                />
-                <span class="radio-label">Sans note (0)</span>
+                <span class="checkbox-label">
+                  {{ scoreType.label }}
+                  <small class="score-description">({{ scoreType.description }})</small>
+                </span>
               </label>
             </div>
           </div>
 
-          <!-- Filtre par plage de notes -->
-          <div class="filter-group">
+          <!-- Options pour les critiques sans notation -->
+          <div v-if="localFilters.scoreTypes.length > 0" class="filter-group">
+            <label class="filter-group-label">Critiques sans notation</label>
+            <div class="checkbox-group">
+              <label class="checkbox-item">
+                <input
+                  type="checkbox"
+                  :checked="localFilters.includeUnscored"
+                  @change="setIncludeUnscored($event.target.checked)"
+                />
+                <span class="checkbox-label">Inclure les critiques sans note pour ce critère</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Filtre par plage de notes (seulement si au moins un type est sélectionné) -->
+          <div v-if="localFilters.scoreTypes.length > 0" class="filter-group">
             <label class="filter-group-label">Plage de notes</label>
             <div class="score-filter">
               <div class="score-labels">
@@ -932,7 +1044,7 @@ watch(() => props.facets, (newFacets) => {
 .filter-options {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   max-height: 200px;
   overflow-y: auto;
 }
@@ -940,18 +1052,21 @@ watch(() => props.facets, (newFacets) => {
 .checkbox-option {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   cursor: pointer;
-  padding: 6px 0;
+  padding: 4px 0;
 }
 
 .checkbox-option input[type="checkbox"] {
   margin: 0;
+  margin-right: 8px;
+  cursor: pointer;
 }
 
 .checkbox-option span {
   font-size: 14px;
   color: #374151;
+  cursor: pointer;
 }
 
 .more-options {
@@ -975,23 +1090,26 @@ watch(() => props.facets, (newFacets) => {
 
 .radio-group {
   display: flex;
-  gap: 14px;
+  gap: 12px;
 }
 
 .radio-option {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   cursor: pointer;
 }
 
 .radio-option input[type="radio"] {
   margin: 0;
+  margin-right: 8px;
+  cursor: pointer;
 }
 
 .radio-option span {
   font-size: 14px;
   color: #374151;
+  cursor: pointer;
 }
 
 .author-name-filter label {
@@ -1003,11 +1121,10 @@ watch(() => props.facets, (newFacets) => {
 
 .text-input {
   width: 100%;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 14px;
-  margin-top: 6px;
 }
 
 .text-input:focus {
@@ -1037,7 +1154,7 @@ watch(() => props.facets, (newFacets) => {
   display: block;
   font-weight: 600;
   color: #374151;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   font-size: 14px;
 }
 
@@ -1060,13 +1177,14 @@ watch(() => props.facets, (newFacets) => {
 .radio-item {
   display: flex;
   align-items: center;
-  margin-right: 5px;
+  gap: 8px;
   cursor: pointer;
   padding: 4px 0;
 }
 
 .radio-item input[type="radio"] {
   margin: 0;
+  margin-right: 8px;
   cursor: pointer;
 }
 
@@ -1198,6 +1316,43 @@ watch(() => props.facets, (newFacets) => {
   text-align: center;
   font-size: 12px;
   color: #6b7280;
+}
+
+.score-description {
+  display: block;
+  font-size: 10px;
+  color: #9ca3af;
+  font-weight: normal;
+  margin-top: 2px;
+}
+
+/* Checkbox styles */
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.checkbox-item input[type="checkbox"] {
+  margin: 0;
+  margin-right: 8px;
+  cursor: pointer;
+  accent-color: #3b82f6;
+}
+
+.checkbox-label {
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.4;
+  cursor: pointer;
 }
 
 /* Responsive */

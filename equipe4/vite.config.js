@@ -10,14 +10,14 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    environment: 'jsdom',
+    environment: 'happy-dom',
     coverage: {
       reporter: ['text', 'html'],
       all: true,
-      include: ['src/**/*'], 
-      exclude: ['node_modules', 'dist', '**/*.snap'] 
+      include: ['src/**/*'],
+      exclude: ['node_modules', 'dist', '**/*.snap']
     },
-    include: ['__tests__/**/*.{test,spec}.{js,ts}'], 
-    exclude: ['__tests__/__snapshots__/**/*'] 
+    include: ['src/**/__tests__/**/*.{test,spec}.{js,ts}', '__tests__/**/*.{test,spec}.{js,ts}'],
+    exclude: ['__tests__/__snapshots__/**/*']
   }
 })
