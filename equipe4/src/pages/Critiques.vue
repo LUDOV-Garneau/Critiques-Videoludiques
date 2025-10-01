@@ -101,11 +101,18 @@ const mappedObjects = computed(() => {
       return trimmed && trimmed !== '0' && !/^\d+$/.test(trimmed)
     })
 
+    // Traiter l'année pour éviter NaN
+    let annee = undefined
+    if (idx.Année >= 0) {
+      const yearValue = Number(String(r[idx.Année]).slice(0, 4))
+      annee = !isNaN(yearValue) && yearValue > 0 ? yearValue : '-'
+    }
+
     return {
       Titre: idx.Titre>=0 ? r[idx.Titre] : undefined,
       Plateforme: idx.Plateforme>=0 ? r[idx.Plateforme] : undefined,
       Note: idx.Note>=0 ? Number(r[idx.Note]) : undefined,
-      Année: idx.Année>=0 ? Number(String(r[idx.Année]).slice(0,4)) : undefined,
+      Année: annee,
       Magazine: idx.Magazine>=0 ? r[idx.Magazine] : undefined,
       Auteurs: validAuthors.length > 0 ? validAuthors.join(', ') : '-', // Afficher "-" si pas d'auteurs
       Pays: idx.Pays>=0 ? r[idx.Pays] : undefined,
@@ -188,6 +195,11 @@ const facets = computed(() => {
     }
   }
 
+  // Filtrer les années valides (exclure "-" et les valeurs invalides)
+  const validYears = arr
+    .map(x => x.Année)
+    .filter(y => y !== '-' && y !== undefined && typeof y === 'number' && !isNaN(y))
+
   return {
     platformTypes: Array.from(platformTypes).sort(),
     magazines: uniq(arr.map(x => x.Magazine)),
@@ -196,8 +208,8 @@ const facets = computed(() => {
       male: Array.from(authorsM).sort(),
       female: Array.from(authorsF).sort()
     },
-    minYear: Math.min(...arr.map(x => x.Année || Infinity)),
-    maxYear: Math.max(...arr.map(x => x.Année || -Infinity)),
+    minYear: validYears.length > 0 ? Math.min(...validYears) : 1980,
+    maxYear: validYears.length > 0 ? Math.max(...validYears) : 2025,
     minScore: 0,
     maxScore: 100
   }
@@ -208,8 +220,12 @@ const filteredByFilters = computed(() => {
   const f = sidebarFilters.value
 
   return arr.filter((x, index) => {
-    // Filtre par année
-    const year = x.Année ?? 0
+    // Filtre par année (exclure les critiques sans année valide)
+    const year = x.Année
+    if (year === '-' || year === undefined || typeof year !== 'number') {
+      // Si pas d'année valide, exclure de la recherche par année
+      return false
+    }
     if (year < f.yearRange[0] || year > f.yearRange[1]) return false
 
     // Filtre par mois (utiliser les données brutes)
@@ -512,7 +528,7 @@ function buildImportantColumns(allHeaders) {
             </thead>
             <tbody>
               <tr v-for="(it, i) in pageSlice" :key="i">
-                <td v-for="h in filteredHeaders" :key="h">{{ it[h] }}</td>
+                <td v-for="h in filteredHeaders" :key="h" :class="{ 'cell-centered': it[h] === '-' }">{{ it[h] }}</td>
               </tr>
             </tbody>
           </table>
@@ -670,6 +686,11 @@ thead th {
 
 tbody tr:hover {
   background: #f9fafb;
+}
+
+/* Cellule centrée pour les valeurs "-" */
+.cell-centered {
+  text-align: center;
 }
 
 /* Pagination avec style noir */

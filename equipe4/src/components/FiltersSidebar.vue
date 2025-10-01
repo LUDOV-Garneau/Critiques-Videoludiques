@@ -109,7 +109,12 @@ const activeFiltersList = computed(() => {
   
   const [minYear, maxYear] = localFilters.value.yearRange
   const [minMonth, maxMonth] = localFilters.value.monthRange
-  const hasYearFilter = minYear !== (props.facets.minYear || 1980) || maxYear !== (props.facets.maxYear || 2025)
+
+  // Obtenir les valeurs min/max des facets, en gérant Infinity
+  const facetMinYear = (props.facets.minYear && isFinite(props.facets.minYear)) ? props.facets.minYear : 1980
+  const facetMaxYear = (props.facets.maxYear && isFinite(props.facets.maxYear)) ? props.facets.maxYear : 2025
+
+  const hasYearFilter = minYear !== facetMinYear || maxYear !== facetMaxYear
   const hasMonthFilter = minMonth !== 1 || maxMonth !== 12
 
   if (hasYearFilter || hasMonthFilter) {
