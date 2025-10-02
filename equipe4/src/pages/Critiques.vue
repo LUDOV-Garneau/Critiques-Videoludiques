@@ -163,9 +163,11 @@ const mappedObjects = computed(() => {
       const num = Number(value)
       return !isNaN(num) && num > 0 ? num : undefined
     }
+    const titreJeu = idx.TitreJeu>=0 ? r[idx.TitreJeu] : undefined;
+    const critiqueTitre = idx.CritiqueTitre>=0 ? r[idx.CritiqueTitre] : undefined;
     return {
-      Titre: idx.Titre>=0 ? r[idx.Titre] : undefined,
-      TitreJeu: idx.TitreJeu>=0 ? r[idx.TitreJeu] : undefined,
+      Titre: titreJeu || critiqueTitre || '-',
+      TitreJeu: titreJeu,
       Plateforme: idx.Plateforme>=0 ? r[idx.Plateforme] : undefined,
       TypePlateforme: idx.TypePlateforme>=0 ? r[idx.TypePlateforme] : undefined,
       Note: idx.Note>=0 ? Number(r[idx.Note]) : undefined,
@@ -173,7 +175,7 @@ const mappedObjects = computed(() => {
       Magazine: idx.Magazine>=0 ? r[idx.Magazine] : undefined,
       Auteurs: validAuthors.length > 0 ? validAuthors.join(', ') : '-', // Afficher "-" si pas d'auteurs
       Pays: idx.Pays>=0 ? r[idx.Pays] : undefined,
-      CritiqueTitre: idx.CritiqueTitre>=0 ? r[idx.CritiqueTitre] : undefined,
+      CritiqueTitre: critiqueTitre,
       PDF: idx.PDF>=0 ? r[idx.PDF] : undefined,
       Consoles: activeConsoles.length > 0 ? activeConsoles.join(', ') : '-',
       // Notations par critères
