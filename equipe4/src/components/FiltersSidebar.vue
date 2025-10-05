@@ -215,6 +215,50 @@ function setIncludeUnscored(include) {
 
 function setAuthorGender(gender) {
   localFilters.value.authorGender = gender
+
+  // Réinitialiser la sélection d'auteur si l'auteur actuellement sélectionné
+  // n'est plus dans la liste filtrée par le nouveau genre
+  if (localFilters.value.authorName) {
+    // Calculer la nouvelle liste d'auteurs pour ce genre
+    let availableAuthors = []
+
+    if (gender === 'masculin') {
+      const male = props.facets.authors?.male || []
+      const maleAuthorsSet = new Set()
+      male.forEach(author => {
+        if (author && author !== '0') {
+          const authors = author.split(/[,;]+/).map(a => a.trim()).filter(a => {
+            return a && a !== '0' && !/^\d+$/.test(a)
+          })
+          authors.forEach(a => maleAuthorsSet.add(a))
+        }
+      })
+      availableAuthors = Array.from(maleAuthorsSet)
+
+    } else if (gender === 'féminin') {
+      const female = props.facets.authors?.female || []
+      const femaleAuthorsSet = new Set()
+      female.forEach(author => {
+        if (author && author !== '0') {
+          const authors = author.split(/[,;]+/).map(a => a.trim()).filter(a => {
+            return a && a !== '0' && !/^\d+$/.test(a)
+          })
+          authors.forEach(a => femaleAuthorsSet.add(a))
+        }
+      })
+      availableAuthors = Array.from(femaleAuthorsSet)
+
+    } else {
+      // Genre "Tous" - tous les auteurs sont disponibles
+      availableAuthors = allAuthors.value
+    }
+
+    // Si l'auteur sélectionné n'est plus dans la liste, le déselectionner
+    if (!availableAuthors.includes(localFilters.value.authorName)) {
+      localFilters.value.authorName = ''
+    }
+  }
+
   emitFilters()
 }
 
@@ -313,12 +357,53 @@ const allAuthors = computed(() => {
   return Array.from(allAuthorsSet).sort()
 })
 
-// Recherche dans la liste des auteurs
+// Recherche dans la liste des auteurs avec filtrage par genre
 const authorQuery = ref('')
 const filteredAuthors = computed(() => {
+  let authorsToFilter = []
+
+  // Filtrer d'abord par genre
+  if (localFilters.value.authorGender === 'masculin') {
+    // Afficher seulement les auteurs masculins
+    const male = props.facets.authors?.male || []
+    const maleAuthorsSet = new Set()
+
+    male.forEach(author => {
+      if (author && author !== '0') {
+        const authors = author.split(/[,;]+/).map(a => a.trim()).filter(a => {
+          return a && a !== '0' && !/^\d+$/.test(a)
+        })
+        authors.forEach(a => maleAuthorsSet.add(a))
+      }
+    })
+
+    authorsToFilter = Array.from(maleAuthorsSet).sort()
+
+  } else if (localFilters.value.authorGender === 'féminin') {
+    // Afficher seulement les autrices féminines
+    const female = props.facets.authors?.female || []
+    const femaleAuthorsSet = new Set()
+
+    female.forEach(author => {
+      if (author && author !== '0') {
+        const authors = author.split(/[,;]+/).map(a => a.trim()).filter(a => {
+          return a && a !== '0' && !/^\d+$/.test(a)
+        })
+        authors.forEach(a => femaleAuthorsSet.add(a))
+      }
+    })
+
+    authorsToFilter = Array.from(femaleAuthorsSet).sort()
+
+  } else {
+    // Afficher tous les auteurs (genre "Tous")
+    authorsToFilter = allAuthors.value
+  }
+
+  // Ensuite filtrer par la recherche textuelle
   const q = (authorQuery.value || '').toLowerCase().trim()
-  if (!q) return allAuthors.value
-  return allAuthors.value.filter(a => a.toLowerCase().includes(q))
+  if (!q) return authorsToFilter
+  return authorsToFilter.filter(a => a.toLowerCase().includes(q))
 })
 
 // Liste des types de plateformes disponibles (basée sur la colonne "Type de plateforme")
