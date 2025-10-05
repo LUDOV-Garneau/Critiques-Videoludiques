@@ -232,6 +232,7 @@ const sidebarFilters = ref({
   consoles: [], // Consoles spécifiques (Nintendo64, PlayStation, etc.)
   authorGender: '',
   authorName: '',
+  showWithoutAuthors: false, // Afficher seulement les critiques sans auteurs
   yearRange: [1980, 2025], // Plage complète par défaut (pas de filtre actif)
   monthRange: [1, 12],
   scoreTypes: [], // Types de notes à filtrer (sélection multiple)
@@ -455,6 +456,12 @@ const filteredByFilters = computed(() => {
           if (!femaleAuthor || femaleAuthor === '' || femaleAuthor === '0') return false
         }
       }
+    }
+
+    // Filtre pour afficher seulement les critiques sans auteurs
+    if (f.showWithoutAuthors) {
+      // Une critique sans auteurs a Auteurs === '-'
+      if (x.Auteurs !== '-') return false
     }
 
     return true

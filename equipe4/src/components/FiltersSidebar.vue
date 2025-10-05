@@ -31,6 +31,7 @@ const localFilters = ref({
   consoles: [], // Consoles spécifiques (Nintendo64, PlayStation, etc.)
   authorGender: '', // 'masculin', 'féminin', ou ''
   authorName: '',
+  showWithoutAuthors: false, // Afficher seulement les critiques sans auteurs
   yearRange: [1980, 2025], // Plage complète par défaut (pas de filtre actif)
   monthRange: [1, 12], // Janvier (1) à Décembre (12)
   scoreTypes: [], // Types de notes à filtrer (sélection multiple)
@@ -106,7 +107,16 @@ const activeFiltersList = computed(() => {
       count: 1
     })
   }
-  
+
+  if (localFilters.value.showWithoutAuthors) {
+    filters.push({
+      type: 'showWithoutAuthors',
+      label: 'Sans auteurs',
+      value: 'Critiques sans auteurs',
+      count: 1
+    })
+  }
+
   const [minYear, maxYear] = localFilters.value.yearRange
   const [minMonth, maxMonth] = localFilters.value.monthRange
 
@@ -267,6 +277,18 @@ function setAuthorName(name) {
   emitFilters()
 }
 
+function toggleShowWithoutAuthors() {
+  localFilters.value.showWithoutAuthors = !localFilters.value.showWithoutAuthors
+
+  // Si on active "sans auteurs", désactiver les autres filtres d'auteurs
+  if (localFilters.value.showWithoutAuthors) {
+    localFilters.value.authorGender = ''
+    localFilters.value.authorName = ''
+  }
+
+  emitFilters()
+}
+
 function clearFilter(filterType) {
   switch (filterType) {
     case 'magazines':
@@ -283,6 +305,9 @@ function clearFilter(filterType) {
       break
     case 'authorName':
       localFilters.value.authorName = ''
+      break
+    case 'showWithoutAuthors':
+      localFilters.value.showWithoutAuthors = false
       break
     case 'yearRange':
       localFilters.value.yearRange = [props.facets.minYear || 1980, props.facets.maxYear || 2025]
@@ -306,6 +331,7 @@ function clearAllFilters() {
     consoles: [],
     authorGender: '',
     authorName: '',
+    showWithoutAuthors: false,
     yearRange: [props.facets.minYear || 1980, props.facets.maxYear || 2025],
     monthRange: [1, 12],
     scoreTypes: [],
@@ -719,7 +745,7 @@ watch(() => props.facets, (newFacets) => {
         </button>
 
         <div v-if="expandedCards.authors" class="card-content">
-          <div class="author-gender-filter">
+          <div class="author-gender-filter" v-if="!localFilters.showWithoutAuthors">
             <label>Genre :</label>
             <div class="radio-group">
               <label class="radio-option">
@@ -755,7 +781,18 @@ watch(() => props.facets, (newFacets) => {
             </div>
           </div>
 
-          <div class="author-name-filter">
+          <div class="without-authors-filter">
+            <label class="checkbox-option">
+              <input
+                type="checkbox"
+                :checked="localFilters.showWithoutAuthors"
+                @change="toggleShowWithoutAuthors"
+              />
+              <span>Afficher seulement les critiques sans auteurs</span>
+            </label>
+          </div>
+
+          <div class="author-name-filter" v-if="!localFilters.showWithoutAuthors">
             <label for="authorName">Nom de l'auteur :</label>
             <input
               type="search"
@@ -1170,6 +1207,23 @@ watch(() => props.facets, (newFacets) => {
   display: block;
   font-weight: 500;
   margin-bottom: 8px;
+  color: #374151;
+}
+
+.without-authors-filter {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+}
+
+.without-authors-filter .checkbox-option {
+  margin: 0;
+}
+
+.without-authors-filter .checkbox-option span {
+  font-weight: 500;
   color: #374151;
 }
 
