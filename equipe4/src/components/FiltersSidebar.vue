@@ -29,6 +29,7 @@ const localFilters = ref({
   countries: [],
   platformTypes: [], // Types de plateformes (Console, Microordinateur, Portable, Mobile, Autre)
   consoles: [], // Consoles spécifiques (Nintendo64, PlayStation, etc.)
+  gameTypes: [], // Types de jeux (Action, Aventure, RPG, etc.)
   authorGender: '', // 'masculin', 'féminin', ou ''
   authorName: '',
   showWithoutAuthors: false, // Afficher seulement les critiques sans auteurs
@@ -45,6 +46,7 @@ const expandedCards = ref({
   countries: false,
   platformTypes: false,
   consoles: false,
+  gameTypes: false,
   authors: false,
   years: false,
   scores: false
@@ -87,6 +89,15 @@ const activeFiltersList = computed(() => {
       label: 'Consoles',
       value: localFilters.value.consoles.join(', '),
       count: localFilters.value.consoles.length
+    })
+  }
+
+  if (localFilters.value.gameTypes.length > 0) {
+    filters.push({
+      type: 'gameTypes',
+      label: 'Types de jeux',
+      value: localFilters.value.gameTypes.join(', '),
+      count: localFilters.value.gameTypes.length
     })
   }
 
@@ -300,6 +311,9 @@ function clearFilter(filterType) {
     case 'platformTypes':
       localFilters.value.platformTypes = []
       break
+    case 'gameTypes':
+      localFilters.value.gameTypes = []
+      break
     case 'authorGender':
       localFilters.value.authorGender = ''
       break
@@ -329,6 +343,7 @@ function clearAllFilters() {
     countries: [],
     platformTypes: [],
     consoles: [],
+    gameTypes: [],
     authorGender: '',
     authorName: '',
     showWithoutAuthors: false,
@@ -727,6 +742,38 @@ watch(() => props.facets, (newFacets) => {
                   @change="toggleArrayFilter('consoles', console)"
                 />
                 <span>{{ console }}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtre par Types de jeux -->
+      <div class="filter-card">
+        <button
+          @click="toggleCard('gameTypes')"
+          class="card-header"
+          :class="{ expanded: expandedCards.gameTypes }"
+        >
+          <span>Types de jeux</span>
+          <span class="expand-icon">{{ expandedCards.gameTypes ? '−' : '+' }}</span>
+        </button>
+
+        <div v-if="expandedCards.gameTypes" class="card-content">
+          <div class="filter-group">
+            <label class="filter-group-label">Sélectionner les types de jeux</label>
+            <div class="filter-options">
+              <label
+                v-for="gameType in (props.facets.gameTypes || [])"
+                :key="gameType"
+                class="checkbox-option"
+              >
+                <input
+                  type="checkbox"
+                  :checked="localFilters.gameTypes.includes(gameType)"
+                  @change="toggleArrayFilter('gameTypes', gameType)"
+                />
+                <span>{{ gameType }}</span>
               </label>
             </div>
           </div>
