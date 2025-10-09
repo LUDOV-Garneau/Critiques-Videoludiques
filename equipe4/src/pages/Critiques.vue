@@ -524,7 +524,7 @@ function buildImportantColumns(allHeaders) {
         </div>
         <div v-else-if="error" class="error">Erreur: {{ error }}</div>
         <template v-else>
-          <div>
+          <div style="max-width:820px;margin:0 auto;">
             <ChartsGraphique/>
           </div>
           <div class="toolbar">
@@ -701,8 +701,9 @@ function buildImportantColumns(allHeaders) {
   overflow-x: auto;
 }
 .container {
-  max-width: none;
-  margin: 0;
+ .container {
+  max-width: 820px;
+  margin: 0 auto;
   padding: 16px;
   width: 100%;
 }
@@ -777,6 +778,7 @@ h1 {
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   margin-bottom: 16px;
+  max-width: 100%;
 }
 table {
   width: 100%;
@@ -983,5 +985,6 @@ tbody tr:hover {
   .container {
     padding: 12px;
   }
+}
 }
 </style>
