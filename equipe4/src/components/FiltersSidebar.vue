@@ -1,4 +1,4 @@
-<script setup>
+  <script setup>
 import { ref, computed, watch } from 'vue'
 
 const props = defineProps({
@@ -74,7 +74,7 @@ const activeFiltersList = computed(() => {
   if (localFilters.value.platformTypes.length > 0) {
     filters.push({
       type: 'platformTypes',
-      label: 'Types de plateformes',
+      label: 'Plateformes spécifiques',
       value: localFilters.value.platformTypes.join(', '),
       count: localFilters.value.platformTypes.length
     })
@@ -565,7 +565,7 @@ watch(() => props.facets, (newFacets) => {
           class="card-header"
           :class="{ expanded: expandedCards.platformTypes }"
         >
-          <span>Types de plateformes</span>
+          <span>Plateformes spécifiques</span>
           <span class="expand-icon">{{ expandedCards.platformTypes ? '−' : '+' }}</span>
         </button>
 

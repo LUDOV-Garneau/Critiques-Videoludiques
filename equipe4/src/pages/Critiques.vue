@@ -425,7 +425,8 @@ const filteredRowsObjects = computed(() => {
       // Mapper les clés d'affichage vers les propriétés de l'objet
       switch(key) {
         case 'Titre': return item.Titre
-        case 'Type de plateforme': return item.TypePlateforme
+        case 'Type de plateforme': // compatibilité ancienne (au cas où)
+        case 'Plateformes spécifiques': return item.TypePlateforme
         case 'Plateforme': return item.Plateforme
         case 'Note': return item.Note
         case 'Année': return item.Année
@@ -483,7 +484,7 @@ function buildImportantColumns(allHeaders) {
   const lower = allHeaders.map(h => String(h || '').toLowerCase())
   const want = [
     { key: 'title', labels: ['title','game','name','titre','jeu'], display: 'Titre' },
-    { key: 'platformType', labels: ['type de plateforme','platform type'], display: 'Type de plateforme' },
+    { key: 'platformType', labels: ['type de plateforme','platform type'], display: 'Plateformes spécifiques' },
     // Retirer Plateforme et Note de l'affichage principal
     { key: 'year', labels: ['year','release year','annee','année','date'], display: 'Année' },
     { key: 'country', labels: ['country','pays','region'], display: 'Pays' },
@@ -619,7 +620,7 @@ function buildImportantColumns(allHeaders) {
                   <h4 class="section-title">Plateformes</h4>
                   <div class="modal-grid">
                     <div class="modal-field">
-                      <div class="label">Type de plateforme</div>
+                      <div class="label">Plateformes spécifiques</div>
                       <div class="value">{{ modalItem?.TypePlateforme || '-' }}</div>
                     </div>
                     <div class="modal-field">
