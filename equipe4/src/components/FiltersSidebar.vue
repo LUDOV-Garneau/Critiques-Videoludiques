@@ -35,7 +35,8 @@ const localFilters = ref({
   monthRange: [1, 12], // Janvier (1) à Décembre (12)
   scoreTypes: [], // Types de notes à filtrer (sélection multiple)
   scoreRange: [0, 100], // Plage de scores pour le type sélectionné
-  includeUnscored: true // Inclure les critiques sans notation
+  includeUnscored: true, // Inclure les critiques sans notation
+  imageTypes: [] // Ajout du filtre par type d'image
 })
 
 // État des cartes déroulantes
@@ -46,7 +47,8 @@ const expandedCards = ref({
   consoles: false,
   authors: false,
   years: false,
-  scores: false
+  scores: false,
+  imageTypes: false // État ajouté pour le filtre par type d'image
 })
 
 // Filtres actifs calculés
@@ -250,6 +252,9 @@ function clearFilter(filterType) {
     case 'scoreRange':
       localFilters.value.scoreRange = [0, 100]
       break
+    case 'imageTypes': // Réinitialiser le filtre par type d'image
+      localFilters.value.imageTypes = []
+      break
   }
   emitFilters()
 }
@@ -266,12 +271,14 @@ function clearAllFilters() {
     monthRange: [1, 12],
     scoreTypes: [],
     scoreRange: [0, 100],
-    includeUnscored: true
+    includeUnscored: true,
+    imageTypes: [] // Réinitialiser le filtre par type d'image
   }
   emitFilters()
 }
 
 function emitFilters() {
+  // Toujours émettre tous les filtres, y compris imageTypes
   emit('update:filters', { ...localFilters.value })
 }
 
@@ -865,6 +872,34 @@ watch(() => props.facets, (newFacets) => {
                 <span>Notes entre {{ localFilters.scoreRange[0] }} et {{ localFilters.scoreRange[1] }}</span>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtre par Type d'image -->
+      <div class="filter-card">
+        <button
+          @click="toggleCard('imageTypes')"
+          class="card-header"
+          :class="{ expanded: expandedCards.imageTypes }"
+        >
+          <span>Type d'image</span>
+          <span class="expand-icon">{{ expandedCards.imageTypes ? '−' : '+' }}</span>
+        </button>
+        <div v-if="expandedCards.imageTypes" class="card-content">
+          <div class="filter-options">
+            <label
+              v-for="type in facets.imageTypes"
+              :key="type"
+              class="checkbox-option"
+            >
+              <input
+                type="checkbox"
+                :checked="localFilters.imageTypes && localFilters.imageTypes.includes(type)"
+                @change="toggleArrayFilter('imageTypes', type)"
+              />
+              <span>{{ type || 'Aucune' }}</span>
+            </label>
           </div>
         </div>
       </div>
