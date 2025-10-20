@@ -60,6 +60,7 @@ const filteredAndSorted = computed(() => {
 const totalPages = computed(() => Math.max(1, Math.ceil((filteredAndSorted.value.length || 0) / pageSize)))
 const pageSlice = computed(() => filteredAndSorted.value.slice((page.value-1)*pageSize, page.value*pageSize))
 const mapping = ref({
+  TypeImageUtilise: '', // Colonne Type d'images utilisés
   TitreJeu: '', // Colonne M - Titre du jeu
   Plateforme: '',
   TypePlateforme: '', // Type de plateforme
@@ -84,6 +85,7 @@ const mapping = ref({
 function initMapping() {
   const lower = (headers.value || []).map(h => String(h || '').toLowerCase())
   function find(labels) { const i = lower.findIndex(h => labels.some(l => h.includes(l))); return i>=0 ? headers.value[i] : '' }
+  mapping.value.TypeImageUtilise = find(["type d'images utilisés", "type d'image utilisé", "type image", "image type"])
   mapping.value.TitreJeu = find(['titre du jeu', 'game title', 'nom du jeu'])
   mapping.value.Plateforme = find(['platform','console','system','plateforme'])
   mapping.value.TypePlateforme = find(['type de plateforme', 'platform type'])
@@ -165,6 +167,8 @@ const mappedObjects = computed(() => {
     }
     const titreJeu = idx.TitreJeu>=0 ? r[idx.TitreJeu] : undefined;
     const critiqueTitre = idx.CritiqueTitre>=0 ? r[idx.CritiqueTitre] : undefined;
+    // Utiliser la colonne Type d'images utilisés si présente
+    let imageType = idx.TypeImageUtilise >= 0 ? r[idx.TypeImageUtilise] : undefined;
     return {
       Titre: titreJeu || critiqueTitre || '-',
       TitreJeu: titreJeu,
@@ -188,6 +192,7 @@ const mappedObjects = computed(() => {
       NoteDifficulte: parseScore(idx.NoteDifficulte>=0 ? r[idx.NoteDifficulte] : undefined),
       NotePrix: parseScore(idx.NotePrix>=0 ? r[idx.NotePrix] : undefined),
       NoteAutre: parseScore(idx.NoteAutre>=0 ? r[idx.NoteAutre] : undefined),
+  ImageType: imageType,
     }
   })
   if (mapped.length > 0) {
@@ -206,6 +211,7 @@ const sidebarFilters = ref({
   countries: [],
   platformTypes: [], // Types de plateformes (Console, Microordinateur, etc.)
   consoles: [], // Consoles spécifiques (Nintendo64, PlayStation, etc.)
+  imageTypes: [], // Types d'image (jpg, png, avif, etc.)
   authorGender: '',
   authorName: '',
   yearRange: [1980, 2025], // Plage complète par défaut (pas de filtre actif)
@@ -265,6 +271,7 @@ const facets = computed(() => {
       male: Array.from(authorsM).sort(),
       female: Array.from(authorsF).sort()
     },
+    imageTypes: uniq(arr.map(x => x.ImageType)),
     minYear: validYears.length > 0 ? Math.min(...validYears) : 1980,
     maxYear: validYears.length > 0 ? Math.max(...validYears) : 2025,
     minScore: 0,
@@ -400,6 +407,10 @@ const filteredByFilters = computed(() => {
           if (!femaleAuthor || femaleAuthor === '' || femaleAuthor === '0') return false
         }
       }
+    }
+    // Filtre par type d'image
+    if (f.imageTypes && f.imageTypes.length > 0) {
+      if (!f.imageTypes.includes(x.ImageType)) return false
     }
     return true
   })
@@ -677,6 +688,16 @@ function buildImportantColumns(allHeaders) {
                       <div class="value">{{ modalItem?.NoteAutre || '-' }}</div>
                     </div>
                   </div>
+                                <!-- Section: Type d'image -->
+              <div class="modal-section">
+                <h4 class="section-title">Type d'image utilisé</h4>
+                <div class="modal-grid">
+                  <div class="modal-field">
+                    <div class="label">Type d'image</div>
+                    <div class="value">{{ modalItem?.ImageType || '-' }}</div>
+                  </div>
+                </div>
+              </div>
                 </div>
               </div>
               <footer class="modal-footer">
