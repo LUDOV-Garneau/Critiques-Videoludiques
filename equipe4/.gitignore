@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Fichiers d'analyse et temporaires
+analyze-*.js
+temp-*.js
+temp-*.vue
+*.tmp

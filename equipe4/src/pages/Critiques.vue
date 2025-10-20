@@ -64,6 +64,7 @@ const mapping = ref({
   TitreJeu: '', // Colonne M - Titre du jeu
   Plateforme: '',
   TypePlateforme: '', // Type de plateforme
+  TypeJeu: '', // Colonne 143 - Titre des étiquettes génériques de genre
   Note: '',
   Année: '',
   Magazine: '',
@@ -89,6 +90,7 @@ function initMapping() {
   mapping.value.TitreJeu = find(['titre du jeu', 'game title', 'nom du jeu'])
   mapping.value.Plateforme = find(['platform','console','system','plateforme'])
   mapping.value.TypePlateforme = find(['type de plateforme', 'platform type'])
+  mapping.value.TypeJeu = find(['titre des étiquettes génériques de genre', 'genre', 'type de jeu', 'game genre'])
   mapping.value.Note = find(['score','rating','note'])
   mapping.value.Année = find(['year','release year','annee','année','date'])
   mapping.value.Magazine = find(['magazine','revue','journal','publication'])
@@ -174,6 +176,7 @@ const mappedObjects = computed(() => {
       TitreJeu: titreJeu,
       Plateforme: idx.Plateforme>=0 ? r[idx.Plateforme] : undefined,
       TypePlateforme: idx.TypePlateforme>=0 ? r[idx.TypePlateforme] : undefined,
+      TypeJeu: idx.TypeJeu>=0 ? r[idx.TypeJeu] : undefined,
       Note: idx.Note>=0 ? Number(r[idx.Note]) : undefined,
       Année: annee,
       Magazine: idx.Magazine>=0 ? r[idx.Magazine] : undefined,
@@ -211,9 +214,11 @@ const sidebarFilters = ref({
   countries: [],
   platformTypes: [], // Types de plateformes (Console, Microordinateur, etc.)
   consoles: [], // Consoles spécifiques (Nintendo64, PlayStation, etc.)
+  gameTypes: [], // Types de jeux (Action, Aventure, RPG, etc.)
   imageTypes: [], // Types d'image (jpg, png, avif, etc.)
   authorGender: '',
   authorName: '',
+  showWithoutAuthors: false, // Afficher seulement les critiques sans auteurs
   yearRange: [1980, 2025], // Plage complète par défaut (pas de filtre actif)
   monthRange: [1, 12],
   scoreTypes: [], // Types de notes à filtrer (sélection multiple)
@@ -259,12 +264,30 @@ const facets = computed(() => {
       })
     }
   }
+
+  // Récupérer les types de jeux depuis les données brutes (colonne 143)
+  const gameTypes = new Set()
+  if (headers.value.length > 0) {
+    const gameTypeIndex = headers.value.indexOf('Titre des étiquettes génériques de genre')
+    if (gameTypeIndex !== -1) {
+      rows.value.forEach(row => {
+        const gameType = row[gameTypeIndex]
+        if (gameType && gameType !== '' && gameType !== '0') {
+          // Séparer les types multiples (ex: "Action/Aventure/RPG")
+          const types = String(gameType).split(/[\/,;]+/).map(t => t.trim()).filter(t => t)
+          types.forEach(type => gameTypes.add(type))
+        }
+      })
+    }
+  }
+
   // Filtrer les années valides (exclure "-" et les valeurs invalides)
   const validYears = arr
     .map(x => x.Année)
     .filter(y => y !== '-' && y !== undefined && typeof y === 'number' && !isNaN(y))
   return {
     platformTypes: Array.from(platformTypes).sort(),
+    gameTypes: Array.from(gameTypes).sort(),
     magazines: uniq(arr.map(x => x.Magazine)),
     countries: uniq(arr.map(x => x.Pays)),
     authors: {
@@ -330,6 +353,28 @@ const filteredByFilters = computed(() => {
         if (!hasSelectedConsole) return false
       }
     }
+
+    // Filtre par types de jeux
+    if (f.gameTypes.length > 0) {
+      if (headers.value.length > 0 && index < rows.value.length) {
+        const gameTypeIndex = headers.value.indexOf('Titre des étiquettes génériques de genre')
+        if (gameTypeIndex !== -1) {
+          const gameType = rows.value[index][gameTypeIndex]
+          if (!gameType || gameType === '' || gameType === '0') return false
+
+          // Séparer les types multiples et vérifier si au moins un correspond
+          const types = String(gameType).split(/[\/,;]+/).map(t => t.trim()).filter(t => t)
+          const hasSelectedGameType = f.gameTypes.some(selectedType =>
+            types.includes(selectedType)
+          )
+
+          if (!hasSelectedGameType) return false
+        } else {
+          return false // Si la colonne n'existe pas, exclure
+        }
+      }
+    }
+
     // Filtre par types de notes (scoreTypes)
     if (f.scoreTypes.length > 0) {
       if (headers.value.length > 0 && index < rows.value.length) {
@@ -408,6 +453,13 @@ const filteredByFilters = computed(() => {
         }
       }
     }
+
+    // Filtre pour afficher seulement les critiques sans auteurs
+    if (f.showWithoutAuthors) {
+      // Une critique sans auteurs a Auteurs === '-'
+      if (x.Auteurs !== '-') return false
+    }
+
     // Filtre par type d'image
     if (f.imageTypes && f.imageTypes.length > 0) {
       if (!f.imageTypes.includes(x.ImageType)) return false
@@ -436,7 +488,7 @@ const filteredRowsObjects = computed(() => {
       // Mapper les clés d'affichage vers les propriétés de l'objet
       switch(key) {
         case 'Titre': return item.Titre
-        case 'Type de plateforme': return item.TypePlateforme
+        case 'Plateforme spécifique': return item.TypePlateforme
         case 'Plateforme': return item.Plateforme
         case 'Note': return item.Note
         case 'Année': return item.Année
@@ -494,7 +546,7 @@ function buildImportantColumns(allHeaders) {
   const lower = allHeaders.map(h => String(h || '').toLowerCase())
   const want = [
     { key: 'title', labels: ['title','game','name','titre','jeu'], display: 'Titre' },
-    { key: 'platformType', labels: ['type de plateforme','platform type'], display: 'Type de plateforme' },
+    { key: 'platformType', labels: ['type de plateforme','platform type'], display: 'Plateforme spécifique' },
     // Retirer Plateforme et Note de l'affichage principal
     { key: 'year', labels: ['year','release year','annee','année','date'], display: 'Année' },
     { key: 'country', labels: ['country','pays','region'], display: 'Pays' },
@@ -693,6 +745,20 @@ function buildImportantColumns(allHeaders) {
                 <h4 class="section-title">Type d'image utilisé</h4>
                 <div class="modal-grid">
                   <div class="modal-field">
+                    <div class="label">Type de plateforme</div>
+                    <div class="value">{{ modalItem?.TypePlateforme || '-' }}</div>
+                  </div>
+                  <div class="modal-field">
+                    <div class="label">Plateforme</div>
+                    <div class="value">{{ modalItem?.Plateforme || '-' }}</div>
+                  </div>
+                  <div class="modal-field">
+                    <div class="label">Type de jeu</div>
+                    <div class="value">{{ modalItem?.TypeJeu || '-' }}</div>
+                  </div>
+                  <div class="modal-field modal-field-full">
+                    <div class="label">Console(s) spécifique(s)</div>
+                    <div class="value">{{ modalItem?.Consoles || '-' }}</div>
                     <div class="label">Type d'image</div>
                     <div class="value">{{ modalItem?.ImageType || '-' }}</div>
                   </div>

@@ -8,6 +8,7 @@ describe('FiltersSidebar - Tests des filtres', () => {
     magazines: ['Magazine A', 'Magazine B'],
     countries: ['Canada', 'France'],
     platforms: ['PC', 'PlayStation'],
+    gameTypes: ['Action', 'Aventure', 'RPG', 'Simulation', 'Plateforme/Action'],
     authors: ['Auteur 1', 'Auteur 2'],
     minYear: 1980,
     maxYear: 2025,
@@ -272,6 +273,135 @@ describe('FiltersSidebar - Tests des filtres', () => {
       
       expect(component.localFilters.platformTypes).toHaveLength(0)
       expect(component.localFilters.scoreTypes).toContain('general')
+    })
+  })
+
+  describe('Filtre par types de jeux (gameTypes)', () => {
+    it('devrait permettre de sélectionner un type de jeu', async () => {
+      const component = wrapper.vm
+
+      // Sélectionner le type "Action" directement via la méthode
+      component.toggleArrayFilter('gameTypes', 'Action')
+
+      await wrapper.vm.$nextTick()
+
+      // Vérifier que le filtre a été ajouté
+      expect(component.localFilters.gameTypes).toContain('Action')
+      expect(component.localFilters.gameTypes).toHaveLength(1)
+    })
+
+    it('devrait permettre de sélectionner plusieurs types de jeux', async () => {
+      const component = wrapper.vm
+
+      // Ajouter plusieurs types de jeux
+      component.toggleArrayFilter('gameTypes', 'Action')
+      component.toggleArrayFilter('gameTypes', 'Aventure')
+      component.toggleArrayFilter('gameTypes', 'RPG')
+
+      await wrapper.vm.$nextTick()
+
+      // Vérifier que tous les types ont été ajoutés
+      expect(component.localFilters.gameTypes).toContain('Action')
+      expect(component.localFilters.gameTypes).toContain('Aventure')
+      expect(component.localFilters.gameTypes).toContain('RPG')
+      expect(component.localFilters.gameTypes).toHaveLength(3)
+    })
+
+    it('devrait permettre de désélectionner un type de jeu', async () => {
+      const component = wrapper.vm
+
+      // Ajouter puis retirer un type
+      component.toggleArrayFilter('gameTypes', 'Action')
+      await wrapper.vm.$nextTick()
+      expect(component.localFilters.gameTypes).toContain('Action')
+
+      // Désélectionner
+      component.toggleArrayFilter('gameTypes', 'Action')
+      await wrapper.vm.$nextTick()
+
+      expect(component.localFilters.gameTypes).not.toContain('Action')
+      expect(component.localFilters.gameTypes).toHaveLength(0)
+    })
+
+    it('devrait gérer les types de jeux composés (ex: Plateforme/Action)', async () => {
+      const component = wrapper.vm
+
+      // Sélectionner un type composé
+      component.toggleArrayFilter('gameTypes', 'Plateforme/Action')
+
+      await wrapper.vm.$nextTick()
+
+      expect(component.localFilters.gameTypes).toContain('Plateforme/Action')
+    })
+
+    it('devrait afficher les types de jeux dans les filtres actifs', async () => {
+      const component = wrapper.vm
+
+      // Sélectionner plusieurs types
+      component.toggleArrayFilter('gameTypes', 'Action')
+      component.toggleArrayFilter('gameTypes', 'RPG')
+
+      await wrapper.vm.$nextTick()
+
+      // Vérifier que les filtres actifs contiennent les types de jeux
+      const activeFilters = component.activeFiltersList
+      const gameTypesFilter = activeFilters.find(f => f.type === 'gameTypes')
+
+      expect(gameTypesFilter).toBeDefined()
+      expect(gameTypesFilter.label).toBe('Types de jeux')
+      expect(gameTypesFilter.count).toBe(2)
+      expect(gameTypesFilter.value).toContain('Action')
+      expect(gameTypesFilter.value).toContain('RPG')
+    })
+
+    it('devrait pouvoir effacer le filtre types de jeux', async () => {
+      const component = wrapper.vm
+
+      // Ajouter des types de jeux
+      component.toggleArrayFilter('gameTypes', 'Action')
+      component.toggleArrayFilter('gameTypes', 'Aventure')
+
+      await wrapper.vm.$nextTick()
+      expect(component.localFilters.gameTypes).toHaveLength(2)
+
+      // Effacer le filtre
+      component.clearFilter('gameTypes')
+
+      expect(component.localFilters.gameTypes).toHaveLength(0)
+    })
+
+    it('devrait réinitialiser les types de jeux lors du clearAllFilters', async () => {
+      const component = wrapper.vm
+
+      // Ajouter des types de jeux
+      component.toggleArrayFilter('gameTypes', 'Action')
+      component.toggleArrayFilter('gameTypes', 'Simulation')
+
+      await wrapper.vm.$nextTick()
+      expect(component.localFilters.gameTypes).toHaveLength(2)
+
+      // Réinitialiser tous les filtres
+      component.clearAllFilters()
+
+      expect(component.localFilters.gameTypes).toHaveLength(0)
+    })
+
+    it('devrait émettre les filtres lors de la sélection de types de jeux', async () => {
+      const component = wrapper.vm
+
+      // Sélectionner un type de jeu
+      component.toggleArrayFilter('gameTypes', 'Action')
+
+      await wrapper.vm.$nextTick()
+
+      // Vérifier que les filtres ont été émis
+      const emittedEvents = wrapper.emitted('update:filters')
+      expect(emittedEvents).toBeDefined()
+      expect(emittedEvents.length).toBeGreaterThan(0)
+
+      // Vérifier que les données contiennent les types de jeux
+      const lastEvent = emittedEvents[emittedEvents.length - 1]
+      expect(lastEvent[0].gameTypes).toContain('Action')
     })
   })
 })
