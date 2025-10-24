@@ -1,9 +1,15 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import ApexChart from 'vue3-apexcharts'
 
 const checkedTypeCharts = ref('line')
 
+defineProps({
+  items: {
+    type: Array,
+    required: true
+  }
+})
 // Line/Bar base options
 const baseOptions = {
   title: {
@@ -86,7 +92,9 @@ watch(checkedTypeCharts, (newType) => {
 <template>
   <div>
     <div>
-      <!-- <div>Chart Type: {{ checkedTypeCharts }}</div> -->
+      <div v-for="(item, index) in items" :key="index">
+        {{ item }}
+      </div>
       <div>Type de graphique</div>
       <input type="radio" id="line" name="charts" value="line" v-model="checkedTypeCharts" />
       <label for="line">Line</label>
