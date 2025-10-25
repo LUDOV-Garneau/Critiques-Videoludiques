@@ -4,14 +4,52 @@ import ApexChart from 'vue3-apexcharts'
 
 const checkedTypeCharts = ref('line')
 
-defineProps({
+const props = defineProps({
   items: {
     type: Array,
     required: true
   }
 })
+const sortKey = ref('Année')
+const sortDir = ref('desc')
+let currentChart = 'line'
+
+
+function sortItems() {
+
+}
+
+const filteredAndSorted = computed(() => {
+  let sortedItems = [...props.items]
+  // Appliquer le tri
+  if (sortKey.value) {
+    sortedItems = sortedItems.sort((b,a) => {
+      const va = a[sortKey.value]
+      const vb = b[sortKey.value]
+      if (va === '-' && vb !== '-') return 1;
+      if (vb === '-' && va !== '-') return -1;
+      const na = Number(va)
+      const nb = Number(vb)
+      const bothNum = !Number.isNaN(na) && !Number.isNaN(nb)
+      const cmp = bothNum ? (na - nb) : String(va ?? '').localeCompare(String(vb ?? ''))
+      return sortDir.value === 'asc' ? cmp : -cmp
+    })
+  }
+  return sortedItems
+})
+
+
+// const formatLineDate = computed(() => {
+//   items.sort
+//   return props.items.map(item => ({
+//     ...item,
+//     formatLineDate: 
+//   }))
+
+// })
+
 // Line/Bar base options
-const baseOptions = {
+let lineBarOptions = {
   title: {
     text: 'Produit par Mois',
     align: 'left'
@@ -20,6 +58,12 @@ const baseOptions = {
     categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep']
   }
 }
+let lineBarSeries = [
+  {
+    name: 'Sales',
+    data: [16.4, 5.4, 21.7, 2, 25.4, 3, 19, 2, 10.9]
+  }
+]
 
 // Scatter options
 const scatterOptions = {
@@ -38,13 +82,6 @@ const scatterOptions = {
   }
 }
 
-const lineBarSeries = [
-  {
-    name: 'Sales',
-    data: [16.4, 5.4, 21.7, 2, 25.4, 3, 19, 2, 10.9]
-  }
-]
-
 const scatterSeries = [
   {
     name: 'Sales',
@@ -62,6 +99,38 @@ const scatterSeries = [
 const chartOptionsFinal = ref({})
 const chartSeriesFinal = ref([])
 
+const updateData = (type) => {
+  if (type === 'line') {
+    lineBarOptions.xaxis.categories = []
+    lineBarSeries[0].data = []
+    let nbOccurence = 0
+    let anneeCourante = filteredAndSorted.value[0].Année
+    const anneeMax = filteredAndSorted.value[filteredAndSorted.value.length - 1].Année
+
+    while (anneeCourante === '-' || anneeCourante <= anneeMax) {
+      nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante).length
+      lineBarOptions.xaxis.categories.push(anneeCourante)
+      lineBarSeries[0].data.push(nbOccurence)
+
+      if (anneeCourante === '-') {
+        anneeCourante = filteredAndSorted.value[nbOccurence].Année       
+      } else {
+        anneeCourante++
+      }
+      nbOccurence = 0
+
+    }
+
+  } else if (type === 'bar') {
+    
+
+  } else {
+
+  }
+}
+
+
+
 const updateChart = (type) => {
   if (type === 'scatter') {
     chartOptionsFinal.value = {
@@ -78,13 +147,20 @@ const updateChart = (type) => {
         type: type,
         height: 300
       },
-      ...baseOptions
+      ...lineBarOptions
     }
     chartSeriesFinal.value = lineBarSeries
   }
 }
+watch(() => filteredAndSorted, 
+  (newItems, oldItems) => {
+  updateData(currentChart)
+  updateChart(currentChart)
+})
 
 watch(checkedTypeCharts, (newType) => {
+  currentChart = newType
+  updateData(newType)
   updateChart(newType)
 })
 </script>
@@ -92,9 +168,9 @@ watch(checkedTypeCharts, (newType) => {
 <template>
   <div>
     <div>
-      <div v-for="(item, index) in items" :key="index">
+      <!-- <div v-for="(item, index) in listCritique" :key="index">
         {{ item }}
-      </div>
+      </div> -->
       <div>Type de graphique</div>
       <input type="radio" id="line" name="charts" value="line" v-model="checkedTypeCharts" />
       <label for="line">Line</label>
