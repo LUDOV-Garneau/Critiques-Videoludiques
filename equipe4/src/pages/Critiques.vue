@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import FiltersSidebar from '../components/FiltersSidebar.vue'
+import { processGameTypes } from '../utils/gameTypesCleaner.js'
 
 const isLoading = ref(false)
 const error = ref('')
@@ -297,9 +298,9 @@ const facets = computed(() => {
       rows.value.forEach(row => {
         const gameType = row[gameTypeIndex]
         if (gameType && gameType !== '' && gameType !== '0') {
-          // Séparer les types multiples (ex: "Action/Aventure/RPG")
-          const types = String(gameType).split(/[\/,;]+/).map(t => t.trim()).filter(t => t)
-          types.forEach(type => gameTypes.add(type))
+          // Utiliser processGameTypes pour nettoyer et séparer les types
+          const cleanedTypes = processGameTypes(gameType)
+          cleanedTypes.forEach(type => gameTypes.add(type))
         }
       })
     }
@@ -393,10 +394,10 @@ const filteredByFilters = computed(() => {
           const gameType = rows.value[index][gameTypeIndex]
           if (!gameType || gameType === '' || gameType === '0') return false
 
-          // Séparer les types multiples et vérifier si au moins un correspond
-          const types = String(gameType).split(/[\/,;]+/).map(t => t.trim()).filter(t => t)
+          // Utiliser processGameTypes pour nettoyer et séparer les types
+          const cleanedTypes = processGameTypes(gameType)
           const hasSelectedGameType = f.gameTypes.some(selectedType =>
-            types.includes(selectedType)
+            cleanedTypes.includes(selectedType)
           )
 
           if (!hasSelectedGameType) return false
