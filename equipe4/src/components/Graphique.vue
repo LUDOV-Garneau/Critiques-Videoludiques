@@ -108,13 +108,13 @@ watch(checkedTypeCharts, (newType) => {
       </div> -->
       <div>Type de graphique</div>
       <input type="radio" id="line" name="charts" value="line" v-model="checkedTypeCharts" checked/>
-      <label for="line">Line</label>
+      <label for="line">Ligne du Temps</label>
 
       <input type="radio" id="bar" name="charts" value="bar" v-model="checkedTypeCharts" />
-      <label for="bar">Bar</label>
+      <label for="bar">Barres</label>
 
       <input type="radio" id="scatter" name="charts" value="scatter" v-model="checkedTypeCharts" />
-      <label for="scatter">Scatter</label>
+      <label for="scatter">Nuage de points</label>
     </div>
     <div>
     <apexchart
