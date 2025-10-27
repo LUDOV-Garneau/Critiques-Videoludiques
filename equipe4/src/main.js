@@ -8,7 +8,6 @@ import faviconUrl from './assets/favicon.png'
 import VueApexCharts from "vue3-apexcharts";
 
 
-
 const router = createRouter({
   history: createWebHistory(),
   routes: [
