@@ -52,14 +52,25 @@ const apexchart = ApexChart;
 const updateData = (type) => {
   let anneeCourante = filteredAndSorted.value[0].Année
   const anneeMax = filteredAndSorted.value[filteredAndSorted.value.length - 1].Année
-
+    let nbOccurence = 0
     let l1 = []
     let l2 = []
 
-    while(anneeCourante <= anneeMax) {
-      l1.push(filteredAndSorted.value.filter(item => item.Année === anneeCourante).length)
-      l2.push(anneeCourante)
-      anneeCourante++
+    while(anneeCourante === '-' || anneeCourante <= anneeMax) {
+      nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante).length
+      l1.push(nbOccurence) // Y
+      l2.push(anneeCourante.toString()) // X
+
+      if (anneeCourante === '-') {
+        if (nbOccurence < filteredAndSorted.value.length) {
+          anneeCourante = filteredAndSorted.value[nbOccurence].Année
+        } else {
+          anneeCourante = "?"
+        }
+      } else {
+        anneeCourante++
+      }
+
     }
 
     chartSeriesFinal.value[0].data = l1
