@@ -4,6 +4,7 @@ import ApexChart from 'vue3-apexcharts'
 
 let checkedTypeCharts = ref('line')
 
+
 const props = defineProps({
   items: {
     type: Array,
@@ -40,12 +41,7 @@ const filteredAndSorted = computed(() => {
 
 let chartOptionsFinal = ref({})
 
-let chartSeriesFinal = ref([
-  {
-    name: 'Sales',
-    data: []
-  }
-])
+let chartSeriesFinal = ref()
 
 const apexchart = ApexChart;
 
@@ -53,13 +49,13 @@ const updateData = (type) => {
   let anneeCourante = filteredAndSorted.value[0].Année
   const anneeMax = filteredAndSorted.value[filteredAndSorted.value.length - 1].Année
     let nbOccurence = 0
-    let l1 = []
-    let l2 = []
+    let arrayY01 = []
+    let arrayX01 = []
 
     while(anneeCourante === '-' || anneeCourante <= anneeMax) {
       nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante).length
-      l1.push(nbOccurence) // Y
-      l2.push(anneeCourante.toString()) // X
+      arrayY01.push(nbOccurence) // Y
+      arrayX01.push(anneeCourante.toString()) // X
 
       if (anneeCourante === '-') {
         if (nbOccurence < filteredAndSorted.value.length) {
@@ -73,7 +69,11 @@ const updateData = (type) => {
 
     }
 
-    chartSeriesFinal.value[0].data = l1
+    chartSeriesFinal.value = [{
+      name: 'Critiques',
+      data: arrayY01
+    }
+]
 
     chartOptionsFinal.value = { 
         chart: {
@@ -81,14 +81,15 @@ const updateData = (type) => {
           height: 300,
         },
         title: {
-          text: 'Produit par Mois',
+          text: 'Nombre Critique selon Année',
           align: 'left'
         },
         xaxis: {
-          categories: l2
+          categories: arrayX01
         }
     }
 }
+
 
 watch(filteredAndSorted, () => {
   updateData(checkedTypeCharts.value)
@@ -115,6 +116,7 @@ watch(checkedTypeCharts, (newType) => {
       <input type="radio" id="scatter" name="charts" value="scatter" v-model="checkedTypeCharts" />
       <label for="scatter">Scatter</label>
     </div>
+    <div>
     <apexchart
       :key="checkedTypeCharts"
       width="100%"
@@ -122,5 +124,8 @@ watch(checkedTypeCharts, (newType) => {
       :options="chartOptionsFinal"
       :series="chartSeriesFinal"
     />
+    </div>
+
+    
   </div>
 </template>
