@@ -291,10 +291,14 @@ const facets = computed(() => {
     }
   }
 
-  // Ajouter "Non spécifiés" si des critiques n'ont pas de type de jeu
-  const gameTypesArray = Array.from(gameTypes).sort()
+  // Trier les types de jeux en ignorant les accents
+  const gameTypesArray = Array.from(gameTypes).sort((a, b) => {
+    return a.localeCompare(b, 'fr', { sensitivity: 'base' })
+  })
+
+  // Ajouter "Non spécifiés" à la fin si des critiques n'ont pas de type de jeu
   if (hasUnspecifiedGameTypes) {
-    gameTypesArray.unshift('Non spécifiés')
+    gameTypesArray.push('Non spécifiés')
   }
 
   // Filtrer les années valides (exclure "-" et les valeurs invalides)

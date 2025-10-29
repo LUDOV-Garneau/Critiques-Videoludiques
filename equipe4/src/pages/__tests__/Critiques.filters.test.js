@@ -517,6 +517,32 @@ describe('Logique de filtrage des critiques', () => {
       expect(result).toHaveLength(3)
     })
 
+    it('devrait trier les types de jeux en ignorant les accents', () => {
+      // Simuler la logique de tri des facettes
+      function sortGameTypes(gameTypes, hasUnspecified = false) {
+        const sorted = gameTypes.sort((a, b) => {
+          return a.localeCompare(b, 'fr', { sensitivity: 'base' })
+        })
+
+        if (hasUnspecified) {
+          sorted.push('Non spécifiés')
+        }
+
+        return sorted
+      }
+
+      const gameTypes = ['Éducation', 'Action', 'Aventure', 'Économie', 'Arcade']
+      const result = sortGameTypes(gameTypes, true)
+
+      // Vérifier que les types avec accents sont bien triés
+      expect(result.indexOf('Action')).toBeLessThan(result.indexOf('Aventure'))
+      expect(result.indexOf('Aventure')).toBeLessThan(result.indexOf('Économie'))
+      expect(result.indexOf('Économie')).toBeLessThan(result.indexOf('Éducation'))
+
+      // Vérifier que "Non spécifiés" est à la fin
+      expect(result[result.length - 1]).toBe('Non spécifiés')
+    })
+
     it('devrait retourner tous les jeux si aucun filtre de type', () => {
       const result = filterByGameTypes(mockRows, [])
 
