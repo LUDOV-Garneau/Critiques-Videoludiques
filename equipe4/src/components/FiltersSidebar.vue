@@ -128,6 +128,16 @@ const activeFiltersList = computed(() => {
     })
   }
 
+  // Filtre actifs pour les types d'image
+  if (localFilters.value.imageTypes && localFilters.value.imageTypes.length > 0) {
+    filters.push({
+      type: 'imageTypes',
+      label: "Type d'image",
+      value: localFilters.value.imageTypes.join(', '),
+      count: localFilters.value.imageTypes.length
+    })
+  }
+
   const [minYear, maxYear] = localFilters.value.yearRange
   const [minMonth, maxMonth] = localFilters.value.monthRange
 
