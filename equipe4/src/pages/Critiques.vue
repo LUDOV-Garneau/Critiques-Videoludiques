@@ -272,6 +272,8 @@ const facets = computed(() => {
 
   // Récupérer les types de jeux depuis les données brutes (colonne 143)
   const gameTypes = new Set()
+  let hasUnspecifiedGameTypes = false
+
   if (headers.value.length > 0) {
     const gameTypeIndex = headers.value.indexOf('Titre des étiquettes génériques de genre')
     if (gameTypeIndex !== -1) {
@@ -281,9 +283,18 @@ const facets = computed(() => {
           // Utiliser processGameTypes pour nettoyer et séparer les types
           const cleanedTypes = processGameTypes(gameType)
           cleanedTypes.forEach(type => gameTypes.add(type))
+        } else {
+          // Marquer qu'il y a des types non spécifiés
+          hasUnspecifiedGameTypes = true
         }
       })
     }
+  }
+
+  // Ajouter "Non spécifiés" si des critiques n'ont pas de type de jeu
+  const gameTypesArray = Array.from(gameTypes).sort()
+  if (hasUnspecifiedGameTypes) {
+    gameTypesArray.unshift('Non spécifiés')
   }
 
   // Filtrer les années valides (exclure "-" et les valeurs invalides)
@@ -292,7 +303,7 @@ const facets = computed(() => {
     .filter(y => y !== '-' && y !== undefined && typeof y === 'number' && !isNaN(y))
   return {
     platformTypes: Array.from(platformTypes).sort(),
-    gameTypes: Array.from(gameTypes).sort(),
+    gameTypes: gameTypesArray,
     magazines: uniq(arr.map(x => x.Magazine)),
     countries: uniq(arr.map(x => x.Pays)),
     authors: {
@@ -365,12 +376,28 @@ const filteredByFilters = computed(() => {
         const gameTypeIndex = headers.value.indexOf('Titre des étiquettes génériques de genre')
         if (gameTypeIndex !== -1) {
           const gameType = rows.value[index][gameTypeIndex]
-          if (!gameType || gameType === '' || gameType === '0') return false
+
+          // Gérer le cas "Non spécifiés"
+          if (f.gameTypes.includes('Non spécifiés')) {
+            // Si "Non spécifiés" est sélectionné et que le jeu n'a pas de type
+            if (!gameType || gameType === '' || gameType === '0') {
+              return true // Inclure ce jeu
+            }
+            // Si d'autres types sont aussi sélectionnés, continuer la vérification
+            if (f.gameTypes.length === 1) {
+              return false // Seul "Non spécifiés" est sélectionné, exclure les jeux avec types
+            }
+          }
+
+          // Vérification normale pour les jeux avec types
+          if (!gameType || gameType === '' || gameType === '0') {
+            return false // Pas de type et "Non spécifiés" n'est pas sélectionné
+          }
 
           // Utiliser processGameTypes pour nettoyer et séparer les types
           const cleanedTypes = processGameTypes(gameType)
           const hasSelectedGameType = f.gameTypes.some(selectedType =>
-            cleanedTypes.includes(selectedType)
+            selectedType !== 'Non spécifiés' && cleanedTypes.includes(selectedType)
           )
 
           if (!hasSelectedGameType) return false
