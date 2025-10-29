@@ -1095,14 +1095,12 @@ watch(() => props.facets, (newFacets) => {
 <style scoped>
 .filters-sidebar {
   width: 320px;
-  min-height: calc(100vh - 120px); /* Ajuster selon la hauteur du header + footer */
+  height: 100vh;
   background: #ffffff;
   border-right: 1px solid #e5e7eb;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  position: sticky;
-  top: 0;
 }
 
 /* Section des filtres actifs (1/3 supérieur) */

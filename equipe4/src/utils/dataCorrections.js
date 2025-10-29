@@ -1,12 +1,9 @@
 /**
- * Utilitaire pour corriger et normaliser les données selon les recommandations du client
+ * Utilitaire de corrections de données
  */
 
 /**
  * Normalise une note sur une échelle de 0 à 100
- * - Arrondit les notes décimales
- * - Filtre les notes > 100 et les divisions par zéro
- * - Retourne undefined pour les valeurs invalides
  */
 export function normalizeScore(value) {
   if (value === undefined || value === null || value === '') return undefined
@@ -21,9 +18,7 @@ export function normalizeScore(value) {
 }
 
 /**
- * Corrige le type de plateforme selon les recommandations du client
- * - "Autre" est majoritairement utilisé pour les PC (93% des cas)
- * - Gère les cas d'arcade, plateformes hybrides, etc.
+ * Corrige le type de plateforme
  */
 export function correctPlatformType(platformType, platform) {
   if (!platformType) return platformType
@@ -31,14 +26,11 @@ export function correctPlatformType(platformType, platform) {
   const type = String(platformType).toLowerCase().trim()
   const platformName = String(platform || '').toLowerCase().trim()
   
-  // "Autre" est principalement utilisé pour les PC
   if (type === 'autre') {
-    // Garder "Autre" pour les plateformes vraiment hybrides (contenant "/")
     if (platformName.includes('/')) {
       return 'Autre'
     }
 
-    // Détecter si c'est un PC basé sur le nom de la plateforme
     if (platformName.includes('pc') ||
         platformName.includes('windows') ||
         platformName.includes('dos') ||
@@ -47,23 +39,18 @@ export function correctPlatformType(platformType, platform) {
       return 'Microordinateur'
     }
 
-    // Détecter les jeux d'arcade
     if (platformName.includes('arcade') ||
         platformName.includes('borne')) {
       return 'Arcade'
     }
 
-    // Garder "Autre" pour les cas vraiment hybrides ou indéterminés
     return 'Autre'
   }
-  
-  // Garder les autres types tels quels
   return platformType
 }
 
 /**
- * Corrige les données géographiques selon les recommandations du client
- * - Joypad est une revue française, pas du Royaume-Uni
+ * Corrige les données géographiques
  */
 export function correctCountryData(country, magazine) {
   if (!country || !magazine) return country
@@ -71,7 +58,6 @@ export function correctCountryData(country, magazine) {
   const mag = String(magazine).toLowerCase().trim()
   const countryName = String(country).toLowerCase().trim()
   
-  // Corriger Joypad comme revue française
   if (mag.includes('joypad') &&
       (countryName.includes('royaume-uni') ||
        countryName.includes('united kingdom') ||
@@ -83,8 +69,7 @@ export function correctCountryData(country, magazine) {
 }
 
 /**
- * Valide et corrige les données de critères généraux vs nombre de critères
- * Selon le client : AG (critère général) et AH (nombre de critères) sont parfois inversés
+ * Corrige les données de critères
  */
 export function correctCriteriaData(generalScore, criteriaCount) {
   // Si le score général est 1 ou 2 et le nombre de critères est plus élevé,
@@ -128,7 +113,7 @@ export function cleanDataValue(value) {
 }
 
 /**
- * Applique toutes les corrections de données à un objet critique
+ * Applique les corrections de données
  */
 export function applyDataCorrections(critique, rawRow, headers) {
   const corrected = { ...critique }
