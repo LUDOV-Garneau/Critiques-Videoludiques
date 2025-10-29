@@ -23,25 +23,23 @@ const props = defineProps({
 
 const emit = defineEmits(['update:filters', 'clear-filter'])
 
-// État local des filtres
 const localFilters = ref({
   magazines: [],
   countries: [],
-  platformTypes: [], // Types de plateformes (Console, Microordinateur, Portable, Mobile, Autre)
-  consoles: [], // Consoles spécifiques (Nintendo64, PlayStation, etc.)
-  gameTypes: [], // Types de jeux (Action, Aventure, RPG, etc.)
-  authorGender: '', // 'masculin', 'féminin', ou ''
+  platformTypes: [],
+  consoles: [],
+  gameTypes: [],
+  authorGender: '',
   authorName: '',
-  showWithoutAuthors: false, // Afficher seulement les critiques sans auteurs
-  yearRange: [1980, 2025], // Plage complète par défaut (pas de filtre actif)
-  monthRange: [1, 12], // Janvier (1) à Décembre (12)
-  scoreTypes: [], // Types de notes à filtrer (sélection multiple)
-  scoreRange: [0, 100], // Plage de scores pour le type sélectionné
-  includeUnscored: true, // Inclure les critiques sans notation
-  imageTypes: [] // Ajout du filtre par type d'image
+  showWithoutAuthors: false,
+  yearRange: [1980, 2025],
+  monthRange: [1, 12],
+  scoreTypes: [],
+  scoreRange: [0, 100],
+  includeUnscored: true,
+  imageTypes: []
 })
 
-// État des cartes déroulantes
 const expandedCards = ref({
   magazines: false,
   countries: false,
@@ -51,7 +49,7 @@ const expandedCards = ref({
   authors: false,
   years: false,
   scores: false,
-  imageTypes: false // État ajouté pour le filtre par type d'image
+  imageTypes: false
 })
 
 // Filtres actifs calculés
@@ -347,7 +345,7 @@ function clearFilter(filterType) {
     case 'scoreRange':
       localFilters.value.scoreRange = [0, 100]
       break
-    case 'imageTypes': // Réinitialiser le filtre par type d'image
+    case 'imageTypes':
       localFilters.value.imageTypes = []
       break
   }
@@ -369,13 +367,12 @@ function clearAllFilters() {
     scoreTypes: [],
     scoreRange: [0, 100],
     includeUnscored: true,
-    imageTypes: [] // Réinitialiser le filtre par type d'image
+    imageTypes: []
   }
   emitFilters()
 }
 
 function emitFilters() {
-  // Toujours émettre tous les filtres, y compris imageTypes
   emit('update:filters', { ...localFilters.value })
 }
 

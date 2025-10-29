@@ -62,11 +62,11 @@ const filteredAndSorted = computed(() => {
 const totalPages = computed(() => Math.max(1, Math.ceil((filteredAndSorted.value.length || 0) / pageSize)))
 const pageSlice = computed(() => filteredAndSorted.value.slice((page.value-1)*pageSize, page.value*pageSize))
 const mapping = ref({
-  TypeImageUtilise: '', // Colonne Type d'images utilisés
-  TitreJeu: '', // Colonne M - Titre du jeu
+  TypeImageUtilise: '',
+  TitreJeu: '',
   Plateforme: '',
-  TypePlateforme: '', // Type de plateforme
-  TypeJeu: '', // Colonne 143 - Titre des étiquettes génériques de genre
+  TypePlateforme: '',
+  TypeJeu: '',
   Note: '',
   Année: '',
   Magazine: '',
@@ -74,7 +74,6 @@ const mapping = ref({
   Pays: '',
   CritiqueTitre: '',
   PDF: '',
-  // Notations par critères (9 types)
   NoteGenerale: '',
   NoteVisuelle: '',
   NoteSonore: '',
@@ -213,22 +212,21 @@ const mappedObjects = computed(() => {
   }
   return mapped
 })
-// Nouveaux filtres pour la sidebar
 const sidebarFilters = ref({
   magazines: [],
   countries: [],
-  platformTypes: [], // Types de plateformes (Console, Microordinateur, etc.)
-  consoles: [], // Consoles spécifiques (Nintendo64, PlayStation, etc.)
-  gameTypes: [], // Types de jeux (Action, Aventure, RPG, etc.)
-  imageTypes: [], // Types d'image (jpg, png, avif, etc.)
+  platformTypes: [],
+  consoles: [],
+  gameTypes: [],
+  imageTypes: [],
   authorGender: '',
   authorName: '',
-  showWithoutAuthors: false, // Afficher seulement les critiques sans auteurs
-  yearRange: [1980, 2025], // Plage complète par défaut (pas de filtre actif)
+  showWithoutAuthors: false,
+  yearRange: [1980, 2025],
   monthRange: [1, 12],
-  scoreTypes: [], // Types de notes à filtrer (sélection multiple)
+  scoreTypes: [],
   scoreRange: [0, 100],
-  includeUnscored: true // Inclure les critiques sans notation
+  includeUnscored: true
 })
 const facets = computed(() => {
   const arr = mappedObjects.value
@@ -291,12 +289,10 @@ const facets = computed(() => {
     }
   }
 
-  // Trier les types de jeux en ignorant les accents
   const gameTypesArray = Array.from(gameTypes).sort((a, b) => {
     return a.localeCompare(b, 'fr', { sensitivity: 'base' })
   })
 
-  // Ajouter "Non spécifiés" à la fin si des critiques n'ont pas de type de jeu
   if (hasUnspecifiedGameTypes) {
     gameTypesArray.push('Non spécifiés')
   }
@@ -381,24 +377,19 @@ const filteredByFilters = computed(() => {
         if (gameTypeIndex !== -1) {
           const gameType = rows.value[index][gameTypeIndex]
 
-          // Gérer le cas "Non spécifiés"
           if (f.gameTypes.includes('Non spécifiés')) {
-            // Si "Non spécifiés" est sélectionné et que le jeu n'a pas de type
             if (!gameType || gameType === '' || gameType === '0') {
-              return true // Inclure ce jeu
+              return true
             }
-            // Si d'autres types sont aussi sélectionnés, continuer la vérification
             if (f.gameTypes.length === 1) {
-              return false // Seul "Non spécifiés" est sélectionné, exclure les jeux avec types
+              return false
             }
           }
 
-          // Vérification normale pour les jeux avec types
           if (!gameType || gameType === '' || gameType === '0') {
-            return false // Pas de type et "Non spécifiés" n'est pas sélectionné
+            return false
           }
 
-          // Utiliser processGameTypes pour nettoyer et séparer les types
           const cleanedTypes = processGameTypes(gameType)
           const hasSelectedGameType = f.gameTypes.some(selectedType =>
             selectedType !== 'Non spécifiés' && cleanedTypes.includes(selectedType)
@@ -406,7 +397,7 @@ const filteredByFilters = computed(() => {
 
           if (!hasSelectedGameType) return false
         } else {
-          return false // Si la colonne n'existe pas, exclure
+          return false
         }
       }
     }
