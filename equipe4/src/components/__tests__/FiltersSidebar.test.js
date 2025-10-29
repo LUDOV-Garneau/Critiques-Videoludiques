@@ -443,5 +443,78 @@ describe('FiltersSidebar - Tests des filtres', () => {
       expect(lastEvent[0].gameTypes).toContain('Action')
     })
   })
+
+  describe('Auteurs et options supplémentaires', () => {
+    it('devrait gérer la sélection du genre d\'auteur', async () => {
+      const component = wrapper.vm
+
+      component.setAuthorGender('masculin')
+      await wrapper.vm.$nextTick()
+      expect(component.localFilters.authorGender).toBe('masculin')
+
+      component.setAuthorGender('féminin')
+      await wrapper.vm.$nextTick()
+      expect(component.localFilters.authorGender).toBe('féminin')
+
+      component.setAuthorGender('')
+      await wrapper.vm.$nextTick()
+      expect(component.localFilters.authorGender).toBe('')
+    })
+
+    it('devrait mettre à jour le nom d\'auteur', async () => {
+      const component = wrapper.vm
+      component.setAuthorName('Jean Dupont')
+      await wrapper.vm.$nextTick()
+      expect(component.localFilters.authorName).toBe('Jean Dupont')
+    })
+
+    it('devrait activer/désactiver showWithoutAuthors', async () => {
+      const component = wrapper.vm
+      expect(component.localFilters.showWithoutAuthors).toBe(false)
+      component.toggleShowWithoutAuthors()
+      await wrapper.vm.$nextTick()
+      expect(component.localFilters.showWithoutAuthors).toBe(true)
+      component.toggleShowWithoutAuthors()
+      await wrapper.vm.$nextTick()
+      expect(component.localFilters.showWithoutAuthors).toBe(false)
+    })
+
+    it('devrait gérer les types d\'image', async () => {
+      const component = wrapper.vm
+      // Simuler des types d'images via toggleArrayFilter
+      component.toggleArrayFilter('imageTypes', 'Box Art')
+      component.toggleArrayFilter('imageTypes', 'Screenshot')
+      await wrapper.vm.$nextTick()
+      expect(component.localFilters.imageTypes).toEqual(['Box Art', 'Screenshot'])
+
+      // Désélectionner un type
+      component.toggleArrayFilter('imageTypes', 'Box Art')
+      await wrapper.vm.$nextTick()
+      expect(component.localFilters.imageTypes).toEqual(['Screenshot'])
+    })
+
+    it('devrait afficher les filtres actifs pour auteurs et images et gérer "sans auteurs"', async () => {
+      const component = wrapper.vm
+      component.setAuthorGender('masculin')
+      component.setAuthorName('Jean')
+      component.toggleArrayFilter('imageTypes', 'Screenshot')
+      await wrapper.vm.$nextTick()
+
+      // Avant d'activer "sans auteurs": les filtres auteurs doivent être présents
+      let active = component.activeFiltersList
+      expect(active.find(f => f.type === 'authorGender')).toBeTruthy()
+      expect(active.find(f => f.type === 'authorName')).toBeTruthy()
+      expect(active.find(f => f.type === 'imageTypes')).toBeTruthy()
+
+      // Activer "sans auteurs" doit nettoyer genre+nom et n'afficher que le flag correspondant
+      component.toggleShowWithoutAuthors()
+      await wrapper.vm.$nextTick()
+      active = component.activeFiltersList
+      expect(active.find(f => f.type === 'authorGender')).toBeFalsy()
+      expect(active.find(f => f.type === 'authorName')).toBeFalsy()
+      expect(active.find(f => f.type === 'showWithoutAuthors')).toBeTruthy()
+      expect(active.find(f => f.type === 'imageTypes')).toBeTruthy()
+    })
+  })
 })
 
