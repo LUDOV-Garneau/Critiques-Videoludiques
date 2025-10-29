@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import FiltersSidebar from '../components/FiltersSidebar.vue'
 import { processGameTypes } from '../utils/gameTypesCleaner.js'
+import { applyDataCorrections, normalizeScore } from '../utils/dataCorrections.js'
 import ChartsGraphique from '../components/Graphique.vue'
 
 const isLoading = ref(false)
@@ -162,23 +163,23 @@ const mappedObjects = computed(() => {
         activeConsoles.push(consoleName)
       }
     }
-    // Fonction helper pour parser les notes
+    // Fonction helper pour parser les notes (utilise la normalisation)
     const parseScore = (value) => {
-      if (value === undefined || value === null || value === '') return undefined
-      const num = Number(value)
-      return !isNaN(num) && num > 0 ? num : undefined
+      return normalizeScore(value)
     }
     const titreJeu = idx.TitreJeu>=0 ? r[idx.TitreJeu] : undefined;
     const critiqueTitre = idx.CritiqueTitre>=0 ? r[idx.CritiqueTitre] : undefined;
     // Utiliser la colonne Type d'images utilisés si présente
     let imageType = idx.TypeImageUtilise >= 0 ? r[idx.TypeImageUtilise] : undefined;
-    return {
+
+    // Créer l'objet critique de base
+    const critique = {
       Titre: titreJeu || critiqueTitre || '-',
       TitreJeu: titreJeu,
       Plateforme: idx.Plateforme>=0 ? r[idx.Plateforme] : undefined,
       TypePlateforme: idx.TypePlateforme>=0 ? r[idx.TypePlateforme] : undefined,
       TypeJeu: idx.TypeJeu>=0 ? r[idx.TypeJeu] : undefined,
-      Note: idx.Note>=0 ? Number(r[idx.Note]) : undefined,
+      Note: parseScore(idx.Note>=0 ? r[idx.Note] : undefined),
       Année: annee,
       Magazine: idx.Magazine>=0 ? r[idx.Magazine] : undefined,
       Auteurs: validAuthors.length > 0 ? validAuthors.join(', ') : '-', // Afficher "-" si pas d'auteurs
@@ -196,8 +197,11 @@ const mappedObjects = computed(() => {
       NoteDifficulte: parseScore(idx.NoteDifficulte>=0 ? r[idx.NoteDifficulte] : undefined),
       NotePrix: parseScore(idx.NotePrix>=0 ? r[idx.NotePrix] : undefined),
       NoteAutre: parseScore(idx.NoteAutre>=0 ? r[idx.NoteAutre] : undefined),
-  ImageType: imageType,
+      ImageType: imageType
     }
+
+    // Appliquer les corrections de données
+    return applyDataCorrections(critique, r, headers.value)
   })
   if (mapped.length > 0) {
     console.log('Objets mappés:', {

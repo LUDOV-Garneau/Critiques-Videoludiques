@@ -213,7 +213,19 @@ function updateMonthRange(newRange) {
 }
 
 function updateScoreRange(newRange) {
-  localFilters.value.scoreRange = [Number(newRange[0]), Number(newRange[1])]
+  let min = Number(newRange[0])
+  let max = Number(newRange[1])
+
+  // Valider les valeurs
+  min = Math.max(0, Math.min(100, min))
+  max = Math.max(0, Math.min(100, max))
+
+  // S'assurer que min <= max
+  if (min > max) {
+    [min, max] = [max, min]
+  }
+
+  localFilters.value.scoreRange = [min, max]
   emitFilters()
 }
 
@@ -1013,29 +1025,33 @@ watch(() => props.facets, (newFacets) => {
 
           <!-- Filtre par plage de notes (seulement si au moins un type est sélectionné) -->
           <div v-if="localFilters.scoreTypes.length > 0" class="filter-group">
-            <label class="filter-group-label">Plage de notes</label>
+            <label class="filter-group-label">Plage de notes (0-100)</label>
             <div class="score-filter">
-              <div class="score-labels">
-                <span>{{ localFilters.scoreRange[0] }}</span>
-                <span>{{ localFilters.scoreRange[1] }}</span>
-              </div>
-              <div class="range-slider">
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  :value="localFilters.scoreRange[0]"
-                  @input="updateScoreRange([$event.target.value, localFilters.scoreRange[1]])"
-                  class="range-input range-min"
-                />
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  :value="localFilters.scoreRange[1]"
-                  @input="updateScoreRange([localFilters.scoreRange[0], $event.target.value])"
-                  class="range-input range-max"
-                />
+              <div class="score-inputs">
+                <div class="score-input-group">
+                  <label for="score-min">Note min :</label>
+                  <input
+                    id="score-min"
+                    type="number"
+                    min="0"
+                    max="100"
+                    :value="localFilters.scoreRange[0]"
+                    @input="updateScoreRange([$event.target.value, localFilters.scoreRange[1]])"
+                    class="score-number-input"
+                  />
+                </div>
+                <div class="score-input-group">
+                  <label for="score-max">Note max :</label>
+                  <input
+                    id="score-max"
+                    type="number"
+                    min="0"
+                    max="100"
+                    :value="localFilters.scoreRange[1]"
+                    @input="updateScoreRange([localFilters.scoreRange[0], $event.target.value])"
+                    class="score-number-input"
+                  />
+                </div>
               </div>
               <div class="score-info">
                 <span>Notes entre {{ localFilters.scoreRange[0] }} et {{ localFilters.scoreRange[1] }}</span>
@@ -1079,12 +1095,14 @@ watch(() => props.facets, (newFacets) => {
 <style scoped>
 .filters-sidebar {
   width: 320px;
-  height: 100vh;
+  min-height: calc(100vh - 120px); /* Ajuster selon la hauteur du header + footer */
   background: #ffffff;
   border-right: 1px solid #e5e7eb;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: sticky;
+  top: 0;
 }
 
 /* Section des filtres actifs (1/3 supérieur) */
@@ -1537,6 +1555,46 @@ watch(() => props.facets, (newFacets) => {
   text-align: center;
   font-size: 12px;
   color: #6b7280;
+}
+
+/* Nouveaux styles pour les inputs de score */
+.score-inputs {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.score-input-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.score-input-group label {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+}
+
+.score-number-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+  transition: border-color 0.2s ease;
+}
+
+.score-number-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.score-number-input:invalid {
+  border-color: #dc3545;
 }
 
 .score-description {
