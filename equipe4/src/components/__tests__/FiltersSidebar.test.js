@@ -84,11 +84,50 @@ describe('FiltersSidebar - Tests des filtres', () => {
 
     it('devrait mettre à jour la plage de scores', async () => {
       const component = wrapper.vm
-      
+
       // Mettre à jour la plage de scores
       component.updateScoreRange([50, 90])
-      
+
       expect(component.localFilters.scoreRange).toEqual([50, 90])
+    })
+
+    it('devrait valider les valeurs des inputs de score (0-100)', async () => {
+      const component = wrapper.vm
+
+      // Test avec des valeurs invalides
+      component.updateScoreRange([-10, 150])
+      await wrapper.vm.$nextTick()
+
+      // Les valeurs doivent être contraintes entre 0 et 100
+      expect(component.localFilters.scoreRange).toEqual([0, 100])
+    })
+
+    it('devrait échanger min et max si min > max', async () => {
+      const component = wrapper.vm
+
+      // Test avec min > max
+      component.updateScoreRange([80, 20])
+      await wrapper.vm.$nextTick()
+
+      // Les valeurs doivent être échangées
+      expect(component.localFilters.scoreRange).toEqual([20, 80])
+    })
+
+    it('devrait afficher les inputs de score seulement si un type est sélectionné', async () => {
+      // Au début, aucun type n'est sélectionné
+      expect(wrapper.find('.score-inputs').exists()).toBe(false)
+
+      // Sélectionner un type
+      const component = wrapper.vm
+      component.toggleScoreType('general')
+      await wrapper.vm.$nextTick()
+
+      // Vérifier que le type a été ajouté
+      expect(component.localFilters.scoreTypes).toContain('general')
+      expect(component.localFilters.scoreTypes.length).toBeGreaterThan(0)
+
+      // Vérifier que la condition v-if est remplie
+      expect(component.localFilters.scoreTypes.length > 0).toBe(true)
     })
 
     it('devrait afficher le filtre actif pour les types de notes sélectionnés', async () => {

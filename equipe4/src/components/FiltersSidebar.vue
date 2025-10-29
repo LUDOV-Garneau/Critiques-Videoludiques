@@ -23,25 +23,23 @@ const props = defineProps({
 
 const emit = defineEmits(['update:filters', 'clear-filter'])
 
-// État local des filtres
 const localFilters = ref({
   magazines: [],
   countries: [],
-  platformTypes: [], // Types de plateformes (Console, Microordinateur, Portable, Mobile, Autre)
-  consoles: [], // Consoles spécifiques (Nintendo64, PlayStation, etc.)
-  gameTypes: [], // Types de jeux (Action, Aventure, RPG, etc.)
-  authorGender: '', // 'masculin', 'féminin', ou ''
+  platformTypes: [],
+  consoles: [],
+  gameTypes: [],
+  authorGender: '',
   authorName: '',
-  showWithoutAuthors: false, // Afficher seulement les critiques sans auteurs
-  yearRange: [1980, 2025], // Plage complète par défaut (pas de filtre actif)
-  monthRange: [1, 12], // Janvier (1) à Décembre (12)
-  scoreTypes: [], // Types de notes à filtrer (sélection multiple)
-  scoreRange: [0, 100], // Plage de scores pour le type sélectionné
-  includeUnscored: true, // Inclure les critiques sans notation
-  imageTypes: [] // Ajout du filtre par type d'image
+  showWithoutAuthors: false,
+  yearRange: [1980, 2025],
+  monthRange: [1, 12],
+  scoreTypes: [],
+  scoreRange: [0, 100],
+  includeUnscored: true,
+  imageTypes: []
 })
 
-// État des cartes déroulantes
 const expandedCards = ref({
   magazines: false,
   countries: false,
@@ -51,7 +49,7 @@ const expandedCards = ref({
   authors: false,
   years: false,
   scores: false,
-  imageTypes: false // État ajouté pour le filtre par type d'image
+  imageTypes: false
 })
 
 // Filtres actifs calculés
@@ -213,7 +211,19 @@ function updateMonthRange(newRange) {
 }
 
 function updateScoreRange(newRange) {
-  localFilters.value.scoreRange = [Number(newRange[0]), Number(newRange[1])]
+  let min = Number(newRange[0])
+  let max = Number(newRange[1])
+
+  // Valider les valeurs
+  min = Math.max(0, Math.min(100, min))
+  max = Math.max(0, Math.min(100, max))
+
+  // S'assurer que min <= max
+  if (min > max) {
+    [min, max] = [max, min]
+  }
+
+  localFilters.value.scoreRange = [min, max]
   emitFilters()
 }
 
@@ -335,7 +345,7 @@ function clearFilter(filterType) {
     case 'scoreRange':
       localFilters.value.scoreRange = [0, 100]
       break
-    case 'imageTypes': // Réinitialiser le filtre par type d'image
+    case 'imageTypes':
       localFilters.value.imageTypes = []
       break
   }
@@ -357,13 +367,12 @@ function clearAllFilters() {
     scoreTypes: [],
     scoreRange: [0, 100],
     includeUnscored: true,
-    imageTypes: [] // Réinitialiser le filtre par type d'image
+    imageTypes: []
   }
   emitFilters()
 }
 
 function emitFilters() {
-  // Toujours émettre tous les filtres, y compris imageTypes
   emit('update:filters', { ...localFilters.value })
 }
 
@@ -698,7 +707,7 @@ watch(() => props.facets, (newFacets) => {
           class="card-header"
           :class="{ expanded: expandedCards.platformTypes }"
         >
-          <span>Types de plateformes</span>
+          <span>Plateformes Spécifiques</span>
           <span class="expand-icon">{{ expandedCards.platformTypes ? '−' : '+' }}</span>
         </button>
 
@@ -1013,29 +1022,33 @@ watch(() => props.facets, (newFacets) => {
 
           <!-- Filtre par plage de notes (seulement si au moins un type est sélectionné) -->
           <div v-if="localFilters.scoreTypes.length > 0" class="filter-group">
-            <label class="filter-group-label">Plage de notes</label>
+            <label class="filter-group-label">Plage de notes (0-100)</label>
             <div class="score-filter">
-              <div class="score-labels">
-                <span>{{ localFilters.scoreRange[0] }}</span>
-                <span>{{ localFilters.scoreRange[1] }}</span>
-              </div>
-              <div class="range-slider">
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  :value="localFilters.scoreRange[0]"
-                  @input="updateScoreRange([$event.target.value, localFilters.scoreRange[1]])"
-                  class="range-input range-min"
-                />
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  :value="localFilters.scoreRange[1]"
-                  @input="updateScoreRange([localFilters.scoreRange[0], $event.target.value])"
-                  class="range-input range-max"
-                />
+              <div class="score-inputs">
+                <div class="score-input-group">
+                  <label for="score-min">Note min :</label>
+                  <input
+                    id="score-min"
+                    type="number"
+                    min="0"
+                    max="100"
+                    :value="localFilters.scoreRange[0]"
+                    @input="updateScoreRange([$event.target.value, localFilters.scoreRange[1]])"
+                    class="score-number-input"
+                  />
+                </div>
+                <div class="score-input-group">
+                  <label for="score-max">Note max :</label>
+                  <input
+                    id="score-max"
+                    type="number"
+                    min="0"
+                    max="100"
+                    :value="localFilters.scoreRange[1]"
+                    @input="updateScoreRange([localFilters.scoreRange[0], $event.target.value])"
+                    class="score-number-input"
+                  />
+                </div>
               </div>
               <div class="score-info">
                 <span>Notes entre {{ localFilters.scoreRange[0] }} et {{ localFilters.scoreRange[1] }}</span>
@@ -1537,6 +1550,46 @@ watch(() => props.facets, (newFacets) => {
   text-align: center;
   font-size: 12px;
   color: #6b7280;
+}
+
+/* Nouveaux styles pour les inputs de score */
+.score-inputs {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.score-input-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.score-input-group label {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+}
+
+.score-number-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+  transition: border-color 0.2s ease;
+}
+
+.score-number-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.score-number-input:invalid {
+  border-color: #dc3545;
 }
 
 .score-description {

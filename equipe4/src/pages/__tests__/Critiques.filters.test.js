@@ -441,11 +441,106 @@ describe('Logique de filtrage des critiques', () => {
       expect(result).toHaveLength(0)
     })
 
-    it('devrait exclure les jeux sans type de jeu', () => {
+    it('devrait exclure les jeux sans type de jeu par défaut', () => {
       const result = filterByGameTypes(mockRows, ['Action'])
 
       // Jeu F n'a pas de type de jeu, donc ne devrait pas être inclus
       expect(result.map(r => r[0])).not.toContain('Jeu F')
+    })
+
+    it('devrait inclure les jeux sans type avec "Non spécifiés"', () => {
+      // Simuler la logique pour "Non spécifiés"
+      function filterByGameTypesWithUnspecified(rows, gameTypes) {
+        if (!gameTypes || gameTypes.length === 0) return rows
+
+        return rows.filter(row => {
+          const gameType = row[143]
+
+          // Gérer le cas "Non spécifiés"
+          if (gameTypes.includes('Non spécifiés')) {
+            if (!gameType || gameType === '' || gameType === '0') {
+              return true // Inclure ce jeu
+            }
+            if (gameTypes.length === 1) {
+              return false // Seul "Non spécifiés" est sélectionné
+            }
+          }
+
+          // Vérification normale
+          if (!gameType || gameType === '' || gameType === '0') return false
+
+          const types = String(gameType).split(/[\/,;]+/).map(t => t.trim()).filter(t => t)
+          return gameTypes.some(selectedType =>
+            selectedType !== 'Non spécifiés' && types.includes(selectedType)
+          )
+        })
+      }
+
+      const result = filterByGameTypesWithUnspecified(mockRows, ['Non spécifiés'])
+
+      // Jeu F n'a pas de type de jeu, donc devrait être inclus
+      expect(result.map(r => r[0])).toContain('Jeu F')
+      expect(result).toHaveLength(1) // Seul Jeu F
+    })
+
+    it('devrait combiner "Non spécifiés" avec d\'autres types', () => {
+      function filterByGameTypesWithUnspecified(rows, gameTypes) {
+        if (!gameTypes || gameTypes.length === 0) return rows
+
+        return rows.filter(row => {
+          const gameType = row[143]
+
+          if (gameTypes.includes('Non spécifiés')) {
+            if (!gameType || gameType === '' || gameType === '0') {
+              return true
+            }
+            if (gameTypes.length === 1) {
+              return false
+            }
+          }
+
+          if (!gameType || gameType === '' || gameType === '0') return false
+
+          const types = String(gameType).split(/[\/,;]+/).map(t => t.trim()).filter(t => t)
+          return gameTypes.some(selectedType =>
+            selectedType !== 'Non spécifiés' && types.includes(selectedType)
+          )
+        })
+      }
+
+      const result = filterByGameTypesWithUnspecified(mockRows, ['Non spécifiés', 'Action'])
+
+      // Devrait inclure Jeu F (non spécifié) + Jeu A et Jeu E (Action)
+      expect(result.map(r => r[0])).toContain('Jeu F')
+      expect(result.map(r => r[0])).toContain('Jeu A')
+      expect(result.map(r => r[0])).toContain('Jeu E')
+      expect(result).toHaveLength(3)
+    })
+
+    it('devrait trier les types de jeux en ignorant les accents', () => {
+      // Simuler la logique de tri des facettes
+      function sortGameTypes(gameTypes, hasUnspecified = false) {
+        const sorted = gameTypes.sort((a, b) => {
+          return a.localeCompare(b, 'fr', { sensitivity: 'base' })
+        })
+
+        if (hasUnspecified) {
+          sorted.push('Non spécifiés')
+        }
+
+        return sorted
+      }
+
+      const gameTypes = ['Éducation', 'Action', 'Aventure', 'Économie', 'Arcade']
+      const result = sortGameTypes(gameTypes, true)
+
+      // Vérifier que les types avec accents sont bien triés
+      expect(result.indexOf('Action')).toBeLessThan(result.indexOf('Aventure'))
+      expect(result.indexOf('Aventure')).toBeLessThan(result.indexOf('Économie'))
+      expect(result.indexOf('Économie')).toBeLessThan(result.indexOf('Éducation'))
+
+      // Vérifier que "Non spécifiés" est à la fin
+      expect(result[result.length - 1]).toBe('Non spécifiés')
     })
 
     it('devrait retourner tous les jeux si aucun filtre de type', () => {

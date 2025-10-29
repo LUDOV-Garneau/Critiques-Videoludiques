@@ -1,6 +1,8 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import FiltersSidebar from '../components/FiltersSidebar.vue'
+import { processGameTypes } from '../utils/gameTypesCleaner.js'
+import { applyDataCorrections, normalizeScore } from '../utils/dataCorrections.js'
 import ChartsGraphique from '../components/Graphique.vue'
 
 const isLoading = ref(false)
@@ -60,11 +62,11 @@ const filteredAndSorted = computed(() => {
 const totalPages = computed(() => Math.max(1, Math.ceil((filteredAndSorted.value.length || 0) / pageSize)))
 const pageSlice = computed(() => filteredAndSorted.value.slice((page.value-1)*pageSize, page.value*pageSize))
 const mapping = ref({
-  TypeImageUtilise: '', // Colonne Type d'images utilisés
-  TitreJeu: '', // Colonne M - Titre du jeu
+  TypeImageUtilise: '',
+  TitreJeu: '',
   Plateforme: '',
-  TypePlateforme: '', // Type de plateforme
-  TypeJeu: '', // Colonne 143 - Titre des étiquettes génériques de genre
+  TypePlateforme: '',
+  TypeJeu: '',
   Note: '',
   Année: '',
   Magazine: '',
@@ -72,7 +74,6 @@ const mapping = ref({
   Pays: '',
   CritiqueTitre: '',
   PDF: '',
-  // Notations par critères (9 types)
   NoteGenerale: '',
   NoteVisuelle: '',
   NoteSonore: '',
@@ -161,23 +162,23 @@ const mappedObjects = computed(() => {
         activeConsoles.push(consoleName)
       }
     }
-    // Fonction helper pour parser les notes
+    // Fonction helper pour parser les notes (utilise la normalisation)
     const parseScore = (value) => {
-      if (value === undefined || value === null || value === '') return undefined
-      const num = Number(value)
-      return !isNaN(num) && num > 0 ? num : undefined
+      return normalizeScore(value)
     }
     const titreJeu = idx.TitreJeu>=0 ? r[idx.TitreJeu] : undefined;
     const critiqueTitre = idx.CritiqueTitre>=0 ? r[idx.CritiqueTitre] : undefined;
     // Utiliser la colonne Type d'images utilisés si présente
     let imageType = idx.TypeImageUtilise >= 0 ? r[idx.TypeImageUtilise] : undefined;
-    return {
+
+    // Créer l'objet critique de base
+    const critique = {
       Titre: titreJeu || critiqueTitre || '-',
       TitreJeu: titreJeu,
       Plateforme: idx.Plateforme>=0 ? r[idx.Plateforme] : undefined,
       TypePlateforme: idx.TypePlateforme>=0 ? r[idx.TypePlateforme] : undefined,
       TypeJeu: idx.TypeJeu>=0 ? r[idx.TypeJeu] : undefined,
-      Note: idx.Note>=0 ? Number(r[idx.Note]) : undefined,
+      Note: parseScore(idx.Note>=0 ? r[idx.Note] : undefined),
       Année: annee,
       Magazine: idx.Magazine>=0 ? r[idx.Magazine] : undefined,
       Auteurs: validAuthors.length > 0 ? validAuthors.join(', ') : '-', // Afficher "-" si pas d'auteurs
@@ -195,8 +196,11 @@ const mappedObjects = computed(() => {
       NoteDifficulte: parseScore(idx.NoteDifficulte>=0 ? r[idx.NoteDifficulte] : undefined),
       NotePrix: parseScore(idx.NotePrix>=0 ? r[idx.NotePrix] : undefined),
       NoteAutre: parseScore(idx.NoteAutre>=0 ? r[idx.NoteAutre] : undefined),
-  ImageType: imageType,
+      ImageType: imageType
     }
+
+    // Appliquer les corrections de données
+    return applyDataCorrections(critique, r, headers.value)
   })
   if (mapped.length > 0) {
     console.log('Objets mappés:', {
@@ -208,22 +212,21 @@ const mappedObjects = computed(() => {
   }
   return mapped
 })
-// Nouveaux filtres pour la sidebar
 const sidebarFilters = ref({
   magazines: [],
   countries: [],
-  platformTypes: [], // Types de plateformes (Console, Microordinateur, etc.)
-  consoles: [], // Consoles spécifiques (Nintendo64, PlayStation, etc.)
-  gameTypes: [], // Types de jeux (Action, Aventure, RPG, etc.)
-  imageTypes: [], // Types d'image (jpg, png, avif, etc.)
+  platformTypes: [],
+  consoles: [],
+  gameTypes: [],
+  imageTypes: [],
   authorGender: '',
   authorName: '',
-  showWithoutAuthors: false, // Afficher seulement les critiques sans auteurs
-  yearRange: [1980, 2025], // Plage complète par défaut (pas de filtre actif)
+  showWithoutAuthors: false,
+  yearRange: [1980, 2025],
   monthRange: [1, 12],
-  scoreTypes: [], // Types de notes à filtrer (sélection multiple)
+  scoreTypes: [],
   scoreRange: [0, 100],
-  includeUnscored: true // Inclure les critiques sans notation
+  includeUnscored: true
 })
 const facets = computed(() => {
   const arr = mappedObjects.value
@@ -267,18 +270,31 @@ const facets = computed(() => {
 
   // Récupérer les types de jeux depuis les données brutes (colonne 143)
   const gameTypes = new Set()
+  let hasUnspecifiedGameTypes = false
+
   if (headers.value.length > 0) {
     const gameTypeIndex = headers.value.indexOf('Titre des étiquettes génériques de genre')
     if (gameTypeIndex !== -1) {
       rows.value.forEach(row => {
         const gameType = row[gameTypeIndex]
         if (gameType && gameType !== '' && gameType !== '0') {
-          // Séparer les types multiples (ex: "Action/Aventure/RPG")
-          const types = String(gameType).split(/[\/,;]+/).map(t => t.trim()).filter(t => t)
-          types.forEach(type => gameTypes.add(type))
+          // Utiliser processGameTypes pour nettoyer et séparer les types
+          const cleanedTypes = processGameTypes(gameType)
+          cleanedTypes.forEach(type => gameTypes.add(type))
+        } else {
+          // Marquer qu'il y a des types non spécifiés
+          hasUnspecifiedGameTypes = true
         }
       })
     }
+  }
+
+  const gameTypesArray = Array.from(gameTypes).sort((a, b) => {
+    return a.localeCompare(b, 'fr', { sensitivity: 'base' })
+  })
+
+  if (hasUnspecifiedGameTypes) {
+    gameTypesArray.push('Non spécifiés')
   }
 
   // Filtrer les années valides (exclure "-" et les valeurs invalides)
@@ -287,7 +303,7 @@ const facets = computed(() => {
     .filter(y => y !== '-' && y !== undefined && typeof y === 'number' && !isNaN(y))
   return {
     platformTypes: Array.from(platformTypes).sort(),
-    gameTypes: Array.from(gameTypes).sort(),
+    gameTypes: gameTypesArray,
     magazines: uniq(arr.map(x => x.Magazine)),
     countries: uniq(arr.map(x => x.Pays)),
     authors: {
@@ -360,17 +376,28 @@ const filteredByFilters = computed(() => {
         const gameTypeIndex = headers.value.indexOf('Titre des étiquettes génériques de genre')
         if (gameTypeIndex !== -1) {
           const gameType = rows.value[index][gameTypeIndex]
-          if (!gameType || gameType === '' || gameType === '0') return false
 
-          // Séparer les types multiples et vérifier si au moins un correspond
-          const types = String(gameType).split(/[\/,;]+/).map(t => t.trim()).filter(t => t)
+          if (f.gameTypes.includes('Non spécifiés')) {
+            if (!gameType || gameType === '' || gameType === '0') {
+              return true
+            }
+            if (f.gameTypes.length === 1) {
+              return false
+            }
+          }
+
+          if (!gameType || gameType === '' || gameType === '0') {
+            return false
+          }
+
+          const cleanedTypes = processGameTypes(gameType)
           const hasSelectedGameType = f.gameTypes.some(selectedType =>
-            types.includes(selectedType)
+            selectedType !== 'Non spécifiés' && cleanedTypes.includes(selectedType)
           )
 
           if (!hasSelectedGameType) return false
         } else {
-          return false // Si la colonne n'existe pas, exclure
+          return false
         }
       }
     }
