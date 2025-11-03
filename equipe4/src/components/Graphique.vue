@@ -4,11 +4,32 @@ import ApexChart from 'vue3-apexcharts'
 
 let checkedTypeCharts = ref('line')
 
+// FiltreActifs {
+  // magazines: [],
+  // countries: [],
+  // platformTypes: [],
+  // consoles: [],
+  // gameTypes: [],
+  // imageTypes: [],
+  // authorGender: '',
+  // authorName: '',
+  // showWithoutAuthors: false,
+  // yearRange: [1980, 2025],
+  // monthRange: [1, 12],
+  // scoreTypes: [],
+  // scoreRange: [0, 100],
+  // includeUnscored: true
+// }
+
 
 const props = defineProps({
   items: {
     type: Array,
     required: true
+  },
+  filtreActifs : {
+    type: Array,
+    required: false
   }
 })
 
@@ -103,8 +124,8 @@ watch(checkedTypeCharts, (newType) => {
 <template>
   <div>
     <div>
-      <!-- <div v-for="(item, index) in listCritique" :key="index">
-        {{ item }}
+      <!-- <div v-for="(item, index) in filtreActifs" :key="index">
+        {{ filtreActifs }}
       </div> -->
       <div>Type de graphique</div>
       <input type="radio" id="line" name="charts" value="line" v-model="checkedTypeCharts" checked/>

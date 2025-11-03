@@ -606,7 +606,7 @@ function buildImportantColumns(allHeaders) {
           <div>
             <h1>Toutes les critiques</h1>
           </div>
-          <button class="btn" @click="showRaw = !showRaw">{{ showRaw ? 'Masquer l’aperçu brut' : 'Voir l’aperçu brut' }}</button>
+          <!-- <button class="btn" @click="showRaw = !showRaw">{{ showRaw ? 'Masquer l’aperçu brut' : 'Voir l’aperçu brut' }}</button>-->
         </header>
         <div v-if="isLoading" class="loading">
           <div class="spinner"></div>
@@ -615,7 +615,7 @@ function buildImportantColumns(allHeaders) {
         <div v-else-if="error" class="error">Erreur: {{ error }}</div>
         <template v-else>
           <div style="max-width:820px;margin:0 auto;">
-            <ChartsGraphique :items="filteredAndSorted"/>
+            <ChartsGraphique :items="filteredAndSorted" :filtre-actifs="sidebarFilters"/>
           </div>
           <div class="toolbar">
             <input class="input" type="search" v-model="query" placeholder="Rechercher… (titre, plateforme, etc.)" />
