@@ -606,7 +606,7 @@ function buildImportantColumns(allHeaders) {
           <div>
             <h1>Toutes les critiques</h1>
           </div>
-          <button class="btn" @click="showRaw = !showRaw">{{ showRaw ? 'Masquer l’aperçu brut' : 'Voir l’aperçu brut' }}</button>
+          <!-- <button class="btn" @click="showRaw = !showRaw">{{ showRaw ? 'Masquer l’aperçu brut' : 'Voir l’aperçu brut' }}</button>-->
         </header>
         <div v-if="isLoading" class="loading">
           <div class="spinner"></div>
