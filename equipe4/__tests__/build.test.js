@@ -6,6 +6,7 @@ import { join } from 'path'
 describe('Build Process', () => {
   let distDir
 
+  // Allow more time for build on CI/Windows
   beforeAll(() => {
     // Run the build command and capture output
     try {
@@ -14,7 +15,7 @@ describe('Build Process', () => {
     } catch (error) {
       throw new Error(`Build failed: ${error.message}`)
     }
-  })
+  }, 60000)
 
   afterAll(() => {
     // Clean up dist folder after tests (optional, comment out if you want to keep it)

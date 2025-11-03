@@ -23,4 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
-package-lock.json
+# Fichiers d'analyse et temporaires
+analyze-*.js
+temp-*.js
+temp-*.vue
+*.tmp
