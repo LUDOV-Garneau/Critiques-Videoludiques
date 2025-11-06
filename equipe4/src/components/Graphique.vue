@@ -1,35 +1,33 @@
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import ApexChart from 'vue3-apexcharts'
 
 let checkedTypeCharts = ref('line')
 let checkedOutData = ref('combine')
 
 // FiltreActifs {
-  // magazines: [],
-  // countries: [],
-  // platformTypes: [],
-  // consoles: [],
-  // gameTypes: [],
-  // imageTypes: [],
-  // authorGender: '',
-  // authorName: '',
-  // showWithoutAuthors: false,
-  // yearRange: [1980, 2025],
-  // monthRange: [1, 12],
-  // scoreTypes: [],
-  // scoreRange: [0, 100],
-  // includeUnscored: true
+// magazines: [],
+// countries: [],
+// platformTypes: [],
+// consoles: [],
+// gameTypes: [],
+// imageTypes: [],
+// authorGender: '',
+// authorName: '',
+// showWithoutAuthors: false,
+// yearRange: [1980, 2025],
+// monthRange: [1, 12],
+// scoreTypes: [],
+// scoreRange: [0, 100],
+// includeUnscored: true
 // }
-
-
 
 const props = defineProps({
   items: {
     type: Array,
     required: true
   },
-  filtreActifs : {
+  filtreActifs: {
     type: Array,
     required: false
   }
@@ -42,36 +40,124 @@ const sortDir = ref('desc')
 const filteredAndSorted = computed(() => {
   console.log("filteredAndSorted recalculated");
   let sortedItems = [...props.items];
-  
+
   if (sortKey.value) {
     sortedItems = sortedItems.sort((b, a) => {
       const va = a[sortKey.value];
       const vb = b[sortKey.value];
-      
+
       if (va === '-' && vb !== '-') return 1;
       if (vb === '-' && va !== '-') return -1;
-      
+
       const na = Number(va);
       const nb = Number(vb);
       const bothNum = !Number.isNaN(na) && !Number.isNaN(nb);
       const cmp = bothNum ? (na - nb) : String(va ?? '').localeCompare(String(vb ?? ''));
-      
+
       return sortDir.value === 'asc' ? cmp : -cmp;
     });
   }
-  
+
   return sortedItems;
 });
 
-const allPays = [...new Set(filteredAndSorted.value.map(item => item.Pays))];
+const allPays = computed(() => [...new Set(filteredAndSorted.value.map(item => item.Pays))]);
 
-let chartOptionsFinal = ref({})
+// Initialisation avec des données par défaut
+let chartOptionsFinal = ref({
+  chart: {
+    type: 'line',
+    height: 300,
+  },
+  title: {
+    text: 'Nombre Critique selon Année',
+    align: 'left'
+  },
+  xaxis: {
+    categories: []
+  },
+  noData: {
+    text: 'Donnée indisponible',
+    align: 'center',
+    verticalAlign: 'middle',
+    style: {
+      fontSize: '16px',
+      color: '#999'
+    }
+  }
+})
 
-let chartSeriesFinal = ref()
+let chartSeriesFinal = ref([{
+  name: 'Critiques',
+  data: []
+}])
 
 const apexchart = ApexChart;
 
 const updateData = (type, mode) => {
+  // Vérification 1: S'il n'y a aucune donnée
+  if (!filteredAndSorted.value || filteredAndSorted.value.length === 0) {
+    chartSeriesFinal.value = [{
+      name: 'Critiques',
+      data: []
+    }]
+    chartOptionsFinal.value = {
+      ...chartOptionsFinal.value,
+      chart: {
+        type: type,
+        height: 300,
+      },
+      xaxis: {
+        categories: []
+      },
+      noData: {
+        text: 'Aucune donnée disponible',
+        align: 'center',
+        verticalAlign: 'middle',
+        style: {
+          fontSize: '16px',
+          color: '#999'
+        }
+      }
+    }
+    isMultipleFilter = false
+    return;
+  }
+
+  // Vérification 2: Si toutes les années sont indisponibles
+  const hasValidYear = filteredAndSorted.value.some(item =>
+    item.Année && item.Année !== '-'
+  );
+
+  if (!hasValidYear) {
+    chartSeriesFinal.value = [{
+      name: 'Critiques',
+      data: []
+    }]
+    chartOptionsFinal.value = {
+      ...chartOptionsFinal.value,
+      chart: {
+        type: type,
+        height: 300,
+      },
+      xaxis: {
+        categories: []
+      },
+      noData: {
+        text: 'Aucune année disponible pour générer le graphique',
+        align: 'center',
+        verticalAlign: 'middle',
+        style: {
+          fontSize: '14px',
+          color: '#999'
+        }
+      }
+    }
+    isMultipleFilter = false
+    return;
+  }
+
+  // Génération du graphique avec logique combine/divided
   let anneeCourante = filteredAndSorted.value[0].Année
   const anneeMax = filteredAndSorted.value[filteredAndSorted.value.length - 1].Année
   let nbOccurence = 0
@@ -82,23 +168,24 @@ const updateData = (type, mode) => {
   while(anneeCourante === '-' || anneeCourante <= anneeMax) {
     arrayX01.push(anneeCourante.toString()) // X
     let maxFiltrePays = filtres.countries.length
-    // Si plusieurs Pays (test)
+    
+    // Si plusieurs Pays
     switch (maxFiltrePays) {
       case 0:
-        // SÉPARER
+        // Aucun filtre pays actif
         if (mode === 'divided') {
-
+          // SÉPARER par pays
           if (arrayY01.length <= 0) {
-            for (let i = 0; i < allPays.length; i++) {
-              arrayY01.push({ name: allPays[i], data: [] })
+            for (let i = 0; i < allPays.value.length; i++) {
+              arrayY01.push({ name: allPays.value[i], data: [] })
             }
           }
-          for (let i = 0; i < allPays.length; i++) {
-            nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante && item.Pays === allPays[i]).length
+          for (let i = 0; i < allPays.value.length; i++) {
+            nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante && item.Pays === allPays.value[i]).length
             arrayY01[i].data.push(nbOccurence)
           }
         } else {
-          // COMBINER
+          // COMBINER tous les pays
           if (arrayY01.length <= 0) { 
             arrayY01.push({ name: 'Critiques', data: [] })
           }
@@ -106,23 +193,25 @@ const updateData = (type, mode) => {
           nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante).length
           arrayY01[0].data.push(nbOccurence) // Y
         }
+        isMultipleFilter = allPays.value.length > 1
         break;
 
       case 1:
-      // Si 1 pays
-      if (arrayY01.length <= 0) { 
-        arrayY01.push({ name: filtres.countries[0], data: [] })
-      }
+        // Si 1 seul pays filtré
+        if (arrayY01.length <= 0) { 
+          arrayY01.push({ name: filtres.countries[0], data: [] })
+        }
 
-      nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante && item.Pays === filtres.countries[0]).length
-      arrayY01[0].data.push(nbOccurence) // Y
+        nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante && item.Pays === filtres.countries[0]).length
+        arrayY01[0].data.push(nbOccurence) // Y
 
-      isMultipleFilter = false
+        isMultipleFilter = false
         break;
 
       default:
-        // SÉPARER
+        // Plusieurs pays filtrés
         if (mode === 'divided') {
+          // SÉPARER par pays filtrés
           if (arrayY01.length <= 0) {
             for (let i = 0; i < maxFiltrePays; i++) {
               arrayY01.push({ name: filtres.countries[i], data: [] })
@@ -133,52 +222,60 @@ const updateData = (type, mode) => {
             arrayY01[i].data.push(nbOccurence)
           }
         } else {
-          // COMBINER
+          // COMBINER les pays filtrés
           if (arrayY01.length <= 0) { 
             arrayY01.push({ name: 'Critiques', data: [] })
           }
 
           nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante).length
           arrayY01[0].data.push(nbOccurence) // Y
-
         }
-
+        isMultipleFilter = true
+        break;
     }
 
-    
-
+    // Passer à l'année suivante
     if (anneeCourante === '-') {
       const nextItem = filteredAndSorted.value.find(item => item.Année !== '-')
       if (nextItem === undefined) {
         anneeCourante = "?"
       } else {
         anneeCourante = nextItem.Année
-
       }
     } else {
       anneeCourante++
     }
-    isMultipleFilter = true
-
-    
   }
+
   chartSeriesFinal.value = arrayY01
 
-    chartOptionsFinal.value = { 
-        chart: {
-          type: type,
-          height: 300,
-        },
-        title: {
-          text: 'Nombre Critique selon Année',
-          align: 'left'
-        },
-        xaxis: {
-          categories: arrayX01
-        }
+  chartOptionsFinal.value = { 
+    chart: {
+      type: type,
+      height: 300,
+    },
+    title: {
+      text: 'Nombre Critique selon Année',
+      align: 'left'
+    },
+    xaxis: {
+      categories: arrayX01
+    },
+    noData: {
+      text: 'Donnée indisponible',
+      align: 'center',
+      verticalAlign: 'middle',
+      style: {
+        fontSize: '16px',
+        color: '#999'
+      }
     }
+  }
 }
-
+// Initialiser le graphique au montage du composant
+onMounted(() => {
+  updateData(checkedTypeCharts.value)
+})
 
 watch(filteredAndSorted, () => {
   updateData(checkedTypeCharts.value, checkedOutData.value)
@@ -200,7 +297,7 @@ watch(checkedOutData, (newMode) => {
         {{ item }}
       </div> -->
       <div>Type de graphique</div>
-      <input type="radio" id="line" name="charts" value="line" v-model="checkedTypeCharts" />
+      <input type="radio" id="line" name="charts" value="line" v-model="checkedTypeCharts" checked />
       <label for="line">Ligne du Temps</label>
 
       <input type="radio" id="bar" name="charts" value="bar" v-model="checkedTypeCharts" />
@@ -210,13 +307,12 @@ watch(checkedOutData, (newMode) => {
       <label for="scatter">Nuage de points</label>
     </div>
     <div>
-    <apexchart
-      :key="checkedTypeCharts"
-      width="100%"
-      height="300"
+      <apexchart 
+      :key="checkedTypeCharts" 
+      width="100%" 
+      height="300" 
       :options="chartOptionsFinal"
-      :series="chartSeriesFinal"
-    />
+      :series="chartSeriesFinal" />
     </div>
     <div v-if="isMultipleFilter === true">
       
