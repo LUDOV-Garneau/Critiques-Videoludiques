@@ -230,7 +230,9 @@ const sidebarFilters = ref({
 })
 const facets = computed(() => {
   const arr = mappedObjects.value
-  const uniq = (vals) => Array.from(new Set(vals.filter(Boolean))).sort()
+  const uniq = (vals) => Array.from(new Set(vals.filter(Boolean))).sort((a, b) => {
+    return a.localeCompare(b, 'fr', { sensitivity: 'base' })
+  })
   // Récupérer les auteurs masculins et féminins depuis les données brutes
   const authorsM = new Set()
   const authorsF = new Set()
@@ -307,8 +309,8 @@ const facets = computed(() => {
     magazines: uniq(arr.map(x => x.Magazine)),
     countries: uniq(arr.map(x => x.Pays)),
     authors: {
-      male: Array.from(authorsM).sort(),
-      female: Array.from(authorsF).sort()
+      male: Array.from(authorsM).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' })),
+      female: Array.from(authorsF).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
     },
     imageTypes: uniq(arr.map(x => x.ImageType)),
     minYear: validYears.length > 0 ? Math.min(...validYears) : 1980,

@@ -421,7 +421,7 @@ const allAuthors = computed(() => {
     }
   })
 
-  return Array.from(allAuthorsSet).sort()
+  return Array.from(allAuthorsSet).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
 })
 
 // Recherche dans la liste des auteurs avec filtrage par genre
@@ -444,7 +444,7 @@ const filteredAuthors = computed(() => {
       }
     })
 
-    authorsToFilter = Array.from(maleAuthorsSet).sort()
+    authorsToFilter = Array.from(maleAuthorsSet).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
 
   } else if (localFilters.value.authorGender === 'féminin') {
     // Afficher seulement les autrices féminines
@@ -460,7 +460,7 @@ const filteredAuthors = computed(() => {
       }
     })
 
-    authorsToFilter = Array.from(femaleAuthorsSet).sort()
+    authorsToFilter = Array.from(femaleAuthorsSet).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
 
   } else {
     // Afficher tous les auteurs (genre "Tous")
@@ -475,7 +475,7 @@ const filteredAuthors = computed(() => {
 
 // Liste des types de plateformes disponibles (basée sur la colonne "Type de plateforme")
 const allPlatformTypes = computed(() => {
-  return ['Autre', 'Console', 'Microordinateur', 'Mobile', 'Portable'].sort()
+  return ['Autre', 'Console', 'Microordinateur', 'Mobile', 'Portable'].sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
 })
 
 // Liste des types de scores disponibles (basée sur l'analyse du fichier Excel)
@@ -580,7 +580,7 @@ const allConsoles = computed(() => {
     'Xbox',              // 134
     'Xbox360',           // 138
     'XboxOne'            // 141
-  ].sort()
+  ].sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
 })
 
 // Formatage des années pour l'affichage
