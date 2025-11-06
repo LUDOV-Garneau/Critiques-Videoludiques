@@ -475,7 +475,7 @@ const filteredAuthors = computed(() => {
 
 // Liste des types de plateformes disponibles (basée sur la colonne "Type de plateforme")
 const allPlatformTypes = computed(() => {
-  return ['Console', 'Microordinateur', 'Portable', 'Mobile', 'Autre']
+  return ['Autre', 'Console', 'Microordinateur', 'Mobile', 'Portable'].sort()
 })
 
 // Liste des types de scores disponibles (basée sur l'analyse du fichier Excel)
@@ -550,37 +550,37 @@ const allScoreTypes = computed(() => {
 // Liste de toutes les consoles disponibles (basée sur les colonnes Excel DK-EL, indices 114-141)
 const allConsoles = computed(() => {
   // Liste complète des consoles trouvées dans le fichier Excel (colonnes binaires 0/1)
-  // Ordre exact selon les colonnes Excel de DK (114) à EL (141)
+  // Triée par ordre alphabétique pour faciliter la recherche
   return [
     'Atari 2600',        // 114
-    'ColecoVision',      // 115
-    'Odyssey2',          // 116
-    'Intellivision',     // 117
     'Atari 7800',        // 118
-    'NES',               // 119
-    'Videopac G7400',    // 120
-    'MasterSystem',      // 121
-    'SuperNES',          // 122
-    'CDi',               // 123
-    'SegaGenesis',       // 124
-    'TurboGrafx16',      // 125
     'AtariJaguar',       // 126
+    'CDi',               // 123
+    'ColecoVision',      // 115
+    'Dreamcast',         // 132
+    'GameCube',          // 131
+    'HyperScan',         // 136
+    'Intellivision',     // 117
+    'MasterSystem',      // 121
+    'NES',               // 119
     'Nintendo64',        // 127
-    'SegaSaturn',        // 128
+    'NintendoSwitch',    // 139
+    'Odyssey2',          // 116
     'PCFX',              // 129
     'PlayStation',       // 130
-    'GameCube',          // 131
-    'Dreamcast',         // 132
     'PlayStation2',      // 133
-    'Xbox',              // 134
-    'Wii',               // 135
-    'HyperScan',         // 136
     'PlayStation3',      // 137
-    'Xbox360',           // 138
-    'NintendoSwitch',    // 139
     'PlayStation4',      // 140
+    'SegaGenesis',       // 124
+    'SegaSaturn',        // 128
+    'SuperNES',          // 122
+    'TurboGrafx16',      // 125
+    'Videopac G7400',    // 120
+    'Wii',               // 135
+    'Xbox',              // 134
+    'Xbox360',           // 138
     'XboxOne'            // 141
-  ]
+  ].sort()
 })
 
 // Formatage des années pour l'affichage

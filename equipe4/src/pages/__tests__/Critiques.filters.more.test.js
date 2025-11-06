@@ -157,6 +157,40 @@ describe('Logique de filtrage des critiques (compléments)', () => {
       expect(result[0][0]).toBe('B')
     })
   })
+
+  describe('Résultats vides - aucune donnée correspondante', () => {
+    it('retourne un tableau vide quand aucun résultat ne correspond aux filtres', () => {
+      // Filtrer par un magazine qui n'existe pas
+      const filters = { magazines: ['Magazine Inexistant'], countries: [] }
+      const result = mapped.filter(x => {
+        if (filters.magazines.length > 0 && !filters.magazines.includes(String(x.Magazine))) return false
+        if (filters.countries.length > 0 && !filters.countries.includes(String(x.Pays))) return false
+        return true
+      })
+      expect(result).toHaveLength(0)
+    })
+
+    it('retourne un tableau vide avec des filtres combinés impossibles', () => {
+      // Combiner des filtres qui ne peuvent pas coexister
+      const filters = { magazines: ['Mag A'], countries: ['Canada'] }
+      const result = mapped.filter(x => {
+        if (filters.magazines.length > 0 && !filters.magazines.includes(String(x.Magazine))) return false
+        if (filters.countries.length > 0 && !filters.countries.includes(String(x.Pays))) return false
+        return true
+      })
+      // Mag A existe pour Canada (A) et France (C), donc on devrait avoir A
+      expect(result.map(x => x.Titre)).toEqual(['A'])
+    })
+
+    it('retourne un tableau vide quand la recherche textuelle ne trouve rien', () => {
+      const searchQuery = 'TitreInexistant'
+      const result = mapped.filter(x => {
+        const titre = String(x.Titre || '').toLowerCase()
+        return titre.includes(searchQuery.toLowerCase())
+      })
+      expect(result).toHaveLength(0)
+    })
+  })
 })
 
 
