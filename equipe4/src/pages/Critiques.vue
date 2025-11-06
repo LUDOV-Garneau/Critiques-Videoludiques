@@ -629,7 +629,17 @@ function buildImportantColumns(allHeaders) {
               </select>
             </div>
           </div>
-          <div class="table-wrap" v-if="filteredHeaders.length">
+          <!-- Message quand aucun résultat -->
+          <div v-if="filteredAndSorted.length === 0" class="no-results">
+            <div class="no-results-icon">🔍</div>
+            <h3 class="no-results-title">Aucune donnée correspondante à votre recherche</h3>
+            <p class="no-results-text">
+              Essayez de modifier vos filtres ou votre recherche pour obtenir des résultats.
+            </p>
+          </div>
+
+          <!-- Tableau des résultats -->
+          <div class="table-wrap" v-else-if="filteredHeaders.length">
             <table class="data">
               <thead>
                 <tr>
@@ -988,6 +998,36 @@ tbody tr:hover {
   color: #4b5563;
   margin-top: 12px;
   font-size: 14px;
+}
+/* Message aucun résultat */
+.no-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  text-align: center;
+  background: #f9fafb;
+  border: 2px dashed #d1d5db;
+  border-radius: 12px;
+  margin: 24px 0;
+}
+.no-results-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+.no-results-title {
+  margin: 0 0 12px 0;
+  color: #374151;
+  font-size: 20px;
+  font-weight: 600;
+}
+.no-results-text {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+  max-width: 400px;
 }
 /* Modal */
 .modal-overlay {
