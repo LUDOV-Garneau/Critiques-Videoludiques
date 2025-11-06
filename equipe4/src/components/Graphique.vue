@@ -23,6 +23,7 @@ let checkedOutData = ref('combine')
 // }
 
 
+
 const props = defineProps({
   items: {
     type: Array,
@@ -62,6 +63,8 @@ const filteredAndSorted = computed(() => {
   return sortedItems;
 });
 
+const allPays = [...new Set(filteredAndSorted.value.map(item => item.Pays))];
+
 let chartOptionsFinal = ref({})
 
 let chartSeriesFinal = ref()
@@ -80,40 +83,32 @@ const updateData = (type, mode) => {
     arrayX01.push(anneeCourante.toString()) // X
     let maxFiltrePays = filtres.countries.length
     // Si plusieurs Pays (test)
-    if (maxFiltrePays !== 1) {
-      if (mode === 'divided') {
-        if (arrayY01.length <= 0) {
-          for (let i = 0; i < maxFiltrePays; i++) {
-            arrayY01.push({ name: filtres.countries[i], data: [] })
+    switch (maxFiltrePays) {
+      case 0:
+        // SÉPARER
+        if (mode === 'divided') {
+
+          if (arrayY01.length <= 0) {
+            for (let i = 0; i < allPays.length; i++) {
+              arrayY01.push({ name: allPays[i], data: [] })
+            }
           }
-        }
-        for (let i = 0; i < maxFiltrePays; i++) {
-          nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante && item.Pays === filtres.countries[i]).length
-          arrayY01[i].data.push(nbOccurence)
-        }
-      } else {
-        if (arrayY01.length <= 0) { 
-          arrayY01.push({ name: filtres.countries[0], data: [] })
-        }
-
-        nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante).length
-        arrayY01[0].data.push(nbOccurence) // Y
-        arrayX01.push(anneeCourante.toString()) // X
-
-      }
-      
-
-      if (anneeCourante === '-') {
-        if (nbOccurence < filteredAndSorted.value.length) {
-          anneeCourante = filteredAndSorted.value[nbOccurence].Année
+          for (let i = 0; i < allPays.length; i++) {
+            nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante && item.Pays === allPays[i]).length
+            arrayY01[i].data.push(nbOccurence)
+          }
         } else {
-          anneeCourante = "?"
+          // COMBINER
+          if (arrayY01.length <= 0) { 
+            arrayY01.push({ name: 'Critiques', data: [] })
+          }
+
+          nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante).length
+          arrayY01[0].data.push(nbOccurence) // Y
         }
-      } else {
-        anneeCourante++
-      }
-      isMultipleFilter = true
-    } else {
+        break;
+
+      case 1:
       // Si 1 pays
       if (arrayY01.length <= 0) { 
         arrayY01.push({ name: filtres.countries[0], data: [] })
@@ -121,24 +116,53 @@ const updateData = (type, mode) => {
 
       nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante && item.Pays === filtres.countries[0]).length
       arrayY01[0].data.push(nbOccurence) // Y
-      arrayX01.push(anneeCourante.toString()) // X
 
-      if (anneeCourante === '-') {
-        if (nbOccurence < filteredAndSorted.value.length) {
-          anneeCourante = filteredAndSorted.value[nbOccurence].Année
-        } else {
-          anneeCourante = "?"
-        }
-      } else {
-        anneeCourante++
-      }
       isMultipleFilter = false
-    }
-      
+        break;
+
+      default:
+        // SÉPARER
+        if (mode === 'divided') {
+          if (arrayY01.length <= 0) {
+            for (let i = 0; i < maxFiltrePays; i++) {
+              arrayY01.push({ name: filtres.countries[i], data: [] })
+            }
+          }
+          for (let i = 0; i < maxFiltrePays; i++) {
+            nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante && item.Pays === filtres.countries[i]).length
+            arrayY01[i].data.push(nbOccurence)
+          }
+        } else {
+          // COMBINER
+          if (arrayY01.length <= 0) { 
+            arrayY01.push({ name: 'Critiques', data: [] })
+          }
+
+          nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante).length
+          arrayY01[0].data.push(nbOccurence) // Y
+
+        }
 
     }
 
-    chartSeriesFinal.value = arrayY01
+    
+
+    if (anneeCourante === '-') {
+      const nextItem = filteredAndSorted.value.find(item => item.Année !== '-')
+      if (nextItem === undefined) {
+        anneeCourante = "?"
+      } else {
+        anneeCourante = nextItem.Année
+
+      }
+    } else {
+      anneeCourante++
+    }
+    isMultipleFilter = true
+
+    
+  }
+  chartSeriesFinal.value = arrayY01
 
     chartOptionsFinal.value = { 
         chart: {
