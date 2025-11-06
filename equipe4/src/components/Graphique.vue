@@ -3,6 +3,7 @@ import { ref, watch, computed } from 'vue'
 import ApexChart from 'vue3-apexcharts'
 
 let checkedTypeCharts = ref('line')
+let checkedOutData = ref('combine')
 
 // FiltreActifs {
   // magazines: [],
@@ -33,6 +34,7 @@ const props = defineProps({
   }
 })
 
+let isMultipleFilter = false
 const sortKey = ref('Année')
 const sortDir = ref('desc')
 
@@ -66,16 +68,59 @@ let chartSeriesFinal = ref()
 
 const apexchart = ApexChart;
 
-const updateData = (type) => {
+const updateData = (type, mode) => {
   let anneeCourante = filteredAndSorted.value[0].Année
   const anneeMax = filteredAndSorted.value[filteredAndSorted.value.length - 1].Année
-    let nbOccurence = 0
-    let arrayY01 = []
-    let arrayX01 = []
+  let nbOccurence = 0
+  let arrayY01 = []
+  let arrayX01 = []
+  let filtres = props.filtreActifs
 
-    while(anneeCourante === '-' || anneeCourante <= anneeMax) {
-      nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante).length
-      arrayY01.push(nbOccurence) // Y
+  while(anneeCourante === '-' || anneeCourante <= anneeMax) {
+    arrayX01.push(anneeCourante.toString()) // X
+    let maxFiltrePays = filtres.countries.length
+    // Si plusieurs Pays (test)
+    if (maxFiltrePays !== 1) {
+      if (mode === 'divided') {
+        if (arrayY01.length <= 0) {
+          for (let i = 0; i < maxFiltrePays; i++) {
+            arrayY01.push({ name: filtres.countries[i], data: [] })
+          }
+        }
+        for (let i = 0; i < maxFiltrePays; i++) {
+          nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante && item.Pays === filtres.countries[i]).length
+          arrayY01[i].data.push(nbOccurence)
+        }
+      } else {
+        if (arrayY01.length <= 0) { 
+          arrayY01.push({ name: filtres.countries[0], data: [] })
+        }
+
+        nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante).length
+        arrayY01[0].data.push(nbOccurence) // Y
+        arrayX01.push(anneeCourante.toString()) // X
+
+      }
+      
+
+      if (anneeCourante === '-') {
+        if (nbOccurence < filteredAndSorted.value.length) {
+          anneeCourante = filteredAndSorted.value[nbOccurence].Année
+        } else {
+          anneeCourante = "?"
+        }
+      } else {
+        anneeCourante++
+      }
+      isMultipleFilter = true
+    } else {
+      // Si 1 pays
+      if (arrayY01.length <= 0) { 
+        arrayY01.push({ name: filtres.countries[0], data: [] })
+      }
+
+      nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante && item.Pays === filtres.countries[0]).length
+      arrayY01[0].data.push(nbOccurence) // Y
       arrayX01.push(anneeCourante.toString()) // X
 
       if (anneeCourante === '-') {
@@ -87,14 +132,13 @@ const updateData = (type) => {
       } else {
         anneeCourante++
       }
+      isMultipleFilter = false
+    }
+      
 
     }
 
-    chartSeriesFinal.value = [{
-      name: 'Critiques',
-      data: arrayY01
-    }
-]
+    chartSeriesFinal.value = arrayY01
 
     chartOptionsFinal.value = { 
         chart: {
@@ -113,22 +157,26 @@ const updateData = (type) => {
 
 
 watch(filteredAndSorted, () => {
-  updateData(checkedTypeCharts.value)
+  updateData(checkedTypeCharts.value, checkedOutData.value)
 });
 
 watch(checkedTypeCharts, (newType) => {
-  updateData(newType)
+  updateData(newType, 'combine')
+})
+
+watch(checkedOutData, (newMode) => {
+  updateData(checkedTypeCharts.value, newMode)
 })
 </script>
 
 <template>
   <div>
     <div>
-      <!-- <div v-for="(item, index) in filtreActifs" :key="index">
-        {{ filtreActifs }}
+      <!-- <div v-for="(item, index) in listCritique" :key="index">
+        {{ item }}
       </div> -->
       <div>Type de graphique</div>
-      <input type="radio" id="line" name="charts" value="line" v-model="checkedTypeCharts" checked/>
+      <input type="radio" id="line" name="charts" value="line" v-model="checkedTypeCharts" />
       <label for="line">Ligne du Temps</label>
 
       <input type="radio" id="bar" name="charts" value="bar" v-model="checkedTypeCharts" />
@@ -146,7 +194,14 @@ watch(checkedTypeCharts, (newType) => {
       :series="chartSeriesFinal"
     />
     </div>
+    <div v-if="isMultipleFilter === true">
+      
+      <input type="radio" id="combine" name="Data" value="combine" v-model="checkedOutData"/>
+      <label for="combine">Combiner</label>
 
+      <input type="radio" id="divided" name="Data" value="divided" v-model="checkedOutData" />
+      <label for="divided">Diviser</label>
+    </div>
     
   </div>
 </template>
