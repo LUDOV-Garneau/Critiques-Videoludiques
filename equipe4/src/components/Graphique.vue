@@ -272,6 +272,12 @@ const updateData = (type, mode) => {
     }
   }
 }
+
+function myFunction() {
+  var x = document.getElementById("myOption").text;
+  document.getElementById("demo").innerHTML = x;
+}
+
 // Initialiser le graphique au montage du composant
 onMounted(() => {
   updateData(checkedTypeCharts.value)
@@ -315,7 +321,12 @@ watch(checkedOutData, (newMode) => {
       :series="chartSeriesFinal" />
     </div>
     <div v-if="isMultipleFilter === true">
-      
+
+      <select>
+        <option id="OptionDivide" value="volvocar">Volvo</option>
+        <option value="saabcar">Saab</option>
+      </select>
+
       <input type="radio" id="combine" name="Data" value="combine" v-model="checkedOutData"/>
       <label for="combine">Combiner</label>
 
