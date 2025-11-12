@@ -291,6 +291,19 @@ function setAuthorGender(gender) {
       })
       availableAuthors = Array.from(femaleAuthorsSet)
 
+    } else if (gender === 'autre') {
+      const other = props.facets.authors?.other || []
+      const otherAuthorsSet = new Set()
+      other.forEach(author => {
+        if (author && author !== '0') {
+          const authors = author.split(/[,;]+/).map(a => a.trim()).filter(a => {
+            return a && a !== '0' && !/^\d+$/.test(a)
+          })
+          authors.forEach(a => otherAuthorsSet.add(a))
+        }
+      })
+      availableAuthors = Array.from(otherAuthorsSet)
+
     } else {
       // Genre "Tous" - tous les auteurs sont disponibles
       availableAuthors = allAuthors.value
@@ -393,6 +406,7 @@ const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'S
 const allAuthors = computed(() => {
   const male = props.facets.authors?.male || []
   const female = props.facets.authors?.female || []
+  const other = props.facets.authors?.other || []
 
   // Créer un Set pour éviter les doublons et séparer les auteurs multiples
   const allAuthorsSet = new Set()
@@ -415,6 +429,16 @@ const allAuthors = computed(() => {
       // Séparer les auteurs multiples
       const authors = author.split(/[,;]+/).map(a => a.trim()).filter(a => {
         // Exclure les chiffres seuls, les valeurs vides, et les "0"
+        return a && a !== '0' && !/^\d+$/.test(a)
+      })
+      authors.forEach(a => allAuthorsSet.add(a))
+    }
+  })
+
+  // Ajouter les auteurs "autres"
+  other.forEach(author => {
+    if (author && author !== '0') {
+      const authors = author.split(/[,;]+/).map(a => a.trim()).filter(a => {
         return a && a !== '0' && !/^\d+$/.test(a)
       })
       authors.forEach(a => allAuthorsSet.add(a))
@@ -461,6 +485,20 @@ const filteredAuthors = computed(() => {
     })
 
     authorsToFilter = Array.from(femaleAuthorsSet).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
+
+  } else if (localFilters.value.authorGender === 'autre') {
+    // Afficher seulement les auteurs non masculin et non féminin
+    const other = props.facets.authors?.other || []
+    const otherAuthorsSet = new Set()
+    other.forEach(author => {
+      if (author && author !== '0') {
+        const authors = author.split(/[,;]+/).map(a => a.trim()).filter(a => {
+          return a && a !== '0' && !/^\d+$/.test(a)
+        })
+        authors.forEach(a => otherAuthorsSet.add(a))
+      }
+    })
+    authorsToFilter = Array.from(otherAuthorsSet).sort()
 
   } else {
     // Afficher tous les auteurs (genre "Tous")
@@ -850,6 +888,16 @@ watch(() => props.facets, (newFacets) => {
                   @change="setAuthorGender('féminin')"
                 />
                 <span>Féminin</span>
+              </label>
+              <label class="radio-option">
+                <input
+                  type="radio"
+                  name="authorGender"
+                  value="autre"
+                  :checked="localFilters.authorGender === 'autre'"
+                  @change="setAuthorGender('autre')"
+                />
+                <span>Autre</span>
               </label>
             </div>
           </div>

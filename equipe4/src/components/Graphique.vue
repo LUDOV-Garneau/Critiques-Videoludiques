@@ -3,6 +3,7 @@ import { ref, watch, computed, onMounted } from 'vue'
 import ApexChart from 'vue3-apexcharts'
 
 let checkedTypeCharts = ref('line')
+let checkedOutData = ref('combine')
 
 // FiltreActifs {
 // magazines: [],
@@ -32,6 +33,7 @@ const props = defineProps({
   }
 })
 
+let isMultipleFilter = false
 const sortKey = ref('Année')
 const sortDir = ref('desc')
 
@@ -58,6 +60,8 @@ const filteredAndSorted = computed(() => {
 
   return sortedItems;
 });
+
+const allPays = computed(() => [...new Set(filteredAndSorted.value.map(item => item.Pays))]);
 
 // Initialisation avec des données par défaut
 let chartOptionsFinal = ref({
@@ -90,8 +94,8 @@ let chartSeriesFinal = ref([{
 
 const apexchart = ApexChart;
 
-const updateData = (type) => {
-  // Vérifier s'il y a des données
+const updateData = (type, mode) => {
+  // Vérification 1: S'il n'y a aucune donnée
   if (!filteredAndSorted.value || filteredAndSorted.value.length === 0) {
     chartSeriesFinal.value = [{
       name: 'Critiques',
@@ -116,10 +120,11 @@ const updateData = (type) => {
         }
       }
     }
+    isMultipleFilter = false
     return;
   }
 
-  // Vérifier si toutes les années sont indisponibles (toutes à '-' ou undefined)
+  // Vérification 2: Si toutes les années sont indisponibles
   const hasValidYear = filteredAndSorted.value.some(item =>
     item.Année && item.Année !== '-'
   );
@@ -148,37 +153,103 @@ const updateData = (type) => {
         }
       }
     }
+    isMultipleFilter = false
     return;
   }
 
+  // Génération du graphique avec logique combine/divided
   let anneeCourante = filteredAndSorted.value[0].Année
   const anneeMax = filteredAndSorted.value[filteredAndSorted.value.length - 1].Année
   let nbOccurence = 0
   let arrayY01 = []
   let arrayX01 = []
+  let filtres = props.filtreActifs
 
-  while (anneeCourante === '-' || anneeCourante <= anneeMax) {
-    nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante).length
-    arrayY01.push(nbOccurence) // Y
+  while(anneeCourante === '-' || anneeCourante <= anneeMax) {
     arrayX01.push(anneeCourante.toString()) // X
+    let maxFiltrePays = filtres.countries.length
+    
+    // Si plusieurs Pays
+    switch (maxFiltrePays) {
+      case 0:
+        // Aucun filtre pays actif
+        if (mode === 'divided') {
+          // SÉPARER par pays
+          if (arrayY01.length <= 0) {
+            for (let i = 0; i < allPays.value.length; i++) {
+              arrayY01.push({ name: allPays.value[i], data: [] })
+            }
+          }
+          for (let i = 0; i < allPays.value.length; i++) {
+            nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante && item.Pays === allPays.value[i]).length
+            arrayY01[i].data.push(nbOccurence)
+          }
+        } else {
+          // COMBINER tous les pays
+          if (arrayY01.length <= 0) { 
+            arrayY01.push({ name: 'Critiques', data: [] })
+          }
 
+          nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante).length
+          arrayY01[0].data.push(nbOccurence) // Y
+        }
+        isMultipleFilter = allPays.value.length > 1
+        break;
+
+      case 1:
+        // Si 1 seul pays filtré
+        if (arrayY01.length <= 0) { 
+          arrayY01.push({ name: filtres.countries[0], data: [] })
+        }
+
+        nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante && item.Pays === filtres.countries[0]).length
+        arrayY01[0].data.push(nbOccurence) // Y
+
+        isMultipleFilter = false
+        break;
+
+      default:
+        // Plusieurs pays filtrés
+        if (mode === 'divided') {
+          // SÉPARER par pays filtrés
+          if (arrayY01.length <= 0) {
+            for (let i = 0; i < maxFiltrePays; i++) {
+              arrayY01.push({ name: filtres.countries[i], data: [] })
+            }
+          }
+          for (let i = 0; i < maxFiltrePays; i++) {
+            nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante && item.Pays === filtres.countries[i]).length
+            arrayY01[i].data.push(nbOccurence)
+          }
+        } else {
+          // COMBINER les pays filtrés
+          if (arrayY01.length <= 0) { 
+            arrayY01.push({ name: 'Critiques', data: [] })
+          }
+
+          nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante).length
+          arrayY01[0].data.push(nbOccurence) // Y
+        }
+        isMultipleFilter = true
+        break;
+    }
+
+    // Passer à l'année suivante
     if (anneeCourante === '-') {
-      if (nbOccurence < filteredAndSorted.value.length) {
-        anneeCourante = filteredAndSorted.value[nbOccurence].Année
-      } else {
+      const nextItem = filteredAndSorted.value.find(item => item.Année !== '-')
+      if (nextItem === undefined) {
         anneeCourante = "?"
+      } else {
+        anneeCourante = nextItem.Année
       }
     } else {
       anneeCourante++
     }
   }
 
-  chartSeriesFinal.value = [{
-    name: 'Critiques',
-    data: arrayY01
-  }]
+  chartSeriesFinal.value = arrayY01
 
-  chartOptionsFinal.value = {
+  chartOptionsFinal.value = { 
     chart: {
       type: type,
       height: 300,
@@ -201,26 +272,29 @@ const updateData = (type) => {
     }
   }
 }
-
 // Initialiser le graphique au montage du composant
 onMounted(() => {
   updateData(checkedTypeCharts.value)
 })
 
 watch(filteredAndSorted, () => {
-  updateData(checkedTypeCharts.value)
+  updateData(checkedTypeCharts.value, checkedOutData.value)
 });
 
 watch(checkedTypeCharts, (newType) => {
-  updateData(newType)
+  updateData(newType, 'combine')
+})
+
+watch(checkedOutData, (newMode) => {
+  updateData(checkedTypeCharts.value, newMode)
 })
 </script>
 
 <template>
   <div>
     <div>
-      <!-- <div v-for="(item, index) in filtreActifs" :key="index">
-        {{ filtreActifs }}
+      <!-- <div v-for="(item, index) in listCritique" :key="index">
+        {{ item }}
       </div> -->
       <div>Type de graphique</div>
       <input type="radio" id="line" name="charts" value="line" v-model="checkedTypeCharts" checked />
@@ -240,5 +314,14 @@ watch(checkedTypeCharts, (newType) => {
       :options="chartOptionsFinal"
       :series="chartSeriesFinal" />
     </div>
+    <div v-if="isMultipleFilter === true">
+      
+      <input type="radio" id="combine" name="Data" value="combine" v-model="checkedOutData"/>
+      <label for="combine">Combiner</label>
+
+      <input type="radio" id="divided" name="Data" value="divided" v-model="checkedOutData" />
+      <label for="divided">Diviser</label>
+    </div>
+    
   </div>
 </template>
