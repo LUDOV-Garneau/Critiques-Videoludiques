@@ -513,7 +513,7 @@ const filteredAuthors = computed(() => {
 
 // Liste des types de plateformes disponibles (basée sur la colonne "Type de plateforme")
 const allPlatformTypes = computed(() => {
-  return ['Autre', 'Console', 'Microordinateur', 'Mobile', 'Portable'].sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
+  return props.facets.platformTypes || []
 })
 
 // Liste des types de scores disponibles (basée sur l'analyse du fichier Excel)
