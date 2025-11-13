@@ -578,7 +578,7 @@ const filteredAuthors = computed(() => {
 
 // Liste des types de plateformes disponibles (basée sur la colonne "Type de plateforme")
 const allPlatformTypes = computed(() => {
-  return ['Autre', 'Console', 'Microordinateur', 'Mobile', 'Portable'].sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
+  return props.facets.platformTypes || []
 })
 
 // Liste des types de scores disponibles (basée sur l'analyse du fichier Excel)
@@ -789,7 +789,7 @@ watch(() => props.facets, (newFacets) => {
           class="card-header"
           :class="{ expanded: expandedCards.platformTypes }"
         >
-          <span>Plateformes Spécifiques</span>
+          <span>Type de plateformes</span>
           <span class="expand-icon">{{ expandedCards.platformTypes ? '−' : '+' }}</span>
         </button>
 
@@ -821,7 +821,7 @@ watch(() => props.facets, (newFacets) => {
           class="card-header"
           :class="{ expanded: expandedCards.platforms }"
         >
-          <span>Plateformes</span>
+          <span>Plateformes spécifiques</span>
           <span class="expand-icon">{{ expandedCards.platforms ? '−' : '+' }}</span>
         </button>
 

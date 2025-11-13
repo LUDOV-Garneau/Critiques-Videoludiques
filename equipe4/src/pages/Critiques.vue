@@ -199,9 +199,17 @@ const mapping = ref({
 function initMapping() {
   const lower = (headers.value || []).map(h => String(h || '').toLowerCase())
   function find(labels) { const i = lower.findIndex(h => labels.some(l => h.includes(l))); return i>=0 ? headers.value[i] : '' }
+  // Fonction pour trouver une colonne avec un nom exact (sans préfixe/suffixe)
+  function findExact(labels) {
+    const i = lower.findIndex(h => {
+      const trimmed = h.trim()
+      return labels.some(l => trimmed === l)
+    })
+    return i>=0 ? headers.value[i] : ''
+  }
   mapping.value.TypeImageUtilise = find(["type d'images utilisés", "type d'image utilisé", "type image", "image type"])
   mapping.value.TitreJeu = find(['titre du jeu', 'game title', 'nom du jeu'])
-  mapping.value.Plateforme = find(['platform','console','system','plateforme'])
+  mapping.value.Plateforme = findExact(['plateforme', 'platform'])
   mapping.value.Modele = find(['modèle', 'modele', 'model'])
   mapping.value.TypePlateforme = find(['type de plateforme', 'platform type'])
   mapping.value.TypeJeu = find(['titre des étiquettes génériques de genre', 'genre', 'type de jeu', 'game genre'])
@@ -526,7 +534,9 @@ const facets = computed(() => {
       rows.value.forEach(row => {
         const type = row[platformTypeIndex]
         if (type && type !== '' && type !== '0') {
-          platformTypes.add(type)
+          // Séparer les types multiples (séparés par " ; ")
+          const typeList = String(type).split(/\s*;\s*/).map(t => t.trim()).filter(t => t)
+          typeList.forEach(t => platformTypes.add(t))
         }
       })
     }
@@ -583,7 +593,7 @@ const facets = computed(() => {
     .filter(y => y !== '-' && y !== undefined && typeof y === 'number' && !isNaN(y))
   
   return {
-    platformTypes: Array.from(platformTypes).sort(),
+    platformTypes: Array.from(platformTypes).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' })),
     platforms: sortedPlatforms,
     gameTypes: gameTypesArray,
     magazines: uniq(arr.map(x => x.Magazine)),
@@ -630,7 +640,15 @@ const filteredByFilters = computed(() => {
         const platformTypeIndex = headers.value.indexOf('Type de plateforme')
         if (platformTypeIndex !== -1) {
           const platformType = rows.value[index][platformTypeIndex]
-          if (!f.platformTypes.includes(platformType)) return false
+          if (platformType && platformType !== '' && platformType !== '0') {
+            // Séparer les types multiples (séparés par " ; ")
+            const typeList = String(platformType).split(/\s*;\s*/).map(t => t.trim()).filter(t => t)
+            // Vérifier si au moins un des types correspond au filtre
+            const hasMatch = typeList.some(t => f.platformTypes.includes(t))
+            if (!hasMatch) return false
+          } else {
+            return false
+          }
         }
       }
     }
@@ -981,7 +999,7 @@ const filteredRowsObjects = computed(() => {
       // Mapper les clés d'affichage vers les propriétés de l'objet
       switch(key) {
         case 'Titre': return item.Titre
-        case 'Plateforme spécifique': return item.TypePlateforme
+        case 'Type de Plateformes': return item.TypePlateforme
         case 'Plateforme': return item.Plateforme
         case 'Note': return item.Note
         case 'Année': return item.Année
@@ -1040,7 +1058,7 @@ function buildImportantColumns(allHeaders) {
   const lower = allHeaders.map(h => String(h || '').toLowerCase())
   const want = [
     { key: 'title', labels: ['title','game','name','titre','jeu'], display: 'Titre' },
-    { key: 'platformType', labels: ['type de plateforme','platform type'], display: 'Plateforme spécifique' },
+    { key: 'platformType', labels: ['type de plateforme','platform type'], display: 'Type de Plateformes' },
     // Retirer Plateforme et Note de l'affichage principal
     { key: 'year', labels: ['year','release year','annee','année','date'], display: 'Année' },
     { key: 'country', labels: ['country','pays','region'], display: 'Pays' },
@@ -1200,18 +1218,45 @@ function buildImportantColumns(allHeaders) {
                 <!-- Section: Plateformes -->
                 <div class="modal-section">
                   <h4 class="section-title">Plateformes</h4>
-                  <div class="modal-grid">
+                  <div class="modal-grid modal-grid-3">
                     <div class="modal-field">
                       <div class="label">Type de plateforme</div>
-                      <div class="value">{{ modalItem?.TypePlateforme || '-' }}</div>
+                      <div class="value">
+                        <template v-if="modalItem?.TypePlateforme && modalItem.TypePlateforme.includes(' ; ')">
+                          <div v-for="(item, idx) in modalItem.TypePlateforme.split(' ; ')" :key="idx" class="list-item">
+                            - {{ item.trim() }}
+                          </div>
+                        </template>
+                        <template v-else>
+                          {{ modalItem?.TypePlateforme || '-' }}
+                        </template>
+                      </div>
                     </div>
                     <div class="modal-field">
-                      <div class="label">Plateforme</div>
-                      <div class="value">{{ modalItem?.Plateforme || '-' }}</div>
+                      <div class="label">Plateforme spécifique</div>
+                      <div class="value">
+                        <template v-if="modalItem?.Plateforme && modalItem.Plateforme.includes(' ; ')">
+                          <div v-for="(item, idx) in modalItem.Plateforme.split(' ; ')" :key="idx" class="list-item">
+                            - {{ item.trim() }}
+                          </div>
+                        </template>
+                        <template v-else>
+                          {{ modalItem?.Plateforme || '-' }}
+                        </template>
+                      </div>
                     </div>
                     <div class="modal-field">
                       <div class="label">Modèle</div>
-                      <div class="value">{{ modalItem?.Modele || '-' }}</div>
+                      <div class="value">
+                        <template v-if="modalItem?.Modele && modalItem.Modele.includes(' ; ')">
+                          <div v-for="(item, idx) in modalItem.Modele.split(' ; ')" :key="idx" class="list-item">
+                            - {{ item.trim() }}
+                          </div>
+                        </template>
+                        <template v-else>
+                          {{ modalItem?.Modele || '-' }}
+                        </template>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1562,6 +1607,9 @@ tbody tr:hover {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
+.modal-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
 .modal-field {
   min-width: 0;
 }
@@ -1580,46 +1628,9 @@ tbody tr:hover {
   color: #111827;
   word-wrap: break-word;
 }
-.authors-with-tags {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.author-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.author-name {
-  font-weight: 500;
-  color: #111827;
-}
-.author-tags {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-.author-tag {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.author-tag-gender {
-  background-color: #dbeafe;
-  color: #1e40af;
-}
-.author-tag-minority {
-  background-color: #fef3c7;
-  color: #92400e;
-}
-.author-tag-anonymous {
-  background-color: #fee2e2;
-  color: #991b1b;
+.modal-field .value .list-item {
+  line-height: 1.6;
+  margin: 2px 0;
 }
 .modal-footer {
   padding: 16px 20px;
