@@ -334,6 +334,8 @@ const mappedObjects = computed(() => {
       Pays: idx.Pays>=0 ? r[idx.Pays] : undefined,
       CritiqueTitre: critiqueTitre,
       PDF: idx.PDF>=0 ? r[idx.PDF] : undefined,
+      Consoles: activeConsoles.length > 0 ? activeConsoles.join(', ') : '-',
+      PseudonymeIdentity: pseudonymeIdentity, // Colonne DC "identité du pseudo"
       // Notations par critères
       NoteGenerale: parseScore(idx.NoteGenerale>=0 ? r[idx.NoteGenerale] : undefined),
       NoteVisuelle: parseScore(idx.NoteVisuelle>=0 ? r[idx.NoteVisuelle] : undefined),
@@ -985,6 +987,7 @@ const filteredRowsObjects = computed(() => {
         case 'Année': return item.Année
         case 'Pays': return item.Pays
         case 'Auteurs': return item.Auteurs
+        case 'Identité du pseudo': return item.PseudonymeIdentity || '' // Afficher seulement si présent
         case 'Développeur': return item.Développeur
         case 'Éditeur': return item.Éditeur
         case 'Magazine': return item.Magazine
@@ -1042,6 +1045,7 @@ function buildImportantColumns(allHeaders) {
     { key: 'year', labels: ['year','release year','annee','année','date'], display: 'Année' },
     { key: 'country', labels: ['country','pays','region'], display: 'Pays' },
     { key: 'author', labels: ['author','auteur','autrice','writer'], display: 'Auteurs' },
+    { key: 'pseudonymeIdentity', labels: ['identité du pseudo','identite du pseudo','dc'], display: 'Identité du pseudo' },
     { key: 'developer', labels: ['developer','dev','studio'], display: 'Développeur' },
     { key: 'publisher', labels: ['publisher','éditeur','editeur'], display: 'Éditeur' },
     { key: 'magazine', labels: ['magazine','revue','journal','publication'], display: 'Magazine' },
