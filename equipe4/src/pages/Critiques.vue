@@ -116,8 +116,12 @@ const mappedObjects = computed(() => {
   // Indices pour les colonnes d'auteurs spécifiques
   const maleAuthorIndex = headers.value.indexOf('Nom des auteurs masculins')
   const femaleAuthorIndex = headers.value.indexOf('Nom des autrices féminin')
+  const ambiguousAuthorIndex = headers.value.findIndex(h => {
+    const lower = String(h || '').toLowerCase()
+    return lower.includes('ambigu') || lower === 'cy'
+  })
   const mapped = rows.value.map(r => {
-    // Combiner les noms d'auteurs masculins et féminins
+    // Combiner les noms d'auteurs masculins, féminins et ambigu
     let authorNames = []
     if (maleAuthorIndex !== -1 && r[maleAuthorIndex] && r[maleAuthorIndex] !== '0') {
       // Séparer les auteurs multiples s'ils sont dans la même cellule
@@ -127,6 +131,11 @@ const mappedObjects = computed(() => {
     if (femaleAuthorIndex !== -1 && r[femaleAuthorIndex] && r[femaleAuthorIndex] !== '0') {
       // Séparer les auteurs multiples s'ils sont dans la même cellule
       const authors = String(r[femaleAuthorIndex]).split(/[,;]+/).map(a => a.trim()).filter(a => a)
+      authorNames.push(...authors)
+    }
+    if (ambiguousAuthorIndex !== -1 && r[ambiguousAuthorIndex] && r[ambiguousAuthorIndex] !== '0') {
+      // Séparer les auteurs multiples s'ils sont dans la même cellule
+      const authors = String(r[ambiguousAuthorIndex]).split(/[,;]+/).map(a => a.trim()).filter(a => a)
       authorNames.push(...authors)
     }
     // Si aucun auteur spécifique, utiliser la colonne générale
@@ -170,6 +179,26 @@ const mappedObjects = computed(() => {
     const critiqueTitre = idx.CritiqueTitre>=0 ? r[idx.CritiqueTitre] : undefined;
     // Utiliser la colonne Type d'images utilisés si présente
     let imageType = idx.TypeImageUtilise >= 0 ? r[idx.TypeImageUtilise] : undefined;
+    
+    // Récupérer la colonne DC "identité du pseudo" si l'auteur est un pseudonyme
+    const pseudonymeIdentityIndex = headers.value.findIndex(h => {
+      const lower = String(h || '').toLowerCase()
+      return (lower.includes('identité') && lower.includes('pseudo')) || lower === 'dc'
+    })
+    let pseudonymeIdentity = undefined
+    if (pseudonymeIdentityIndex !== -1) {
+      const pseudonymeIndex = headers.value.findIndex(h => {
+        const lower = String(h || '').toLowerCase()
+        return lower.includes('pseudonyme') || lower === 'db'
+      })
+      // Afficher seulement si c'est un pseudonyme (DB = 1 ou valeur non vide)
+      if (pseudonymeIndex !== -1) {
+        const isPseudonyme = r[pseudonymeIndex] && r[pseudonymeIndex] !== '' && r[pseudonymeIndex] !== '0' && Number(r[pseudonymeIndex]) === 1
+        if (isPseudonyme && r[pseudonymeIdentityIndex]) {
+          pseudonymeIdentity = r[pseudonymeIdentityIndex]
+        }
+      }
+    }
 
     // Créer l'objet critique de base
     const critique = {
@@ -186,6 +215,7 @@ const mappedObjects = computed(() => {
       CritiqueTitre: critiqueTitre,
       PDF: idx.PDF>=0 ? r[idx.PDF] : undefined,
       Consoles: activeConsoles.length > 0 ? activeConsoles.join(', ') : '-',
+      PseudonymeIdentity: pseudonymeIdentity, // Colonne DC "identité du pseudo"
       // Notations par critères
       NoteGenerale: parseScore(idx.NoteGenerale>=0 ? r[idx.NoteGenerale] : undefined),
       NoteVisuelle: parseScore(idx.NoteVisuelle>=0 ? r[idx.NoteVisuelle] : undefined),
@@ -219,7 +249,8 @@ const sidebarFilters = ref({
   consoles: [],
   gameTypes: [],
   imageTypes: [],
-  authorGender: '',
+  authorGender: [],
+  authorCharacteristics: [],
   authorName: '',
   showWithoutAuthors: false,
   yearRange: [1980, 2025],
@@ -231,12 +262,25 @@ const sidebarFilters = ref({
 const facets = computed(() => {
   const arr = mappedObjects.value
   const uniq = (vals) => Array.from(new Set(vals.filter(Boolean))).sort()
-  // Récupérer les auteurs masculins et féminins depuis les données brutes
+  // Récupérer les auteurs masculins, féminins et ambigu depuis les données brutes
   const authorsM = new Set()
   const authorsF = new Set()
+  const authorsA = new Set() // Ambigu
+  const authorsPseudonymes = new Set() // Pseudonymes
   if (headers.value.length > 0) {
     const maleAuthorIndex = headers.value.indexOf('Nom des auteurs masculins')
     const femaleAuthorIndex = headers.value.indexOf('Nom des autrices féminin')
+    // Chercher la colonne CY (Ambigu) - peut être nommée différemment
+    const ambiguousAuthorIndex = headers.value.findIndex(h => {
+      const lower = String(h || '').toLowerCase()
+      return lower.includes('ambigu') || lower === 'cy'
+    })
+    // Chercher la colonne DB (Pseudonyme)
+    const pseudonymeIndex = headers.value.findIndex(h => {
+      const lower = String(h || '').toLowerCase()
+      return lower.includes('pseudonyme') || lower === 'db'
+    })
+    
     if (maleAuthorIndex !== -1) {
       rows.value.forEach(row => {
         const author = row[maleAuthorIndex]
@@ -250,6 +294,32 @@ const facets = computed(() => {
         const author = row[femaleAuthorIndex]
         if (author && author !== '' && author !== '0') {
           authorsF.add(author)
+        }
+      })
+    }
+    if (ambiguousAuthorIndex !== -1) {
+      rows.value.forEach(row => {
+        const author = row[ambiguousAuthorIndex]
+        if (author && author !== '' && author !== '0') {
+          authorsA.add(author)
+        }
+      })
+    }
+    // Récupérer les pseudonymes (auteurs avec DB = 1)
+    if (pseudonymeIndex !== -1) {
+      rows.value.forEach((row, rowIndex) => {
+        const isPseudonyme = row[pseudonymeIndex] && row[pseudonymeIndex] !== '' && row[pseudonymeIndex] !== '0' && Number(row[pseudonymeIndex]) === 1
+        if (isPseudonyme) {
+          // Récupérer l'auteur de cette ligne (masculin, féminin, ou ambigu)
+          if (maleAuthorIndex !== -1 && row[maleAuthorIndex] && row[maleAuthorIndex] !== '' && row[maleAuthorIndex] !== '0') {
+            authorsPseudonymes.add(row[maleAuthorIndex])
+          }
+          if (femaleAuthorIndex !== -1 && row[femaleAuthorIndex] && row[femaleAuthorIndex] !== '' && row[femaleAuthorIndex] !== '0') {
+            authorsPseudonymes.add(row[femaleAuthorIndex])
+          }
+          if (ambiguousAuthorIndex !== -1 && row[ambiguousAuthorIndex] && row[ambiguousAuthorIndex] !== '' && row[ambiguousAuthorIndex] !== '0') {
+            authorsPseudonymes.add(row[ambiguousAuthorIndex])
+          }
         }
       })
     }
@@ -308,7 +378,9 @@ const facets = computed(() => {
     countries: uniq(arr.map(x => x.Pays)),
     authors: {
       male: Array.from(authorsM).sort(),
-      female: Array.from(authorsF).sort()
+      female: Array.from(authorsF).sort(),
+      other: Array.from(authorsA).sort(),
+      pseudonymes: Array.from(authorsPseudonymes).sort()
     },
     imageTypes: uniq(arr.map(x => x.ImageType)),
     minYear: validYears.length > 0 ? Math.min(...validYears) : 1980,
@@ -463,21 +535,93 @@ const filteredByFilters = computed(() => {
       }
       if (!Array.from(tokens).includes(target)) return false
     }
-    // Filtre par genre d'auteur
-    if (f.authorGender && headers.value.length > 0) {
+    // Filtre par genre d'auteur (logique OR)
+    if (f.authorGender && f.authorGender.length > 0 && headers.value.length > 0) {
       const maleAuthorIndex = headers.value.indexOf('Nom des auteurs masculins')
       const femaleAuthorIndex = headers.value.indexOf('Nom des autrices féminin')
-      const originalRowIndex = index // Utiliser l'index pour accéder aux données brutes
+      const ambiguousAuthorIndex = headers.value.findIndex(h => {
+        const lower = String(h || '').toLowerCase()
+        return lower.includes('ambigu') || lower === 'cy'
+      })
+      const originalRowIndex = index
       if (originalRowIndex < rows.value.length) {
         const row = rows.value[originalRowIndex]
-        if (f.authorGender === 'masculin' && maleAuthorIndex !== -1) {
+        let matchesGender = false
+        
+        // Vérifier si au moins un des genres sélectionnés correspond (OR)
+        if (f.authorGender.includes('masculin') && maleAuthorIndex !== -1) {
           const maleAuthor = row[maleAuthorIndex]
-          if (!maleAuthor || maleAuthor === '' || maleAuthor === '0') return false
+          if (maleAuthor && maleAuthor !== '' && maleAuthor !== '0') {
+            matchesGender = true
+          }
         }
-        if (f.authorGender === 'féminin' && femaleAuthorIndex !== -1) {
+        if (!matchesGender && f.authorGender.includes('féminin') && femaleAuthorIndex !== -1) {
           const femaleAuthor = row[femaleAuthorIndex]
-          if (!femaleAuthor || femaleAuthor === '' || femaleAuthor === '0') return false
+          if (femaleAuthor && femaleAuthor !== '' && femaleAuthor !== '0') {
+            matchesGender = true
+          }
         }
+        if (!matchesGender && f.authorGender.includes('ambigu') && ambiguousAuthorIndex !== -1) {
+          const ambiguousAuthor = row[ambiguousAuthorIndex]
+          if (ambiguousAuthor && ambiguousAuthor !== '' && ambiguousAuthor !== '0') {
+            matchesGender = true
+          }
+        }
+        
+        if (!matchesGender) return false
+      }
+    }
+    
+    // Filtre par caractéristiques d'auteur (logique OR)
+    if (f.authorCharacteristics && f.authorCharacteristics.length > 0 && headers.value.length > 0) {
+      const originalRowIndex = index
+      if (originalRowIndex < rows.value.length) {
+        const row = rows.value[originalRowIndex]
+        let matchesCharacteristic = false
+        
+        // Critiques anonymes (CJ = 1)
+        if (f.authorCharacteristics.includes('anonyme')) {
+          const anonymousIndex = headers.value.findIndex(h => {
+            const lower = String(h || '').toLowerCase()
+            return lower.includes('anonyme') || lower === 'cj'
+          })
+          if (anonymousIndex !== -1) {
+            const isAnonymous = Number(row[anonymousIndex]) === 1
+            if (isAnonymous) {
+              matchesCharacteristic = true
+            }
+          }
+        }
+        
+        // Minorité ethnique (CP)
+        if (!matchesCharacteristic && f.authorCharacteristics.includes('minorite')) {
+          const minorityIndex = headers.value.findIndex(h => {
+            const lower = String(h || '').toLowerCase()
+            return lower.includes('minorité') || lower.includes('minorite') || lower === 'cp'
+          })
+          if (minorityIndex !== -1) {
+            const isMinority = row[minorityIndex] && row[minorityIndex] !== '' && row[minorityIndex] !== '0'
+            if (isMinority) {
+              matchesCharacteristic = true
+            }
+          }
+        }
+        
+        // Sous pseudonyme (DB)
+        if (!matchesCharacteristic && f.authorCharacteristics.includes('pseudonyme')) {
+          const pseudonymeIndex = headers.value.findIndex(h => {
+            const lower = String(h || '').toLowerCase()
+            return lower.includes('pseudonyme') || lower === 'db'
+          })
+          if (pseudonymeIndex !== -1) {
+            const isPseudonyme = row[pseudonymeIndex] && row[pseudonymeIndex] !== '' && row[pseudonymeIndex] !== '0'
+            if (isPseudonyme) {
+              matchesCharacteristic = true
+            }
+          }
+        }
+        
+        if (!matchesCharacteristic) return false
       }
     }
 
@@ -521,6 +665,7 @@ const filteredRowsObjects = computed(() => {
         case 'Année': return item.Année
         case 'Pays': return item.Pays
         case 'Auteurs': return item.Auteurs
+        case 'Identité du pseudo': return item.PseudonymeIdentity || '' // Afficher seulement si présent
         case 'Développeur': return item.Développeur
         case 'Éditeur': return item.Éditeur
         case 'Magazine': return item.Magazine
@@ -578,6 +723,7 @@ function buildImportantColumns(allHeaders) {
     { key: 'year', labels: ['year','release year','annee','année','date'], display: 'Année' },
     { key: 'country', labels: ['country','pays','region'], display: 'Pays' },
     { key: 'author', labels: ['author','auteur','autrice','writer'], display: 'Auteurs' },
+    { key: 'pseudonymeIdentity', labels: ['identité du pseudo','identite du pseudo','dc'], display: 'Identité du pseudo' },
     { key: 'developer', labels: ['developer','dev','studio'], display: 'Développeur' },
     { key: 'publisher', labels: ['publisher','éditeur','editeur'], display: 'Éditeur' },
     { key: 'magazine', labels: ['magazine','revue','journal','publication'], display: 'Magazine' },
