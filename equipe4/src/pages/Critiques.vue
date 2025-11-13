@@ -305,20 +305,29 @@ const facets = computed(() => {
         }
       })
     }
-    // Récupérer les pseudonymes (auteurs avec DB = 1)
-    if (pseudonymeIndex !== -1) {
+    // Récupérer les pseudonymes (colonne DC "identité du pseudo")
+    const pseudonymeIdentityIndex = headers.value.findIndex(h => {
+      const lower = String(h || '').toLowerCase()
+      return (lower.includes('identité') && lower.includes('pseudo')) || lower === 'dc'
+    })
+    if (pseudonymeIndex !== -1 && pseudonymeIdentityIndex !== -1) {
       rows.value.forEach((row, rowIndex) => {
         const isPseudonyme = row[pseudonymeIndex] && row[pseudonymeIndex] !== '' && row[pseudonymeIndex] !== '0' && Number(row[pseudonymeIndex]) === 1
-        if (isPseudonyme) {
-          // Récupérer l'auteur de cette ligne (masculin, féminin, ou ambigu)
-          if (maleAuthorIndex !== -1 && row[maleAuthorIndex] && row[maleAuthorIndex] !== '' && row[maleAuthorIndex] !== '0') {
-            authorsPseudonymes.add(row[maleAuthorIndex])
-          }
-          if (femaleAuthorIndex !== -1 && row[femaleAuthorIndex] && row[femaleAuthorIndex] !== '' && row[femaleAuthorIndex] !== '0') {
-            authorsPseudonymes.add(row[femaleAuthorIndex])
-          }
-          if (ambiguousAuthorIndex !== -1 && row[ambiguousAuthorIndex] && row[ambiguousAuthorIndex] !== '' && row[ambiguousAuthorIndex] !== '0') {
-            authorsPseudonymes.add(row[ambiguousAuthorIndex])
+        if (isPseudonyme && row[pseudonymeIdentityIndex]) {
+          // Récupérer le pseudonyme depuis la colonne DC (format: "pseudonyme (vrai nom)")
+          const pseudonymeIdentity = String(row[pseudonymeIdentityIndex] || '').trim()
+          if (pseudonymeIdentity && pseudonymeIdentity !== '' && pseudonymeIdentity !== '0') {
+            // Extraire le pseudonyme (partie avant la parenthèse) ou garder le format complet
+            // Format attendu: "pseudonyme (vrai nom)"
+            const match = pseudonymeIdentity.match(/^([^(]+)/)
+            if (match) {
+              const pseudonyme = match[1].trim()
+              if (pseudonyme) {
+                authorsPseudonymes.add(pseudonymeIdentity) // Garder le format complet pour l'affichage
+              }
+            } else {
+              authorsPseudonymes.add(pseudonymeIdentity)
+            }
           }
         }
       })
@@ -509,31 +518,57 @@ const filteredByFilters = computed(() => {
     if (f.magazines.length > 0 && !f.magazines.includes(String(x.Magazine))) return false
     // Filtre par pays
     if (f.countries.length > 0 && !f.countries.includes(String(x.Pays))) return false
-    // Filtre par nom d'auteur (match exact insensible à la casse sur les tokens)
+    // Filtre par nom d'auteur ou pseudonyme (match exact insensible à la casse sur les tokens)
     if (f.authorName) {
       const normalize = (s) => String(s || '').toLowerCase().trim()
       const target = normalize(f.authorName)
-      // Construire la liste complète des auteurs de la critique à partir
-      // du champ combiné et des colonnes spécifiques brutes
-      const tokens = new Set()
-      const pushTokens = (val) => {
-        String(val || '')
-          .split(/[,;]+/)
-          .map(v => normalize(v))
-          .filter(v => v && v !== '0' && !/^\d+$/.test(v))
-          .forEach(v => tokens.add(v))
+      
+      // Si "Sous pseudonyme" est sélectionné, chercher dans la colonne DC
+      if (f.authorCharacteristics && f.authorCharacteristics.includes('pseudonyme')) {
+        if (headers.value.length > 0 && index < rows.value.length) {
+          const row = rows.value[index]
+          const pseudonymeIdentityIndex = headers.value.findIndex(h => {
+            const lower = String(h || '').toLowerCase()
+            return (lower.includes('identité') && lower.includes('pseudo')) || lower === 'dc'
+          })
+          if (pseudonymeIdentityIndex !== -1 && row[pseudonymeIdentityIndex]) {
+            const pseudonymeIdentity = normalize(row[pseudonymeIdentityIndex])
+            // Vérifier si le pseudonyme sélectionné correspond (match exact ou partiel)
+            if (pseudonymeIdentity.includes(target) || target.includes(pseudonymeIdentity)) {
+              return true
+            }
+          }
+          return false
+        }
+      } else {
+        // Filtre normal par nom d'auteur
+        // Construire la liste complète des auteurs de la critique à partir
+        // du champ combiné et des colonnes spécifiques brutes
+        const tokens = new Set()
+        const pushTokens = (val) => {
+          String(val || '')
+            .split(/[,;]+/)
+            .map(v => normalize(v))
+            .filter(v => v && v !== '0' && !/^\d+$/.test(v))
+            .forEach(v => tokens.add(v))
+        }
+        // Auteurs combinés mappés
+        pushTokens(x.Auteurs)
+        // Auteurs spécifiques (données brutes)
+        if (headers.value.length > 0 && index < rows.value.length) {
+          const row = rows.value[index]
+          const maleAuthorIndex = headers.value.indexOf('Nom des auteurs masculins')
+          const femaleAuthorIndex = headers.value.indexOf('Nom des autrices féminin')
+          const ambiguousAuthorIndex = headers.value.findIndex(h => {
+            const lower = String(h || '').toLowerCase()
+            return lower.includes('ambigu') || lower === 'cy'
+          })
+          if (maleAuthorIndex !== -1) pushTokens(row[maleAuthorIndex])
+          if (femaleAuthorIndex !== -1) pushTokens(row[femaleAuthorIndex])
+          if (ambiguousAuthorIndex !== -1) pushTokens(row[ambiguousAuthorIndex])
+        }
+        if (!Array.from(tokens).includes(target)) return false
       }
-      // Auteurs combinés mappés
-      pushTokens(x.Auteurs)
-      // Auteurs spécifiques (données brutes)
-      if (headers.value.length > 0 && index < rows.value.length) {
-        const row = rows.value[index]
-        const maleAuthorIndex = headers.value.indexOf('Nom des auteurs masculins')
-        const femaleAuthorIndex = headers.value.indexOf('Nom des autrices féminin')
-        if (maleAuthorIndex !== -1) pushTokens(row[maleAuthorIndex])
-        if (femaleAuthorIndex !== -1) pushTokens(row[femaleAuthorIndex])
-      }
-      if (!Array.from(tokens).includes(target)) return false
     }
     // Filtre par genre d'auteur (logique OR)
     if (f.authorGender && f.authorGender.length > 0 && headers.value.length > 0) {

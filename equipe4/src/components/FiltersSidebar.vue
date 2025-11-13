@@ -463,19 +463,18 @@ const authorQuery = ref('')
 const filteredAuthors = computed(() => {
   let authorsToFilter = []
   
-  // Si "Sous pseudonyme" est sélectionné, afficher uniquement les pseudonymes
+  // Si "Sous pseudonyme" est sélectionné, afficher uniquement les pseudonymes (colonne DC)
   if (localFilters.value.authorCharacteristics && localFilters.value.authorCharacteristics.includes('pseudonyme')) {
     const pseudonymes = props.facets.authors?.pseudonymes || []
     const pseudonymesSet = new Set()
     
-    pseudonymes.forEach(author => {
-      if (author && author !== '0') {
-        // Convertir en chaîne avant de split
-        const authorStr = String(author || '')
-        const authors = authorStr.split(/[,;]+/).map(a => a.trim()).filter(a => {
-          return a && a !== '0' && !/^\d+$/.test(a)
-        })
-        authors.forEach(a => pseudonymesSet.add(a))
+    pseudonymes.forEach(pseudonyme => {
+      if (pseudonyme && pseudonyme !== '0') {
+        // Les pseudonymes sont déjà au format "pseudonyme (vrai nom)" - ne pas les split
+        const pseudonymeStr = String(pseudonyme || '').trim()
+        if (pseudonymeStr && pseudonymeStr !== '0' && !/^\d+$/.test(pseudonymeStr)) {
+          pseudonymesSet.add(pseudonymeStr)
+        }
       }
     })
     
