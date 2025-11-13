@@ -29,7 +29,7 @@ const localFilters = ref({
   platformTypes: [],
   consoles: [],
   gameTypes: [],
-  authorGender: [], // Changé en array pour supporter plusieurs sélections (OR)
+  authorGender: '', // String pour sélection unique (radio buttons)
   authorCharacteristics: [], // Nouveau: pour CP, DB, CJ
   authorName: '',
   showWithoutAuthors: false,
@@ -102,18 +102,17 @@ const activeFiltersList = computed(() => {
     })
   }
 
-  if (localFilters.value.authorGender && localFilters.value.authorGender.length > 0) {
+  if (localFilters.value.authorGender) {
     const genderLabels = {
       'masculin': 'Masculin',
       'féminin': 'Féminin',
       'ambigu': 'Ambigu'
     }
-    const values = localFilters.value.authorGender.map(g => genderLabels[g] || g).join(', ')
     filters.push({
       type: 'authorGender',
       label: 'Genre auteur',
-      value: values,
-      count: localFilters.value.authorGender.length
+      value: genderLabels[localFilters.value.authorGender] || localFilters.value.authorGender,
+      count: 1
     })
   }
   
@@ -278,12 +277,12 @@ function setIncludeUnscored(include) {
   emitFilters()
 }
 
-function toggleAuthorGender(gender) {
-  const index = localFilters.value.authorGender.indexOf(gender)
-  if (index > -1) {
-    localFilters.value.authorGender.splice(index, 1)
+function setAuthorGender(gender) {
+  // Si on clique sur le même genre, le désélectionner (permet de décocher)
+  if (localFilters.value.authorGender === gender) {
+    localFilters.value.authorGender = ''
   } else {
-    localFilters.value.authorGender.push(gender)
+    localFilters.value.authorGender = gender
   }
   
   // Réinitialiser la sélection d'auteur si nécessaire
@@ -329,7 +328,7 @@ function toggleShowWithoutAuthors() {
 
   // Si on active "sans auteurs", désactiver les autres filtres d'auteurs
   if (localFilters.value.showWithoutAuthors) {
-    localFilters.value.authorGender = []
+    localFilters.value.authorGender = ''
     localFilters.value.authorCharacteristics = []
     localFilters.value.authorName = ''
   }
@@ -352,7 +351,7 @@ function clearFilter(filterType) {
       localFilters.value.gameTypes = []
       break
     case 'authorGender':
-      localFilters.value.authorGender = []
+      localFilters.value.authorGender = ''
       break
     case 'authorCharacteristics':
       localFilters.value.authorCharacteristics = []
@@ -387,7 +386,7 @@ function clearAllFilters() {
     platformTypes: [],
     consoles: [],
     gameTypes: [],
-    authorGender: [],
+    authorGender: '',
     authorCharacteristics: [],
     authorName: '',
     showWithoutAuthors: false,
@@ -463,8 +462,27 @@ const authorQuery = ref('')
 const filteredAuthors = computed(() => {
   let authorsToFilter = []
   
-  // Si "Sous pseudonyme" est sélectionné, afficher uniquement les pseudonymes (colonne DC)
-  if (localFilters.value.authorCharacteristics && localFilters.value.authorCharacteristics.includes('pseudonyme')) {
+  // Gérer les combinaisons de filtres de caractéristiques
+  const hasPseudonyme = localFilters.value.authorCharacteristics && localFilters.value.authorCharacteristics.includes('pseudonyme')
+  const hasMinorite = localFilters.value.authorCharacteristics && localFilters.value.authorCharacteristics.includes('minorite')
+  
+  if (hasPseudonyme && hasMinorite) {
+    // Si les deux sont sélectionnés : afficher les pseudonymes des auteurs minorités ethniques
+    const minoritesPseudonymes = props.facets.authors?.minoritesPseudonymes || []
+    const combinedSet = new Set()
+    
+    minoritesPseudonymes.forEach(pseudonyme => {
+      if (pseudonyme && pseudonyme !== '0') {
+        const pseudonymeStr = String(pseudonyme || '').trim()
+        if (pseudonymeStr && pseudonymeStr !== '0' && !/^\d+$/.test(pseudonymeStr)) {
+          combinedSet.add(pseudonymeStr)
+        }
+      }
+    })
+    
+    authorsToFilter = Array.from(combinedSet).sort()
+  } else if (hasPseudonyme) {
+    // Si seulement "Sous pseudonyme" est sélectionné, afficher uniquement les pseudonymes (colonne DC)
     const pseudonymes = props.facets.authors?.pseudonymes || []
     const pseudonymesSet = new Set()
     
@@ -479,13 +497,30 @@ const filteredAuthors = computed(() => {
     })
     
     authorsToFilter = Array.from(pseudonymesSet).sort()
+  } else if (hasMinorite) {
+    // Si seulement "Minorité ethnique" est sélectionné, afficher uniquement les auteurs minorités ethniques
+    const minorites = props.facets.authors?.minorites || []
+    const minoritesSet = new Set()
+    
+    minorites.forEach(author => {
+      if (author && author !== '0') {
+        // Convertir en chaîne avant de split
+        const authorStr = String(author || '')
+        const authors = authorStr.split(/[,;]+/).map(a => a.trim()).filter(a => {
+          return a && a !== '0' && !/^\d+$/.test(a)
+        })
+        authors.forEach(a => minoritesSet.add(a))
+      }
+    })
+    
+    authorsToFilter = Array.from(minoritesSet).sort()
   } else {
-    // Filtrer par genre (logique OR - si plusieurs genres sélectionnés)
-    if (localFilters.value.authorGender && localFilters.value.authorGender.length > 0) {
+    // Filtrer par genre (sélection unique)
+    if (localFilters.value.authorGender) {
       const authorsSet = new Set()
       
       // Si masculin est sélectionné
-      if (localFilters.value.authorGender.includes('masculin')) {
+      if (localFilters.value.authorGender === 'masculin') {
         const male = props.facets.authors?.male || []
         male.forEach(author => {
           if (author && author !== '0') {
@@ -500,7 +535,7 @@ const filteredAuthors = computed(() => {
       }
       
       // Si féminin est sélectionné
-      if (localFilters.value.authorGender.includes('féminin')) {
+      if (localFilters.value.authorGender === 'féminin') {
         const female = props.facets.authors?.female || []
         female.forEach(author => {
           if (author && author !== '0') {
@@ -515,7 +550,7 @@ const filteredAuthors = computed(() => {
       }
       
       // Si ambigu est sélectionné
-      if (localFilters.value.authorGender.includes('ambigu')) {
+      if (localFilters.value.authorGender === 'ambigu') {
         const other = props.facets.authors?.other || []
         other.forEach(author => {
           if (author && author !== '0') {
@@ -889,28 +924,34 @@ watch(() => props.facets, (newFacets) => {
         <div v-if="expandedCards.authors" class="card-content">
           <div class="author-gender-filter" v-if="!localFilters.showWithoutAuthors && !localFilters.authorCharacteristics.includes('anonyme')">
             <label class="filter-group-label">Genre :</label>
-            <div class="checkbox-group">
-              <label class="checkbox-option">
+            <div class="radio-group">
+              <label class="radio-option">
                 <input
-                  type="checkbox"
-                  :checked="localFilters.authorGender.includes('masculin')"
-                  @change="toggleAuthorGender('masculin')"
+                  type="radio"
+                  name="authorGender"
+                  value="masculin"
+                  :checked="localFilters.authorGender === 'masculin'"
+                  @change="setAuthorGender('masculin')"
                 />
                 <span>Masculin</span>
               </label>
-              <label class="checkbox-option">
+              <label class="radio-option">
                 <input
-                  type="checkbox"
-                  :checked="localFilters.authorGender.includes('féminin')"
-                  @change="toggleAuthorGender('féminin')"
+                  type="radio"
+                  name="authorGender"
+                  value="féminin"
+                  :checked="localFilters.authorGender === 'féminin'"
+                  @change="setAuthorGender('féminin')"
                 />
                 <span>Féminin</span>
               </label>
-              <label class="checkbox-option">
+              <label class="radio-option">
                 <input
-                  type="checkbox"
-                  :checked="localFilters.authorGender.includes('ambigu')"
-                  @change="toggleAuthorGender('ambigu')"
+                  type="radio"
+                  name="authorGender"
+                  value="ambigu"
+                  :checked="localFilters.authorGender === 'ambigu'"
+                  @change="setAuthorGender('ambigu')"
                 />
                 <span>Ambigu</span>
               </label>

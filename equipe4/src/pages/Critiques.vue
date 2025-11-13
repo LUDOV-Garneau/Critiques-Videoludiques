@@ -118,8 +118,24 @@ const mappedObjects = computed(() => {
   const femaleAuthorIndex = headers.value.indexOf('Nom des autrices féminin')
   const ambiguousAuthorIndex = headers.value.findIndex(h => {
     const lower = String(h || '').toLowerCase()
-    return lower.includes('ambigu') || lower === 'cy'
+    return lower.includes('ambigu') || lower === 'cy' || 
+           (lower.includes('auteur') && !lower.includes('masculin') && !lower.includes('féminin') && !lower.includes('feminin'))
   })
+  
+  // Fallback si pas trouvé
+  let ambiguousAuthorIndexFallback = -1
+  if (ambiguousAuthorIndex === -1) {
+    ambiguousAuthorIndexFallback = headers.value.findIndex((h, idx) => {
+      const lower = String(h || '').toLowerCase()
+      return (lower.includes('auteur') || lower.includes('autrice')) && 
+             idx !== maleAuthorIndex && 
+             idx !== femaleAuthorIndex &&
+             !lower.includes('masculin') && 
+             !lower.includes('féminin') && 
+             !lower.includes('feminin')
+    })
+  }
+  const finalAmbiguousIndex = ambiguousAuthorIndex !== -1 ? ambiguousAuthorIndex : ambiguousAuthorIndexFallback
   const mapped = rows.value.map(r => {
     // Combiner les noms d'auteurs masculins, féminins et ambigu
     let authorNames = []
@@ -133,9 +149,9 @@ const mappedObjects = computed(() => {
       const authors = String(r[femaleAuthorIndex]).split(/[,;]+/).map(a => a.trim()).filter(a => a)
       authorNames.push(...authors)
     }
-    if (ambiguousAuthorIndex !== -1 && r[ambiguousAuthorIndex] && r[ambiguousAuthorIndex] !== '0') {
+    if (finalAmbiguousIndex !== -1 && r[finalAmbiguousIndex] && r[finalAmbiguousIndex] !== '0') {
       // Séparer les auteurs multiples s'ils sont dans la même cellule
-      const authors = String(r[ambiguousAuthorIndex]).split(/[,;]+/).map(a => a.trim()).filter(a => a)
+      const authors = String(r[finalAmbiguousIndex]).split(/[,;]+/).map(a => a.trim()).filter(a => a)
       authorNames.push(...authors)
     }
     // Si aucun auteur spécifique, utiliser la colonne générale
@@ -249,7 +265,7 @@ const sidebarFilters = ref({
   consoles: [],
   gameTypes: [],
   imageTypes: [],
-  authorGender: [],
+  authorGender: '',
   authorCharacteristics: [],
   authorName: '',
   showWithoutAuthors: false,
@@ -267,18 +283,43 @@ const facets = computed(() => {
   const authorsF = new Set()
   const authorsA = new Set() // Ambigu
   const authorsPseudonymes = new Set() // Pseudonymes
+  const authorsMinorites = new Set() // Minorités ethniques
+  const authorsMinoritesPseudonymes = new Set() // Pseudonymes des auteurs minorités ethniques
   if (headers.value.length > 0) {
     const maleAuthorIndex = headers.value.indexOf('Nom des auteurs masculins')
     const femaleAuthorIndex = headers.value.indexOf('Nom des autrices féminin')
     // Chercher la colonne CY (Ambigu) - peut être nommée différemment
+    // Chercher aussi dans les colonnes qui contiennent des auteurs mais qui ne sont ni masculin ni féminin
     const ambiguousAuthorIndex = headers.value.findIndex(h => {
       const lower = String(h || '').toLowerCase()
-      return lower.includes('ambigu') || lower === 'cy'
+      return lower.includes('ambigu') || lower === 'cy' || 
+             (lower.includes('auteur') && !lower.includes('masculin') && !lower.includes('féminin') && !lower.includes('feminin'))
     })
+    
+    // Si pas trouvé, chercher une colonne qui pourrait contenir les auteurs ambigu
+    // (par exemple, une colonne "Auteurs" générale qui n'est ni masculin ni féminin)
+    let ambiguousAuthorIndexFallback = -1
+    if (ambiguousAuthorIndex === -1) {
+      // Chercher une colonne d'auteurs qui n'est pas déjà utilisée
+      ambiguousAuthorIndexFallback = headers.value.findIndex((h, idx) => {
+        const lower = String(h || '').toLowerCase()
+        return (lower.includes('auteur') || lower.includes('autrice')) && 
+               idx !== maleAuthorIndex && 
+               idx !== femaleAuthorIndex &&
+               !lower.includes('masculin') && 
+               !lower.includes('féminin') && 
+               !lower.includes('feminin')
+      })
+    }
     // Chercher la colonne DB (Pseudonyme)
     const pseudonymeIndex = headers.value.findIndex(h => {
       const lower = String(h || '').toLowerCase()
       return lower.includes('pseudonyme') || lower === 'db'
+    })
+    // Chercher la colonne CP (Minorité ethnique)
+    const minorityIndex = headers.value.findIndex(h => {
+      const lower = String(h || '').toLowerCase()
+      return lower.includes('minorité') || lower.includes('minorite') || lower === 'cp'
     })
     
     if (maleAuthorIndex !== -1) {
@@ -297,11 +338,37 @@ const facets = computed(() => {
         }
       })
     }
-    if (ambiguousAuthorIndex !== -1) {
+    // Récupérer les auteurs ambigu depuis la colonne trouvée
+    const finalAmbiguousIndex = ambiguousAuthorIndex !== -1 ? ambiguousAuthorIndex : ambiguousAuthorIndexFallback
+    if (finalAmbiguousIndex !== -1) {
       rows.value.forEach(row => {
-        const author = row[ambiguousAuthorIndex]
+        const author = row[finalAmbiguousIndex]
         if (author && author !== '' && author !== '0') {
-          authorsA.add(author)
+          const authorStr = String(author || '').trim()
+          if (authorStr && authorStr !== '0' && !/^\d+$/.test(authorStr)) {
+            // Vérifier que cet auteur n'est pas dans les colonnes masculin/féminin de cette ligne
+            let isInMaleOrFemale = false
+            if (maleAuthorIndex !== -1 && row[maleAuthorIndex]) {
+              const maleAuthors = String(row[maleAuthorIndex] || '').split(/[,;]+/).map(a => a.trim())
+              if (maleAuthors.some(a => a.toLowerCase() === authorStr.toLowerCase())) {
+                isInMaleOrFemale = true
+              }
+            }
+            if (!isInMaleOrFemale && femaleAuthorIndex !== -1 && row[femaleAuthorIndex]) {
+              const femaleAuthors = String(row[femaleAuthorIndex] || '').split(/[,;]+/).map(a => a.trim())
+              if (femaleAuthors.some(a => a.toLowerCase() === authorStr.toLowerCase())) {
+                isInMaleOrFemale = true
+              }
+            }
+            // Si l'auteur n'est ni masculin ni féminin, c'est un auteur ambigu
+            if (!isInMaleOrFemale) {
+              // Séparer les auteurs multiples s'ils sont dans la même cellule
+              const authors = authorStr.split(/[,;]+/).map(a => a.trim()).filter(a => {
+                return a && a !== '0' && !/^\d+$/.test(a)
+              })
+              authors.forEach(a => authorsA.add(a))
+            }
+          }
         }
       })
     }
@@ -328,6 +395,38 @@ const facets = computed(() => {
             } else {
               authorsPseudonymes.add(pseudonymeIdentity)
             }
+          }
+        }
+      })
+    }
+    // Récupérer les auteurs minorités ethniques (colonne CP)
+    if (minorityIndex !== -1) {
+      rows.value.forEach((row, rowIndex) => {
+        const isMinority = row[minorityIndex] && row[minorityIndex] !== '' && row[minorityIndex] !== '0'
+        if (isMinority) {
+          // Récupérer l'auteur de cette ligne (masculin, féminin, ou ambigu)
+          if (maleAuthorIndex !== -1 && row[maleAuthorIndex] && row[maleAuthorIndex] !== '' && row[maleAuthorIndex] !== '0') {
+            authorsMinorites.add(row[maleAuthorIndex])
+          }
+          if (femaleAuthorIndex !== -1 && row[femaleAuthorIndex] && row[femaleAuthorIndex] !== '' && row[femaleAuthorIndex] !== '0') {
+            authorsMinorites.add(row[femaleAuthorIndex])
+          }
+          if (ambiguousAuthorIndex !== -1 && row[ambiguousAuthorIndex] && row[ambiguousAuthorIndex] !== '' && row[ambiguousAuthorIndex] !== '0') {
+            authorsMinorites.add(row[ambiguousAuthorIndex])
+          }
+        }
+      })
+    }
+    
+    // Créer une liste combinée : pseudonymes des auteurs minorités ethniques
+    if (pseudonymeIndex !== -1 && pseudonymeIdentityIndex !== -1 && minorityIndex !== -1) {
+      rows.value.forEach((row, rowIndex) => {
+        const isPseudonyme = row[pseudonymeIndex] && row[pseudonymeIndex] !== '' && row[pseudonymeIndex] !== '0' && Number(row[pseudonymeIndex]) === 1
+        const isMinority = row[minorityIndex] && row[minorityIndex] !== '' && row[minorityIndex] !== '0'
+        if (isPseudonyme && isMinority && row[pseudonymeIdentityIndex]) {
+          const pseudonymeIdentity = String(row[pseudonymeIdentityIndex] || '').trim()
+          if (pseudonymeIdentity && pseudonymeIdentity !== '' && pseudonymeIdentity !== '0') {
+            authorsMinoritesPseudonymes.add(pseudonymeIdentity)
           }
         }
       })
@@ -380,6 +479,7 @@ const facets = computed(() => {
   const validYears = arr
     .map(x => x.Année)
     .filter(y => y !== '-' && y !== undefined && typeof y === 'number' && !isNaN(y))
+  
   return {
     platformTypes: Array.from(platformTypes).sort(),
     gameTypes: gameTypesArray,
@@ -389,7 +489,9 @@ const facets = computed(() => {
       male: Array.from(authorsM).sort(),
       female: Array.from(authorsF).sort(),
       other: Array.from(authorsA).sort(),
-      pseudonymes: Array.from(authorsPseudonymes).sort()
+      pseudonymes: Array.from(authorsPseudonymes).sort(),
+      minorites: Array.from(authorsMinorites).sort(),
+      minoritesPseudonymes: Array.from(authorsMinoritesPseudonymes).sort()
     },
     imageTypes: uniq(arr.map(x => x.ImageType)),
     minYear: validYears.length > 0 ? Math.min(...validYears) : 1980,
@@ -559,47 +661,97 @@ const filteredByFilters = computed(() => {
           const row = rows.value[index]
           const maleAuthorIndex = headers.value.indexOf('Nom des auteurs masculins')
           const femaleAuthorIndex = headers.value.indexOf('Nom des autrices féminin')
+          // Chercher la colonne ambigu
           const ambiguousAuthorIndex = headers.value.findIndex(h => {
             const lower = String(h || '').toLowerCase()
-            return lower.includes('ambigu') || lower === 'cy'
+            return lower.includes('ambigu') || lower === 'cy' || 
+                   (lower.includes('auteur') && !lower.includes('masculin') && !lower.includes('féminin') && !lower.includes('feminin'))
           })
+          let ambiguousAuthorIndexFallback = -1
+          if (ambiguousAuthorIndex === -1) {
+            ambiguousAuthorIndexFallback = headers.value.findIndex((h, idx) => {
+              const lower = String(h || '').toLowerCase()
+              return (lower.includes('auteur') || lower.includes('autrice')) && 
+                     idx !== maleAuthorIndex && 
+                     idx !== femaleAuthorIndex &&
+                     !lower.includes('masculin') && 
+                     !lower.includes('féminin') && 
+                     !lower.includes('feminin')
+            })
+          }
+          const finalAmbiguousIndex = ambiguousAuthorIndex !== -1 ? ambiguousAuthorIndex : ambiguousAuthorIndexFallback
           if (maleAuthorIndex !== -1) pushTokens(row[maleAuthorIndex])
           if (femaleAuthorIndex !== -1) pushTokens(row[femaleAuthorIndex])
-          if (ambiguousAuthorIndex !== -1) pushTokens(row[ambiguousAuthorIndex])
+          if (finalAmbiguousIndex !== -1) pushTokens(row[finalAmbiguousIndex])
         }
         if (!Array.from(tokens).includes(target)) return false
       }
     }
-    // Filtre par genre d'auteur (logique OR)
-    if (f.authorGender && f.authorGender.length > 0 && headers.value.length > 0) {
+    // Filtre par genre d'auteur (sélection unique)
+    if (f.authorGender && headers.value.length > 0) {
       const maleAuthorIndex = headers.value.indexOf('Nom des auteurs masculins')
       const femaleAuthorIndex = headers.value.indexOf('Nom des autrices féminin')
       const ambiguousAuthorIndex = headers.value.findIndex(h => {
         const lower = String(h || '').toLowerCase()
-        return lower.includes('ambigu') || lower === 'cy'
+        return lower.includes('ambigu') || lower === 'cy' || 
+               (lower.includes('auteur') && !lower.includes('masculin') && !lower.includes('féminin') && !lower.includes('feminin'))
       })
+      
+      // Fallback si pas trouvé
+      let ambiguousAuthorIndexFallback = -1
+      if (ambiguousAuthorIndex === -1) {
+        ambiguousAuthorIndexFallback = headers.value.findIndex((h, idx) => {
+          const lower = String(h || '').toLowerCase()
+          return (lower.includes('auteur') || lower.includes('autrice')) && 
+                 idx !== maleAuthorIndex && 
+                 idx !== femaleAuthorIndex &&
+                 !lower.includes('masculin') && 
+                 !lower.includes('féminin') && 
+                 !lower.includes('feminin')
+        })
+      }
+      const finalAmbiguousIndex = ambiguousAuthorIndex !== -1 ? ambiguousAuthorIndex : ambiguousAuthorIndexFallback
       const originalRowIndex = index
       if (originalRowIndex < rows.value.length) {
         const row = rows.value[originalRowIndex]
         let matchesGender = false
         
-        // Vérifier si au moins un des genres sélectionnés correspond (OR)
-        if (f.authorGender.includes('masculin') && maleAuthorIndex !== -1) {
+        // Vérifier selon le genre sélectionné
+        if (f.authorGender === 'masculin' && maleAuthorIndex !== -1) {
           const maleAuthor = row[maleAuthorIndex]
           if (maleAuthor && maleAuthor !== '' && maleAuthor !== '0') {
             matchesGender = true
           }
-        }
-        if (!matchesGender && f.authorGender.includes('féminin') && femaleAuthorIndex !== -1) {
+        } else if (f.authorGender === 'féminin' && femaleAuthorIndex !== -1) {
           const femaleAuthor = row[femaleAuthorIndex]
           if (femaleAuthor && femaleAuthor !== '' && femaleAuthor !== '0') {
             matchesGender = true
           }
-        }
-        if (!matchesGender && f.authorGender.includes('ambigu') && ambiguousAuthorIndex !== -1) {
-          const ambiguousAuthor = row[ambiguousAuthorIndex]
-          if (ambiguousAuthor && ambiguousAuthor !== '' && ambiguousAuthor !== '0') {
-            matchesGender = true
+        } else if (f.authorGender === 'ambigu') {
+          // Chercher la colonne ambigu
+          const ambiguousAuthorIndex = headers.value.findIndex(h => {
+            const lower = String(h || '').toLowerCase()
+            return lower.includes('ambigu') || lower === 'cy' || 
+                   (lower.includes('auteur') && !lower.includes('masculin') && !lower.includes('féminin') && !lower.includes('feminin'))
+          })
+          let ambiguousAuthorIndexFallback = -1
+          if (ambiguousAuthorIndex === -1) {
+            ambiguousAuthorIndexFallback = headers.value.findIndex((h, idx) => {
+              const lower = String(h || '').toLowerCase()
+              return (lower.includes('auteur') || lower.includes('autrice')) && 
+                     idx !== maleAuthorIndex && 
+                     idx !== femaleAuthorIndex &&
+                     !lower.includes('masculin') && 
+                     !lower.includes('féminin') && 
+                     !lower.includes('feminin')
+            })
+          }
+          const finalAmbiguousIndex = ambiguousAuthorIndex !== -1 ? ambiguousAuthorIndex : ambiguousAuthorIndexFallback
+          if (finalAmbiguousIndex !== -1) {
+            const ambiguousAuthor = row[finalAmbiguousIndex]
+            if (ambiguousAuthor && ambiguousAuthor !== '' && ambiguousAuthor !== '0') {
+              matchesGender = true
+            }
           }
         }
         
