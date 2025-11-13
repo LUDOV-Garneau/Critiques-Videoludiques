@@ -88,9 +88,17 @@ const mapping = ref({
 function initMapping() {
   const lower = (headers.value || []).map(h => String(h || '').toLowerCase())
   function find(labels) { const i = lower.findIndex(h => labels.some(l => h.includes(l))); return i>=0 ? headers.value[i] : '' }
+  // Fonction pour trouver une colonne avec un nom exact (sans préfixe/suffixe)
+  function findExact(labels) {
+    const i = lower.findIndex(h => {
+      const trimmed = h.trim()
+      return labels.some(l => trimmed === l)
+    })
+    return i>=0 ? headers.value[i] : ''
+  }
   mapping.value.TypeImageUtilise = find(["type d'images utilisés", "type d'image utilisé", "type image", "image type"])
   mapping.value.TitreJeu = find(['titre du jeu', 'game title', 'nom du jeu'])
-  mapping.value.Plateforme = find(['platform','console','system','plateforme'])
+  mapping.value.Plateforme = findExact(['plateforme', 'platform'])
   mapping.value.Modele = find(['modèle', 'modele', 'model'])
   mapping.value.TypePlateforme = find(['type de plateforme', 'platform type'])
   mapping.value.TypeJeu = find(['titre des étiquettes génériques de genre', 'genre', 'type de jeu', 'game genre'])
@@ -735,7 +743,7 @@ function buildImportantColumns(allHeaders) {
                 <!-- Section: Plateformes -->
                 <div class="modal-section">
                   <h4 class="section-title">Plateformes</h4>
-                  <div class="modal-grid">
+                  <div class="modal-grid modal-grid-3">
                     <div class="modal-field">
                       <div class="label">Type de plateforme</div>
                       <div class="value">{{ modalItem?.TypePlateforme || '-' }}</div>
@@ -1096,6 +1104,9 @@ tbody tr:hover {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+}
+.modal-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .modal-field {
   min-width: 0;
