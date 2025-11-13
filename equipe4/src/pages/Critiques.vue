@@ -741,12 +741,12 @@ function buildImportantColumns(allHeaders) {
                       <div class="value">{{ modalItem?.TypePlateforme || '-' }}</div>
                     </div>
                     <div class="modal-field">
-                      <div class="label">Modèle</div>
-                      <div class="value">{{ modalItem?.Modele || '-' }}</div>
-                    </div>
-                    <div class="modal-field modal-field-full">
                       <div class="label">Nom de la plateforme</div>
                       <div class="value">{{ modalItem?.Plateforme || '-' }}</div>
+                    </div>
+                    <div class="modal-field">
+                      <div class="label">Modèle</div>
+                      <div class="value">{{ modalItem?.Modele || '-' }}</div>
                     </div>
                   </div>
                 </div>
