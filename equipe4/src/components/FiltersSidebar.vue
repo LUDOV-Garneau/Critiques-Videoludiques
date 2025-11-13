@@ -554,12 +554,12 @@ const filteredAuthors = computed(() => {
         const other = props.facets.authors?.other || []
         other.forEach(author => {
           if (author && author !== '0') {
-            // Convertir en chaîne avant de split
-            const authorStr = String(author || '')
-            const authors = authorStr.split(/[,;]+/).map(a => a.trim()).filter(a => {
-              return a && a !== '0' && !/^\d+$/.test(a)
-            })
-            authors.forEach(a => authorsSet.add(a))
+            // Les auteurs ambigu sont déjà des pseudonymes individuels depuis la colonne CY
+            // Pas besoin de split, juste ajouter directement
+            const authorStr = String(author || '').trim()
+            if (authorStr && authorStr !== '0' && !/^\d+$/.test(authorStr)) {
+              authorsSet.add(authorStr)
+            }
           }
         })
       }
