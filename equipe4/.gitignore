@@ -28,3 +28,7 @@ analyze-*.js
 temp-*.js
 temp-*.vue
 *.tmp
+
+# Fichiers temporaires Excel (verrouillage)
+~$*.xlsx
+~$*.xls
