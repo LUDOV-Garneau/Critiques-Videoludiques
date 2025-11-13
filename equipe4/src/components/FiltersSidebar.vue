@@ -27,7 +27,7 @@ const localFilters = ref({
   magazines: [],
   countries: [],
   platformTypes: [],
-  consoles: [],
+  platforms: [],
   gameTypes: [],
   authorGender: '', // String pour sélection unique (radio buttons)
   authorCharacteristics: [], // Nouveau: pour CP, DB, CJ
@@ -45,7 +45,7 @@ const expandedCards = ref({
   magazines: false,
   countries: false,
   platformTypes: false,
-  consoles: false,
+  platforms: false,
   gameTypes: false,
   authors: false,
   years: false,
@@ -84,12 +84,12 @@ const activeFiltersList = computed(() => {
     })
   }
 
-  if (localFilters.value.consoles.length > 0) {
+  if (localFilters.value.platforms.length > 0) {
     filters.push({
-      type: 'consoles',
-      label: 'Consoles',
-      value: localFilters.value.consoles.join(', '),
-      count: localFilters.value.consoles.length
+      type: 'platforms',
+      label: 'Plateformes',
+      value: localFilters.value.platforms.join(', '),
+      count: localFilters.value.platforms.length
     })
   }
 
@@ -384,7 +384,7 @@ function clearAllFilters() {
     magazines: [],
     countries: [],
     platformTypes: [],
-    consoles: [],
+    platforms: [],
     gameTypes: [],
     authorGender: '',
     authorCharacteristics: [],
@@ -454,7 +454,7 @@ const allAuthors = computed(() => {
     }
   })
 
-  return Array.from(allAuthorsSet).sort()
+  return Array.from(allAuthorsSet).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
 })
 
 // Recherche dans la liste des auteurs avec filtrage par genre et caractéristiques
@@ -579,7 +579,7 @@ const filteredAuthors = computed(() => {
 
 // Liste des types de plateformes disponibles (basée sur la colonne "Type de plateforme")
 const allPlatformTypes = computed(() => {
-  return ['Autre', 'Console', 'Microordinateur', 'Mobile', 'Portable'].sort()
+  return ['Autre', 'Console', 'Microordinateur', 'Mobile', 'Portable'].sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
 })
 
 // Liste des types de scores disponibles (basée sur l'analyse du fichier Excel)
@@ -651,40 +651,9 @@ const allScoreTypes = computed(() => {
   ]
 })
 
-// Liste de toutes les consoles disponibles (basée sur les colonnes Excel DK-EL, indices 114-141)
-const allConsoles = computed(() => {
-  // Liste complète des consoles trouvées dans le fichier Excel (colonnes binaires 0/1)
-  // Triée par ordre alphabétique pour faciliter la recherche
-  return [
-    'Atari 2600',        // 114
-    'Atari 7800',        // 118
-    'AtariJaguar',       // 126
-    'CDi',               // 123
-    'ColecoVision',      // 115
-    'Dreamcast',         // 132
-    'GameCube',          // 131
-    'HyperScan',         // 136
-    'Intellivision',     // 117
-    'MasterSystem',      // 121
-    'NES',               // 119
-    'Nintendo64',        // 127
-    'NintendoSwitch',    // 139
-    'Odyssey2',          // 116
-    'PCFX',              // 129
-    'PlayStation',       // 130
-    'PlayStation2',      // 133
-    'PlayStation3',      // 137
-    'PlayStation4',      // 140
-    'SegaGenesis',       // 124
-    'SegaSaturn',        // 128
-    'SuperNES',          // 122
-    'TurboGrafx16',      // 125
-    'Videopac G7400',    // 120
-    'Wii',               // 135
-    'Xbox',              // 134
-    'Xbox360',           // 138
-    'XboxOne'            // 141
-  ].sort()
+// Liste de toutes les plateformes disponibles (basée sur la colonne Plateforme EN)
+const allPlatforms = computed(() => {
+  return props.facets.platforms || []
 })
 
 // Formatage des années pour l'affichage
@@ -846,32 +815,32 @@ watch(() => props.facets, (newFacets) => {
         </div>
       </div>
 
-      <!-- Filtre par Consoles -->
+      <!-- Filtre par Plateformes -->
       <div class="filter-card">
         <button
-          @click="toggleCard('consoles')"
+          @click="toggleCard('platforms')"
           class="card-header"
-          :class="{ expanded: expandedCards.consoles }"
+          :class="{ expanded: expandedCards.platforms }"
         >
-          <span>Consoles spécifiques</span>
-          <span class="expand-icon">{{ expandedCards.consoles ? '−' : '+' }}</span>
+          <span>Plateformes</span>
+          <span class="expand-icon">{{ expandedCards.platforms ? '−' : '+' }}</span>
         </button>
 
-        <div v-if="expandedCards.consoles" class="card-content">
+        <div v-if="expandedCards.platforms" class="card-content">
           <div class="filter-group">
-            <label class="filter-group-label">Sélectionner les consoles</label>
+            <label class="filter-group-label">Sélectionner les plateformes</label>
             <div class="filter-options">
               <label
-                v-for="console in allConsoles"
-                :key="console"
+                v-for="platform in allPlatforms"
+                :key="platform"
                 class="checkbox-option"
               >
                 <input
                   type="checkbox"
-                  :checked="localFilters.consoles.includes(console)"
-                  @change="toggleArrayFilter('consoles', console)"
+                  :checked="localFilters.platforms.includes(platform)"
+                  @change="toggleArrayFilter('platforms', platform)"
                 />
-                <span>{{ console }}</span>
+                <span>{{ platform }}</span>
               </label>
             </div>
           </div>
