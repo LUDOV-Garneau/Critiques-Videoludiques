@@ -27,6 +27,117 @@ function openModal(item) {
 function closeModal() {
   isModalOpen.value = false
 }
+
+// Fonction pour formater les auteurs avec leurs tags d'identité
+const formattedAuthorsWithTags = computed(() => {
+  if (!modalItem.value || !headers.value.length) return []
+  
+  // Trouver l'index de la ligne originale dans mappedObjects
+  const originalItem = modalItem.value._full || modalItem.value
+  let originalIndex = mappedObjects.value.findIndex(item => item === originalItem)
+  
+  // Si pas trouvé par référence directe, chercher par contenu
+  if (originalIndex === -1) {
+    originalIndex = mappedObjects.value.findIndex(item => {
+      return item.Titre === originalItem.Titre && 
+             item.Année === originalItem.Année &&
+             item.Magazine === originalItem.Magazine
+    })
+  }
+  
+  if (originalIndex === -1 || originalIndex >= rows.value.length) return []
+  
+  const row = rows.value[originalIndex]
+  const authorsWithTags = []
+  
+  // Indices des colonnes
+  const maleAuthorIndex = headers.value.indexOf('Nom des auteurs masculins')
+  const femaleAuthorIndex = headers.value.indexOf('Nom des autrices féminin')
+  const ambiguousAuthorIndex = headers.value.indexOf('Nom des auteurs.rices ambigus.ës')
+  const minorityIndex = headers.value.findIndex(h => {
+    const lower = String(h || '').toLowerCase()
+    return lower.includes('minorité') || lower.includes('minorite') || lower === 'cp'
+  })
+  
+  // Vérifier si c'est une minorité ethnique
+  const isMinority = minorityIndex !== -1 && row[minorityIndex] && row[minorityIndex] !== '' && row[minorityIndex] !== '0'
+  
+  // Auteurs masculins
+  if (maleAuthorIndex !== -1 && row[maleAuthorIndex] && row[maleAuthorIndex] !== '' && row[maleAuthorIndex] !== '0') {
+    const authors = String(row[maleAuthorIndex]).split(/[,;]+/).map(a => a.trim()).filter(a => a && a !== '0' && !/^\d+$/.test(a))
+    authors.forEach(author => {
+      const tags = ['Masculin']
+      if (isMinority) tags.push('Minorité ethnique')
+      authorsWithTags.push({ name: author, tags })
+    })
+  }
+  
+  // Auteurs féminins
+  if (femaleAuthorIndex !== -1 && row[femaleAuthorIndex] && row[femaleAuthorIndex] !== '' && row[femaleAuthorIndex] !== '0') {
+    const authors = String(row[femaleAuthorIndex]).split(/[,;]+/).map(a => a.trim()).filter(a => a && a !== '0' && !/^\d+$/.test(a))
+    authors.forEach(author => {
+      const tags = ['Féminin']
+      if (isMinority) tags.push('Minorité ethnique')
+      authorsWithTags.push({ name: author, tags })
+    })
+  }
+  
+  // Auteurs ambigu (colonne CY)
+  if (ambiguousAuthorIndex !== -1 && row[ambiguousAuthorIndex] && row[ambiguousAuthorIndex] !== '' && row[ambiguousAuthorIndex] !== '0') {
+    const authors = String(row[ambiguousAuthorIndex]).split(/[,;]+/).map(a => a.trim()).filter(a => a && a !== '0' && !/^\d+$/.test(a))
+    authors.forEach(author => {
+      const tags = ['Ambigu']
+      if (isMinority) tags.push('Minorité ethnique')
+      authorsWithTags.push({ name: author, tags })
+    })
+  }
+  
+  return authorsWithTags
+})
+
+// Fonction pour vérifier si la critique est anonyme
+const isAnonymousCritique = computed(() => {
+  if (!modalItem.value || !headers.value.length) return false
+  
+  // Trouver l'index de la ligne originale dans mappedObjects
+  const originalItem = modalItem.value._full || modalItem.value
+  let originalIndex = mappedObjects.value.findIndex(item => item === originalItem)
+  
+  // Si pas trouvé par référence directe, chercher par contenu
+  if (originalIndex === -1) {
+    originalIndex = mappedObjects.value.findIndex(item => {
+      return item.Titre === originalItem.Titre && 
+             item.Année === originalItem.Année &&
+             item.Magazine === originalItem.Magazine
+    })
+  }
+  
+  if (originalIndex === -1 || originalIndex >= rows.value.length) return false
+  
+  const row = rows.value[originalIndex]
+  
+  // Chercher la colonne CJ (Critiques anonymes)
+  let anonymousIndex = headers.value.indexOf('CJ')
+  if (anonymousIndex === -1) {
+    anonymousIndex = headers.value.findIndex(h => {
+      const normalized = String(h || '').trim()
+      const lower = normalized.toLowerCase()
+      return normalized === 'CJ' || lower === 'cj' || lower.includes('anonyme')
+    })
+  }
+  
+  if (anonymousIndex !== -1) {
+    const value = row[anonymousIndex]
+    if (value !== undefined && value !== null && value !== '') {
+      const numValue = Number(value)
+      const strValue = String(value).trim()
+      return numValue === 1 || strValue === '1' || strValue.toLowerCase() === 'true'
+    }
+  }
+  
+  return false
+})
+
 if (typeof window !== 'undefined') {
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeModal()
@@ -781,14 +892,25 @@ const filteredByFilters = computed(() => {
         
         // Critiques anonymes (CJ = 1)
         if (f.authorCharacteristics.includes('anonyme')) {
-          const anonymousIndex = headers.value.findIndex(h => {
-            const lower = String(h || '').toLowerCase()
-            return lower.includes('anonyme') || lower === 'cj'
-          })
+          // Chercher d'abord par le code CJ exact, puis par nom
+          let anonymousIndex = headers.value.indexOf('CJ')
+          if (anonymousIndex === -1) {
+            anonymousIndex = headers.value.findIndex(h => {
+              const normalized = String(h || '').trim()
+              const lower = normalized.toLowerCase()
+              return normalized === 'CJ' || lower === 'cj' || lower.includes('anonyme')
+            })
+          }
           if (anonymousIndex !== -1) {
-            const isAnonymous = Number(row[anonymousIndex]) === 1
-            if (isAnonymous) {
-              matchesCharacteristic = true
+            const value = row[anonymousIndex]
+            // Vérifier si la valeur est 1 (peut être nombre ou chaîne "1")
+            if (value !== undefined && value !== null && value !== '') {
+              const numValue = Number(value)
+              const strValue = String(value).trim()
+              const isAnonymous = numValue === 1 || strValue === '1' || strValue.toLowerCase() === 'true'
+              if (isAnonymous) {
+                matchesCharacteristic = true
+              }
             }
           }
         }
@@ -1053,9 +1175,25 @@ function buildImportantColumns(allHeaders) {
                       <div class="label">Pays</div>
                       <div class="value">{{ modalItem?.Pays || '-' }}</div>
                     </div>
-                    <div class="modal-field">
+                    <div class="modal-field modal-field-full">
                       <div class="label">Auteurs</div>
-                      <div class="value">{{ modalItem?.Auteurs || '-' }}</div>
+                      <div class="value authors-with-tags">
+                        <template v-if="isAnonymousCritique">
+                          <span class="author-tag author-tag-anonymous">Critique anonyme</span>
+                        </template>
+                        <template v-else-if="formattedAuthorsWithTags.length > 0">
+                          <div v-for="(author, idx) in formattedAuthorsWithTags" :key="idx" class="author-item">
+                            <span class="author-name">{{ author.name }}</span>
+                            <span class="author-tags">
+                              <span v-for="(tag, tagIdx) in author.tags" :key="tag" 
+                                    :class="['author-tag', tagIdx === 0 ? 'author-tag-gender' : 'author-tag-minority']">
+                                {{ tag }}
+                              </span>
+                            </span>
+                          </div>
+                        </template>
+                        <span v-else>{{ modalItem?.Auteurs || '-' }}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1441,6 +1579,47 @@ tbody tr:hover {
   font-size: 14px;
   color: #111827;
   word-wrap: break-word;
+}
+.authors-with-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.author-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.author-name {
+  font-weight: 500;
+  color: #111827;
+}
+.author-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.author-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.author-tag-gender {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+.author-tag-minority {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+.author-tag-anonymous {
+  background-color: #fee2e2;
+  color: #991b1b;
 }
 .modal-footer {
   padding: 16px 20px;

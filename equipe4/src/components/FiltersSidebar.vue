@@ -300,8 +300,7 @@ function toggleAuthorCharacteristic(characteristic) {
   // Si on coche "Critiques anonymes", décocher les 5 autres
   if (characteristic === 'anonyme' && index === -1) {
     localFilters.value.authorCharacteristics = ['anonyme']
-    // Décocher aussi les genres
-    localFilters.value.authorGender = []
+    // Décocher aussi le nom d'auteur
     localFilters.value.authorName = ''
   } else if (index > -1) {
     // Décocher
