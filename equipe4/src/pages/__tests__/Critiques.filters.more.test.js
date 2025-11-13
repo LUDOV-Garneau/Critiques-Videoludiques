@@ -191,6 +191,43 @@ describe('Logique de filtrage des critiques (compléments)', () => {
       expect(result).toHaveLength(0)
     })
   })
+
+  describe('Tri alphabétique avec gestion des accents', () => {
+    it('devrait trier les noms avec accents correctement (é comme e)', () => {
+      const names = ['Éric', 'Anne', 'Émile', 'Bernard', 'André']
+      const sorted = names.sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
+
+      // Avec sensitivity: 'base', les accents sont ignorés pour le tri
+      // Donc 'André' vient avant 'Anne', 'Émile' vient après 'Bernard', etc.
+      expect(sorted[0]).toBe('André')
+      expect(sorted[1]).toBe('Anne')
+      expect(sorted[2]).toBe('Bernard')
+      expect(sorted[3]).toBe('Émile')
+      expect(sorted[4]).toBe('Éric')
+    })
+
+    it('devrait trier les magazines avec accents correctement', () => {
+      const magazines = ['Génération 4', 'Consoles +', 'Électronique', 'Joypad']
+      const sorted = magazines.sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
+
+      // 'Consoles +' < 'Électronique' < 'Génération 4' < 'Joypad'
+      expect(sorted[0]).toBe('Consoles +')
+      expect(sorted[1]).toBe('Électronique')
+      expect(sorted[2]).toBe('Génération 4')
+      expect(sorted[3]).toBe('Joypad')
+    })
+
+    it('devrait trier les pays avec accents correctement', () => {
+      const countries = ['États-Unis', 'Canada', 'Allemagne', 'Espagne']
+      const sorted = countries.sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
+
+      // 'Allemagne' < 'Canada' < 'Espagne' < 'États-Unis'
+      expect(sorted[0]).toBe('Allemagne')
+      expect(sorted[1]).toBe('Canada')
+      expect(sorted[2]).toBe('Espagne')
+      expect(sorted[3]).toBe('États-Unis')
+    })
+  })
 })
 
 

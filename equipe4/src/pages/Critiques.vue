@@ -65,6 +65,7 @@ const mapping = ref({
   TypeImageUtilise: '',
   TitreJeu: '',
   Plateforme: '',
+  Modele: '',
   TypePlateforme: '',
   TypeJeu: '',
   Note: '',
@@ -90,6 +91,7 @@ function initMapping() {
   mapping.value.TypeImageUtilise = find(["type d'images utilisés", "type d'image utilisé", "type image", "image type"])
   mapping.value.TitreJeu = find(['titre du jeu', 'game title', 'nom du jeu'])
   mapping.value.Plateforme = find(['platform','console','system','plateforme'])
+  mapping.value.Modele = find(['modèle', 'modele', 'model'])
   mapping.value.TypePlateforme = find(['type de plateforme', 'platform type'])
   mapping.value.TypeJeu = find(['titre des étiquettes génériques de genre', 'genre', 'type de jeu', 'game genre'])
   mapping.value.Note = find(['score','rating','note'])
@@ -146,22 +148,6 @@ const mappedObjects = computed(() => {
       const yearValue = Number(String(r[idx.Année]).slice(0, 4))
       annee = !isNaN(yearValue) && yearValue > 0 ? yearValue : '-'
     }
-    // Récupérer les consoles actives (colonnes 114-141, valeur = 1)
-    const consoleMapping = {
-      114: 'Atari 2600', 115: 'ColecoVision', 116: 'Odyssey2', 117: 'Intellivision',
-      118: 'Atari 7800', 119: 'NES', 120: 'Videopac G7400', 121: 'MasterSystem',
-      122: 'SuperNES', 123: 'CDi', 124: 'SegaGenesis', 125: 'TurboGrafx16',
-      126: 'AtariJaguar', 127: 'Nintendo64', 128: 'SegaSaturn', 129: 'PCFX',
-      130: 'PlayStation', 131: 'GameCube', 132: 'Dreamcast', 133: 'PlayStation2',
-      134: 'Xbox', 135: 'Wii', 136: 'HyperScan', 137: 'PlayStation3',
-      138: 'Xbox360', 139: 'NintendoSwitch', 140: 'PlayStation4', 141: 'XboxOne'
-    }
-    const activeConsoles = []
-    for (const [colIndex, consoleName] of Object.entries(consoleMapping)) {
-      if (Number(r[colIndex]) === 1) {
-        activeConsoles.push(consoleName)
-      }
-    }
     // Fonction helper pour parser les notes (utilise la normalisation)
     const parseScore = (value) => {
       return normalizeScore(value)
@@ -176,6 +162,7 @@ const mappedObjects = computed(() => {
       Titre: titreJeu || critiqueTitre || '-',
       TitreJeu: titreJeu,
       Plateforme: idx.Plateforme>=0 ? r[idx.Plateforme] : undefined,
+      Modele: idx.Modele>=0 ? r[idx.Modele] : undefined,
       TypePlateforme: idx.TypePlateforme>=0 ? r[idx.TypePlateforme] : undefined,
       TypeJeu: idx.TypeJeu>=0 ? r[idx.TypeJeu] : undefined,
       Note: parseScore(idx.Note>=0 ? r[idx.Note] : undefined),
@@ -185,7 +172,6 @@ const mappedObjects = computed(() => {
       Pays: idx.Pays>=0 ? r[idx.Pays] : undefined,
       CritiqueTitre: critiqueTitre,
       PDF: idx.PDF>=0 ? r[idx.PDF] : undefined,
-      Consoles: activeConsoles.length > 0 ? activeConsoles.join(', ') : '-',
       // Notations par critères
       NoteGenerale: parseScore(idx.NoteGenerale>=0 ? r[idx.NoteGenerale] : undefined),
       NoteVisuelle: parseScore(idx.NoteVisuelle>=0 ? r[idx.NoteVisuelle] : undefined),
@@ -216,7 +202,7 @@ const sidebarFilters = ref({
   magazines: [],
   countries: [],
   platformTypes: [],
-  consoles: [],
+  platforms: [],
   gameTypes: [],
   imageTypes: [],
   authorGender: '',
@@ -230,7 +216,9 @@ const sidebarFilters = ref({
 })
 const facets = computed(() => {
   const arr = mappedObjects.value
-  const uniq = (vals) => Array.from(new Set(vals.filter(Boolean))).sort()
+  const uniq = (vals) => Array.from(new Set(vals.filter(Boolean))).sort((a, b) => {
+    return a.localeCompare(b, 'fr', { sensitivity: 'base' })
+  })
   // Récupérer les auteurs masculins et féminins depuis les données brutes
   const authorsM = new Set()
   const authorsF = new Set()
@@ -263,6 +251,22 @@ const facets = computed(() => {
         const type = row[platformTypeIndex]
         if (type && type !== '' && type !== '0') {
           platformTypes.add(type)
+        }
+      })
+    }
+  }
+
+  // Récupérer les plateformes (colonne EN) depuis les données brutes
+  const platforms = new Set()
+  if (headers.value.length > 0) {
+    const platformIndex = headers.value.indexOf('Plateforme')
+    if (platformIndex !== -1) {
+      rows.value.forEach(row => {
+        const platform = row[platformIndex]
+        if (platform && platform !== '' && platform !== '0') {
+          // Séparer les plateformes multiples (séparées par " ; ")
+          const platformList = String(platform).split(/\s*;\s*/).map(p => p.trim()).filter(p => p)
+          platformList.forEach(p => platforms.add(p))
         }
       })
     }
@@ -301,14 +305,29 @@ const facets = computed(() => {
   const validYears = arr
     .map(x => x.Année)
     .filter(y => y !== '-' && y !== undefined && typeof y === 'number' && !isNaN(y))
+
+  // Trier les plateformes: celles qui commencent par un chiffre à la fin
+  const sortedPlatforms = Array.from(platforms).sort((a, b) => {
+    const aStartsWithDigit = /^\d/.test(a)
+    const bStartsWithDigit = /^\d/.test(b)
+
+    // Si a commence par un chiffre et pas b, a va après b
+    if (aStartsWithDigit && !bStartsWithDigit) return 1
+    // Si b commence par un chiffre et pas a, b va après a
+    if (!aStartsWithDigit && bStartsWithDigit) return -1
+    // Sinon, tri alphabétique normal
+    return a.localeCompare(b, 'fr', { sensitivity: 'base' })
+  })
+
   return {
     platformTypes: Array.from(platformTypes).sort(),
+    platforms: sortedPlatforms,
     gameTypes: gameTypesArray,
     magazines: uniq(arr.map(x => x.Magazine)),
     countries: uniq(arr.map(x => x.Pays)),
     authors: {
-      male: Array.from(authorsM).sort(),
-      female: Array.from(authorsF).sort()
+      male: Array.from(authorsM).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' })),
+      female: Array.from(authorsF).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
     },
     imageTypes: uniq(arr.map(x => x.ImageType)),
     minYear: validYears.length > 0 ? Math.min(...validYears) : 1980,
@@ -348,25 +367,25 @@ const filteredByFilters = computed(() => {
         }
       }
     }
-    // Filtre par consoles spécifiques (colonnes binaires DK-EL, indices 114-141)
-    if (f.consoles.length > 0) {
+    // Filtre par plateformes spécifiques (colonne Plateforme EN)
+    if (f.platforms && f.platforms.length > 0) {
       if (headers.value.length > 0 && index < rows.value.length) {
-        // Mapping des consoles vers leurs indices de colonnes
-        const consoleMapping = {
-          'Atari 2600': 114, 'ColecoVision': 115, 'Odyssey2': 116, 'Intellivision': 117,
-          'Atari 7800': 118, 'NES': 119, 'Videopac G7400': 120, 'MasterSystem': 121,
-          'SuperNES': 122, 'CDi': 123, 'SegaGenesis': 124, 'TurboGrafx16': 125,
-          'AtariJaguar': 126, 'Nintendo64': 127, 'SegaSaturn': 128, 'PCFX': 129,
-          'PlayStation': 130, 'GameCube': 131, 'Dreamcast': 132, 'PlayStation2': 133,
-          'Xbox': 134, 'Wii': 135, 'HyperScan': 136, 'PlayStation3': 137,
-          'Xbox360': 138, 'NintendoSwitch': 139, 'PlayStation4': 140, 'XboxOne': 141
+        const platformIndex = headers.value.indexOf('Plateforme')
+        if (platformIndex !== -1) {
+          const platformValue = rows.value[index][platformIndex]
+          if (platformValue && platformValue !== '' && platformValue !== '0') {
+            // Séparer les plateformes multiples (séparées par " ; ")
+            const platformList = String(platformValue).split(/\s*;\s*/).map(p => p.trim()).filter(p => p)
+            // Vérifier si au moins une des plateformes sélectionnées est présente (logique OR)
+            const hasSelectedPlatform = f.platforms.some(selectedPlatform =>
+              platformList.includes(selectedPlatform)
+            )
+            if (!hasSelectedPlatform) return false
+          } else {
+            // Si pas de plateforme, ne pas inclure
+            return false
+          }
         }
-        // Vérifier si au moins une des consoles sélectionnées est présente (logique OR)
-        const hasSelectedConsole = f.consoles.some(console => {
-          const colIndex = consoleMapping[console]
-          return colIndex !== undefined && Number(rows.value[index][colIndex]) === 1
-        })
-        if (!hasSelectedConsole) return false
       }
     }
 
@@ -725,9 +744,9 @@ function buildImportantColumns(allHeaders) {
                       <div class="label">Plateforme</div>
                       <div class="value">{{ modalItem?.Plateforme || '-' }}</div>
                     </div>
-                    <div class="modal-field modal-field-full">
-                      <div class="label">Console(s) spécifique(s)</div>
-                      <div class="value">{{ modalItem?.Consoles || '-' }}</div>
+                    <div class="modal-field">
+                      <div class="label">Modèle</div>
+                      <div class="value">{{ modalItem?.Modele || '-' }}</div>
                     </div>
                   </div>
                 </div>
@@ -781,20 +800,6 @@ function buildImportantColumns(allHeaders) {
                 <h4 class="section-title">Type d'image utilisé</h4>
                 <div class="modal-grid">
                   <div class="modal-field">
-                    <div class="label">Type de plateforme</div>
-                    <div class="value">{{ modalItem?.TypePlateforme || '-' }}</div>
-                  </div>
-                  <div class="modal-field">
-                    <div class="label">Plateforme</div>
-                    <div class="value">{{ modalItem?.Plateforme || '-' }}</div>
-                  </div>
-                  <div class="modal-field">
-                    <div class="label">Type de jeu</div>
-                    <div class="value">{{ modalItem?.TypeJeu || '-' }}</div>
-                  </div>
-                  <div class="modal-field modal-field-full">
-                    <div class="label">Console(s) spécifique(s)</div>
-                    <div class="value">{{ modalItem?.Consoles || '-' }}</div>
                     <div class="label">Type d'image</div>
                     <div class="value">{{ modalItem?.ImageType || '-' }}</div>
                   </div>
