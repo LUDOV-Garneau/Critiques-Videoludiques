@@ -258,7 +258,9 @@ const facets = computed(() => {
       rows.value.forEach(row => {
         const type = row[platformTypeIndex]
         if (type && type !== '' && type !== '0') {
-          platformTypes.add(type)
+          // Séparer les types multiples (séparés par " ; ")
+          const typeList = String(type).split(/\s*;\s*/).map(t => t.trim()).filter(t => t)
+          typeList.forEach(t => platformTypes.add(t))
         }
       })
     }
@@ -328,7 +330,7 @@ const facets = computed(() => {
   })
 
   return {
-    platformTypes: Array.from(platformTypes).sort(),
+    platformTypes: Array.from(platformTypes).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' })),
     platforms: sortedPlatforms,
     gameTypes: gameTypesArray,
     magazines: uniq(arr.map(x => x.Magazine)),
@@ -371,7 +373,15 @@ const filteredByFilters = computed(() => {
         const platformTypeIndex = headers.value.indexOf('Type de plateforme')
         if (platformTypeIndex !== -1) {
           const platformType = rows.value[index][platformTypeIndex]
-          if (!f.platformTypes.includes(platformType)) return false
+          if (platformType && platformType !== '' && platformType !== '0') {
+            // Séparer les types multiples (séparés par " ; ")
+            const typeList = String(platformType).split(/\s*;\s*/).map(t => t.trim()).filter(t => t)
+            // Vérifier si au moins un des types correspond au filtre
+            const hasMatch = typeList.some(t => f.platformTypes.includes(t))
+            if (!hasMatch) return false
+          } else {
+            return false
+          }
         }
       }
     }
