@@ -4,6 +4,49 @@ import ApexChart from 'vue3-apexcharts'
 
 let checkedTypeCharts = ref('line')
 let checkedOutData = ref('combine')
+let checkedOutType = ref('Pays')
+
+const typeArray = [
+  'TypeImageUtilise',
+  'TitreJeu',
+  'Plateforme',
+  'TypePlateforme',
+  'TypeJeu',
+  'Note',
+  'Année',
+  'Magazine',
+  'Auteurs',
+  'Pays',
+];
+
+// const typeArray = [
+//   'TypeImageUtilise',
+//   'TitreJeu',
+//   'Plateforme',
+//   'TypePlateforme',
+//   'TypeJeu',
+//   'Note',
+//   'Année',
+//   'Magazine',
+//   'Auteurs',
+//   'Pays',
+//   'CritiqueTitre',
+//   'PDF',
+//   'NoteGenerale',
+//   'NoteVisuelle',
+//   'NoteSonore',
+//   'NoteContenu',
+//   'NoteJouabilite',
+//   'NoteTempsJeu',
+//   'NoteDifficulte',
+//   'NotePrix',
+//   'NoteAutre'
+// ];
+
+
+
+
+
 
 // FiltreActifs {
 // magazines: [],
@@ -34,17 +77,18 @@ const props = defineProps({
 })
 
 let isMultipleFilter = false
-const sortKey = ref('Année')
+const sortKeyOptions = ref('Année')
+const sortKeySeries = ref('Pays')
 const sortDir = ref('desc')
 
 const filteredAndSorted = computed(() => {
   console.log("filteredAndSorted recalculated");
   let sortedItems = [...props.items];
 
-  if (sortKey.value) {
+  if (sortKeyOptions.value) {
     sortedItems = sortedItems.sort((b, a) => {
-      const va = a[sortKey.value];
-      const vb = b[sortKey.value];
+      const va = a[sortKeyOptions.value];
+      const vb = b[sortKeyOptions.value];
 
       if (va === '-' && vb !== '-') return 1;
       if (vb === '-' && va !== '-') return -1;
@@ -94,7 +138,7 @@ let chartSeriesFinal = ref([{
 
 const apexchart = ApexChart;
 
-const updateData = (type, mode) => {
+const updateData = (type, mode, select) => {
   // Vérification 1: S'il n'y a aucune donnée
   if (!filteredAndSorted.value || filteredAndSorted.value.length === 0) {
     chartSeriesFinal.value = [{
@@ -158,19 +202,76 @@ const updateData = (type, mode) => {
   }
 
   // Génération du graphique avec logique combine/divided
-  let anneeCourante = filteredAndSorted.value[0].Année
-  const anneeMax = filteredAndSorted.value[filteredAndSorted.value.length - 1].Année
+
+
+
+  chartSeriesFinal.value = arrayY01
+
+  chartOptionsFinal.value = { 
+    chart: {
+      type: type,
+      height: 300,
+    },
+    title: {
+      text: 'Nombre Critique selon Année',
+      align: 'left'
+    },
+    xaxis: {
+      categories: arrayX01
+    },
+    noData: {
+      text: 'Donnée indisponible',
+      align: 'center',
+      verticalAlign: 'middle',
+      style: {
+        fontSize: '16px',
+        color: '#999'
+      }
+    }
+  }
+}
+
+function ChartLine() {
+
+}
+
+function ChartBar() {
+
+}
+
+function dividedY(newSelect) {
+let ValeurXCourante = filteredAndSorted.value[0][sortKey.value]
+  const ValeurMax = filteredAndSorted.value[filteredAndSorted.value.length - 1][sortKey.value]
   let nbOccurence = 0
   let arrayY01 = []
   let arrayX01 = []
   let filtres = props.filtreActifs
 
-  while(anneeCourante === '-' || anneeCourante <= anneeMax) {
+  while(ValeurXCourante === '-' || ValeurXCourante !== '?') {
     arrayX01.push(anneeCourante.toString()) // X
+
+
     let maxFiltrePays = filtres.countries.length
     
     // Si plusieurs Pays
-    switch (maxFiltrePays) {
+     arrayY01[0].data.push(dividedY(maxFiltrePays)) // Y
+
+    // Passer à l'année suivante
+    if (anneeCourante === '-') {
+      const nextItem = filteredAndSorted.value.find(item => item.Année !== '-')
+      if (nextItem === undefined) {
+        anneeCourante = "?"
+      } else {
+        anneeCourante = nextItem.Année
+      }
+    } else {
+      anneeCourante++
+    }
+  }
+
+
+
+switch (maxFiltrePays) {
       case 0:
         // Aucun filtre pays actif
         if (mode === 'divided') {
@@ -234,66 +335,48 @@ const updateData = (type, mode) => {
         break;
     }
 
-    // Passer à l'année suivante
-    if (anneeCourante === '-') {
-      const nextItem = filteredAndSorted.value.find(item => item.Année !== '-')
-      if (nextItem === undefined) {
-        anneeCourante = "?"
-      } else {
-        anneeCourante = nextItem.Année
-      }
-    } else {
-      anneeCourante++
-    }
-  }
+    return nbOccurence
+}
 
-  chartSeriesFinal.value = arrayY01
+function updateSortKeyOptions(newType) {
+  switch(newType) {
+    case 'line':
+      sortKeyOptions.value = 'Année'
+    break;
 
-  chartOptionsFinal.value = { 
-    chart: {
-      type: type,
-      height: 300,
-    },
-    title: {
-      text: 'Nombre Critique selon Année',
-      align: 'left'
-    },
-    xaxis: {
-      categories: arrayX01
-    },
-    noData: {
-      text: 'Donnée indisponible',
-      align: 'center',
-      verticalAlign: 'middle',
-      style: {
-        fontSize: '16px',
-        color: '#999'
-      }
-    }
+    case 'bar':
+      sortKeyOptions.value = 'Pays'
+      break;
+
+      default:
+
+
   }
 }
 
-function myFunction() {
-  var x = document.getElementById("myOption").text;
-  document.getElementById("demo").innerHTML = x;
-}
 
 // Initialiser le graphique au montage du composant
 onMounted(() => {
-  updateData(checkedTypeCharts.value)
+  updateData(checkedTypeCharts.value, checkedOutData.value, checkedOutType.value)
 })
 
 watch(filteredAndSorted, () => {
-  updateData(checkedTypeCharts.value, checkedOutData.value)
+  updateData(checkedTypeCharts.value, checkedOutData.value, checkedOutType.value)
 });
 
 watch(checkedTypeCharts, (newType) => {
-  updateData(newType, 'combine')
+  updateSortKeyOptions(newType)
+  updateData(newType, 'combine', checkedOutType.value)
 })
 
 watch(checkedOutData, (newMode) => {
-  updateData(checkedTypeCharts.value, newMode)
+  updateData(checkedTypeCharts.value, newMode, checkedOutType.value)
 })
+
+watch(checkedOutType, (newSelect) => {
+  updateData(checkedTypeCharts.value, checkedOutData.value, newSelect)
+})
+
 </script>
 
 <template>
@@ -322,10 +405,16 @@ watch(checkedOutData, (newMode) => {
     </div>
     <div v-if="isMultipleFilter === true">
 
-      <select>
-        <option id="OptionDivide" value="volvocar">Volvo</option>
-        <option value="saabcar">Saab</option>
-      </select>
+    <select v-model="checkedOutType">
+      <option 
+        v-for="type in typeArray" 
+        :key="type" 
+        :id="type" 
+        :value="type"
+      >
+        {{ type }}
+      </option>
+    </select>
 
       <input type="radio" id="combine" name="Data" value="combine" v-model="checkedOutData"/>
       <label for="combine">Combiner</label>
