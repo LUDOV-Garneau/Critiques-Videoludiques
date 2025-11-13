@@ -746,15 +746,42 @@ function buildImportantColumns(allHeaders) {
                   <div class="modal-grid modal-grid-3">
                     <div class="modal-field">
                       <div class="label">Type de plateforme</div>
-                      <div class="value">{{ modalItem?.TypePlateforme || '-' }}</div>
+                      <div class="value">
+                        <template v-if="modalItem?.TypePlateforme && modalItem.TypePlateforme.includes(' ; ')">
+                          <div v-for="(item, idx) in modalItem.TypePlateforme.split(' ; ')" :key="idx" class="list-item">
+                            - {{ item.trim() }}
+                          </div>
+                        </template>
+                        <template v-else>
+                          {{ modalItem?.TypePlateforme || '-' }}
+                        </template>
+                      </div>
                     </div>
                     <div class="modal-field">
-                      <div class="label">Nom de la plateforme</div>
-                      <div class="value">{{ modalItem?.Plateforme || '-' }}</div>
+                      <div class="label">Plateforme spécifique</div>
+                      <div class="value">
+                        <template v-if="modalItem?.Plateforme && modalItem.Plateforme.includes(' ; ')">
+                          <div v-for="(item, idx) in modalItem.Plateforme.split(' ; ')" :key="idx" class="list-item">
+                            - {{ item.trim() }}
+                          </div>
+                        </template>
+                        <template v-else>
+                          {{ modalItem?.Plateforme || '-' }}
+                        </template>
+                      </div>
                     </div>
                     <div class="modal-field">
                       <div class="label">Modèle</div>
-                      <div class="value">{{ modalItem?.Modele || '-' }}</div>
+                      <div class="value">
+                        <template v-if="modalItem?.Modele && modalItem.Modele.includes(' ; ')">
+                          <div v-for="(item, idx) in modalItem.Modele.split(' ; ')" :key="idx" class="list-item">
+                            - {{ item.trim() }}
+                          </div>
+                        </template>
+                        <template v-else>
+                          {{ modalItem?.Modele || '-' }}
+                        </template>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1125,6 +1152,10 @@ tbody tr:hover {
   font-size: 14px;
   color: #111827;
   word-wrap: break-word;
+}
+.modal-field .value .list-item {
+  line-height: 1.6;
+  margin: 2px 0;
 }
 .modal-footer {
   padding: 16px 20px;
