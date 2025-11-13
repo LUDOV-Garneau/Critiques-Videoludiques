@@ -724,7 +724,7 @@ watch(() => props.facets, (newFacets) => {
           class="card-header"
           :class="{ expanded: expandedCards.platformTypes }"
         >
-          <span>Plateformes Spécifiques</span>
+          <span>Type de plateformes</span>
           <span class="expand-icon">{{ expandedCards.platformTypes ? '−' : '+' }}</span>
         </button>
 
@@ -756,7 +756,7 @@ watch(() => props.facets, (newFacets) => {
           class="card-header"
           :class="{ expanded: expandedCards.platforms }"
         >
-          <span>Plateformes</span>
+          <span>Plateformes spécifiques</span>
           <span class="expand-icon">{{ expandedCards.platforms ? '−' : '+' }}</span>
         </button>
 

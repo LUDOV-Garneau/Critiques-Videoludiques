@@ -534,7 +534,7 @@ const filteredRowsObjects = computed(() => {
       // Mapper les clés d'affichage vers les propriétés de l'objet
       switch(key) {
         case 'Titre': return item.Titre
-        case 'Plateforme spécifique': return item.TypePlateforme
+        case 'Type de Plateformes': return item.TypePlateforme
         case 'Plateforme': return item.Plateforme
         case 'Note': return item.Note
         case 'Année': return item.Année
@@ -592,7 +592,7 @@ function buildImportantColumns(allHeaders) {
   const lower = allHeaders.map(h => String(h || '').toLowerCase())
   const want = [
     { key: 'title', labels: ['title','game','name','titre','jeu'], display: 'Titre' },
-    { key: 'platformType', labels: ['type de plateforme','platform type'], display: 'Plateforme spécifique' },
+    { key: 'platformType', labels: ['type de plateforme','platform type'], display: 'Type de Plateformes' },
     // Retirer Plateforme et Note de l'affichage principal
     { key: 'year', labels: ['year','release year','annee','année','date'], display: 'Année' },
     { key: 'country', labels: ['country','pays','region'], display: 'Pays' },
@@ -741,12 +741,12 @@ function buildImportantColumns(allHeaders) {
                       <div class="value">{{ modalItem?.TypePlateforme || '-' }}</div>
                     </div>
                     <div class="modal-field">
-                      <div class="label">Plateforme</div>
-                      <div class="value">{{ modalItem?.Plateforme || '-' }}</div>
-                    </div>
-                    <div class="modal-field">
                       <div class="label">Modèle</div>
                       <div class="value">{{ modalItem?.Modele || '-' }}</div>
+                    </div>
+                    <div class="modal-field modal-field-full">
+                      <div class="label">Nom de la plateforme</div>
+                      <div class="value">{{ modalItem?.Plateforme || '-' }}</div>
                     </div>
                   </div>
                 </div>
