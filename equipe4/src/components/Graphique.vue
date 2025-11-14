@@ -260,11 +260,51 @@ function ChartGeneration(arrayX01, arrayY01, type) {
             fontSize: '16px',
             color: '#999'
           }
+        },
+        tooltip: {
+    enabled: true,
+    custom: function({ series, seriesIndex, dataPointIndex, w }) {
+      const itemsPerColumn = 5; // Number of items per column
+
+      let html = `<div style="
+        display:flex; 
+        flex-wrap: wrap; 
+        max-width: 500px; 
+        gap: 20px; 
+        background:#222; 
+        color:#fff; 
+        padding:10px; 
+        border-radius:5px;
+      ">`;
+
+      w.config.series.forEach((s, i) => {
+        const value = s.data[dataPointIndex];
+
+        // Start new column every `itemsPerColumn` items
+        if (i % itemsPerColumn === 0) {
+          html += `<div style="flex:1; min-width:140px;">`;
         }
+
+        // Each row with wrapped text
+        html += `<div style="
+          white-space: normal; 
+          word-wrap: break-word; 
+          margin-bottom:5px;
+        ">${s.name} : ${value}</div>`;
+
+        // Close column div at end of column or last item
+        if ((i + 1) % itemsPerColumn === 0 || i === w.config.series.length - 1) {
+          html += `</div>`;
+        }
+      });
+
+      html += `</div>`;
+      return html;
+    }
+  }
       }
       break;
     case 'bar':
-      case 'line':
       chartSeriesFinal.value = arrayY01
 
       chartOptionsFinal.value = {
@@ -273,7 +313,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
           height: 300,
         },
         title: {
-          text: 'Nombre Critique selon Année',
+          text: 'Nombre Critique selon Pays',
           align: 'left'
         },
         xaxis: {
@@ -353,23 +393,27 @@ function updateChartSpecific(newChart) {
   switch (newChart) {
     case 'line':
       sortKeyOptions.value = 'Année';
+
       SeriesParameterArray.value = [
         ...typeArray.slice(3, 6),
         ...typeArray.slice(7, 10),
         typeArray[12],
         typeArray[typeArray.length - 1]
       ];
-
+      if (!SeriesParameterArray.value.includes(checkedOutSeries.value)) {
+        checkedOutSeries.value = 'Pays'
+      }
       break;
 
     case 'bar':
       sortKeyOptions.value = 'Pays'
-      SeriesParameterArray.value = []
       SeriesParameterArray.value = typeArray.slice(12, typeArray.length - 1)
+      if (!SeriesParameterArray.value.includes(checkedOutSeries.value)) {
+        checkedOutSeries.value = 'Consoles'
+      }
       break;
 
     default:
-      SeriesParameterArray.value = []
       SeriesParameterArray.value = [...typeArray]
 
   }
@@ -389,7 +433,7 @@ watch(filteredAndSorted, () => {
 
 watch(checkedTypeCharts, (newChart) => {
   updateChartSpecific(newChart)
-  updateData(newCharts, 'combine', checkedOutSeries.value)
+  updateData(newChart, 'combine', checkedOutSeries.value)
 })
 
 watch(checkedOutData, (newMode) => {
