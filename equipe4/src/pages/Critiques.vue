@@ -84,6 +84,7 @@ const mapping = ref({
   NotePrix: '',
   NoteAutre: '',
 })
+
 function initMapping() {
   const lower = (headers.value || []).map(h => String(h || '').toLowerCase())
   function find(labels) { const i = lower.findIndex(h => labels.some(l => h.includes(l))); return i>=0 ? headers.value[i] : '' }

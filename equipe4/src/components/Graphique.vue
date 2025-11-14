@@ -4,35 +4,71 @@ import ApexChart from 'vue3-apexcharts'
 
 let checkedTypeCharts = ref('line')
 let checkedOutData = ref('combine')
-let checkedOutType = ref('Pays')
+let checkedOutSeries = ref('Pays')
 
 const typeArray = [
-  'TypeImageUtilise',
-  'TitreJeu',
-  'Plateforme',
-  'TypePlateforme',
-  'TypeJeu',
-  'Note',
-  'Année',
-  'Magazine',
-  'Auteurs',
-  'Pays',
-  'CritiqueTitre',
-  'PDF',
-  'NoteGenerale',
-  'NoteVisuelle',
-  'NoteSonore',
-  'NoteContenu',
-  'NoteJouabilite',
-  'NoteTempsJeu',
-  'NoteDifficulte',
-  'NotePrix',
-  'NoteAutre'
+  "Titre",
+  "TitreJeu",
+  "Plateforme",
+  "TypePlateforme",
+  "TypeJeu",
+  "Note",
+  "Année",
+  "Magazine",
+  "Auteurs",
+  "Pays",
+  "CritiqueTitre",
+  "PDF",
+  "Consoles",
+  "NoteGenerale",
+  "NoteVisuelle",
+  "NoteSonore",
+  "NoteContenu",
+  "NoteJouabilite",
+  "NoteTempsJeu",
+  "NoteDifficulte",
+  "NotePrix",
+  "NoteAutre",
+  "ImageType"
 ];
 
-let SeriesParameterArray = []
 
 
+const SeriesParameterArray = ref([])
+
+// {
+//   "Titre": "Mario Kart 64",
+//   "Plateforme spécifique": "Console",
+//   "Année": "-",
+//   "Pays": "Canada",
+//   "Auteurs": "-",
+//   "Magazine": "NEdgeComputer Gaming World",
+//   "_full": {
+//     "Titre": "Mario Kart 64",
+//     "TitreJeu": "Mario Kart 64",
+//     "Plateforme": 1,
+//     "TypePlateforme": "Console",
+//     "TypeJeu": "Course automobile",
+//     "Note": 0,
+//     "Année": "-",
+//     "Magazine": "NEdgeComputer Gaming World",
+//     "Auteurs": "-",
+//     "Pays": "Canada",
+//     "CritiqueTitre": "MARIO KART 64",
+//     "PDF": "N64-no-001-critiques.pdf",
+//     "Consoles": "Nintendo64",
+//     "NoteGenerale": 1,
+//     "NoteVisuelle": 0,
+//     "NoteSonore": 0,
+//     "NoteContenu": 0,
+//     "NoteJouabilite": 0,
+//     "NoteTempsJeu": 0,
+//     "NoteDifficulte": 0,
+//     "NotePrix": 0,
+//     "NoteAutre": 0,
+//     "ImageType": "Illustration"
+//   }
+// }
 
 
 // FiltreActifs {
@@ -189,14 +225,18 @@ const updateData = (type, mode, select) => {
   }
 
   // Génération du graphique avec logique combine/divided
+  const [ArrayX, ArrayY] = dividedY(mode, select)
+  ChartGeneration(ArrayX, ArrayY, type)
 
+  
+}
 
-
+function erreurCharts() {
 
 }
 
-function ChartGeneration(arrayX01, arrayY01) {
-  switch(checkedTypeCharts) {
+function ChartGeneration(arrayX01, arrayY01, type) {
+  switch (type) {
     case 'line':
       chartSeriesFinal.value = arrayY01
 
@@ -222,91 +262,115 @@ function ChartGeneration(arrayX01, arrayY01) {
           }
         }
       }
-          break;
+      break;
+    case 'bar':
+      case 'line':
+      chartSeriesFinal.value = arrayY01
+
+      chartOptionsFinal.value = {
+        chart: {
+          type: type,
+          height: 300,
+        },
+        title: {
+          text: 'Nombre Critique selon Année',
+          align: 'left'
+        },
+        xaxis: {
+          categories: arrayX01
+        },
+        noData: {
+          text: 'Donnée indisponible',
+          align: 'center',
+          verticalAlign: 'middle',
+          style: {
+            fontSize: '16px',
+            color: '#999'
+          }
+        }
       }
+
+      break;
+  }
 }
 
-function dividedY(newSelect) {
-  let ValeurCourante = filteredAndSorted.value[0][sortKeySeries.value]
-  const ValeurUnique = [...new Set(filteredAndSorted.value[sortKeySeries.value])]
+function dividedY(newMode) {
+  let ValeurCourante = filteredAndSorted.value[0]._full[sortKeyOptions.value]
+  const ValeurUniqueOptions = [...new Set(filteredAndSorted.value.map(item => item._full[sortKeyOptions.value]))]
+  const ValeurUniqueSeries = [...new Set(filteredAndSorted.value.map(item => item._full[checkedOutSeries.value]))]
   let nbOccurence = 0
   let arrayY01 = []
   let arrayX01 = []
-  let filtres = props.filtreActifs
 
-  for (let i = 0; i < ValeurUnique - 1; i++) {
-    arrayX01.push(ValeurCourante.toString()) // X
-    if (checkedTypeCharts === 'line') {
-      // Passer à l'année suivante;
-      if (anneeCourante === '-') {
-        const nextItem = filteredAndSorted.value.find(item => item.Année !== '-')
-        if (nextItem === undefined) {
-          anneeCourante = "?"
-        } else {
-          anneeCourante = nextItem.Année
-        }
-      } else {
-        anneeCourante++
-      }
-    }
-
-  }
-
-
-
-  if (ValeurUnique.length === 1) {
-    // Si 1 seul pays filtré
-    if (arrayY01.length <= 0) {
-      arrayY01.push({ name: filtres.countries[0], data: [] })
-    }
-
-    nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante && item.Pays === filtres.countries[0]).length
-    arrayY01[0].data.push(nbOccurence) // Y
-
-    isMultipleFilter = false
-
-    // Plusieurs pays filtrés
-    if (mode === 'divided') {
-      // SÉPARER par pays filtrés
+  for (let i = 0; i < ValeurUniqueOptions.length; i++) {
+    
+    if (ValeurUniqueSeries.length === 1) {
+      // Si 1 seul pays filtré
       if (arrayY01.length <= 0) {
-        for (let i = 0; i < maxFiltrePays; i++) {
-          arrayY01.push({ name: filtres.countries[i], data: [] })
-        }
-      }
-      for (let i = 0; i < maxFiltrePays; i++) {
-        nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante && item.Pays === filtres.countries[i]).length
-        arrayY01[i].data.push(nbOccurence)
-      }
-    } else {
-      // COMBINER les pays filtrés
-      if (arrayY01.length <= 0) {
-        arrayY01.push({ name: 'Critiques', data: [] })
+        arrayY01.push({ name: ValeurUniqueSeries[0], data: [] })
       }
 
-      nbOccurence = filteredAndSorted.value.filter(item => item.Année === anneeCourante).length
+      nbOccurence = filteredAndSorted.value.filter(item => item._full[sortKeyOptions.value] === ValeurUniqueOptions[i]).length
       arrayY01[0].data.push(nbOccurence) // Y
-    }
-    isMultipleFilter = true
-  }
 
-  return nbOccurence
+      isMultipleFilter = false
+
+    } else {
+      // Plusieurs pays filtrés
+      if (newMode === 'divided') {
+        // SÉPARER selon choix DropDown Y
+
+          for (let j = 0; j < ValeurUniqueSeries.length; j++) {
+            if (arrayY01.length < ValeurUniqueSeries.length) {
+              arrayY01.push({ name: ValeurUniqueSeries[j], data: [] })
+            }
+            nbOccurence = filteredAndSorted.value.filter(item => item._full[sortKeyOptions.value] === ValeurUniqueOptions[i] && item._full[checkedOutSeries.value] === ValeurUniqueSeries[j]).length
+            arrayY01[j].data.push(nbOccurence)
+          }
+
+      } else {
+        // COMBINER les pays filtrés
+        if (arrayY01.length <= 0) {
+          arrayY01.push({ name: 'Critiques', data: [] })
+        }
+
+        nbOccurence = filteredAndSorted.value.filter(item => item._full[sortKeyOptions.value] === ValeurUniqueOptions[i]).length
+        arrayY01[0].data.push(nbOccurence) // Y
+      }
+      isMultipleFilter = true
+    }
+
+    arrayX01.push(ValeurUniqueOptions[i].toString()) // X
+    // Passer à l'année suivante;
+  }
+  
+  return [arrayX01, arrayY01]
+
+  
 }
 
-function updateChartSpecific(newType) {
-  switch (newType) {
+function updateChartSpecific(newChart) {
+  switch (newChart) {
     case 'line':
-      sortKeyOptions.value = 'Année'
-      SeriesParameterArray = typeArray.slice(0, 10)
-        .filter(item => item !== 'Année')
+      sortKeyOptions.value = 'Année';
+      SeriesParameterArray.value = [
+        ...typeArray.slice(3, 6),
+        ...typeArray.slice(7, 10),
+        typeArray[12],
+        typeArray[typeArray.length - 1]
+      ];
+
       break;
 
     case 'bar':
       sortKeyOptions.value = 'Pays'
-      SeriesParameterArray = typeArray.slice(12, typeArray - 1)
+      SeriesParameterArray.value = []
+      SeriesParameterArray.value = typeArray.slice(12, typeArray.length - 1)
       break;
 
     default:
-
+      SeriesParameterArray.value = []
+      SeriesParameterArray.value = [...typeArray]
 
   }
 }
@@ -314,23 +378,25 @@ function updateChartSpecific(newType) {
 
 // Initialiser le graphique au montage du composant
 onMounted(() => {
-  updateData(checkedTypeCharts.value, checkedOutData.value, checkedOutType.value)
+  updateChartSpecific(checkedTypeCharts.value)
+  updateData(checkedTypeCharts.value, checkedOutData.value, checkedOutSeries.value)
 })
 
 watch(filteredAndSorted, () => {
-  updateData(checkedTypeCharts.value, checkedOutData.value, checkedOutType.value)
+  updateChartSpecific(checkedTypeCharts.value)
+  updateData(checkedTypeCharts.value, checkedOutData.value, checkedOutSeries.value)
 });
 
-watch(checkedTypeCharts, (newType) => {
-  updateChartSpecific(newType)
-  updateData(newType, 'combine', checkedOutType.value)
+watch(checkedTypeCharts, (newChart) => {
+  updateChartSpecific(newChart)
+  updateData(newCharts, 'combine', checkedOutSeries.value)
 })
 
 watch(checkedOutData, (newMode) => {
-  updateData(checkedTypeCharts.value, newMode, checkedOutType.value)
+  updateData(checkedTypeCharts.value, newMode, checkedOutSeries.value)
 })
 
-watch(checkedOutType, (newSelect) => {
+watch(checkedOutSeries, (newSelect) => {
   updateData(checkedTypeCharts.value, checkedOutData.value, newSelect)
 })
 
@@ -339,7 +405,7 @@ watch(checkedOutType, (newSelect) => {
 <template>
   <div>
     <div>
-      <!-- <div v-for="(item, index) in listCritique" :key="index">
+      <!-- <div v-for="(item, index) in filteredAndSorted" :key="index">
         {{ item }}
       </div> -->
       <div>Type de graphique</div>
@@ -358,8 +424,11 @@ watch(checkedOutType, (newSelect) => {
     </div>
     <div v-if="isMultipleFilter === true">
 
-      <select v-model="checkedOutType">
-        <option v-for="type in SeriesParameterArray" :key="type" :id="type" :value="type">
+      <select v-model="checkedOutSeries">
+        <option 
+          v-for="type in SeriesParameterArray"
+          :key="type" 
+          :value="type">
           {{ type }}
         </option>
       </select>
