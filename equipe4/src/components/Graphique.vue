@@ -57,7 +57,7 @@ const props = defineProps({
     required: true
   },
   filtreActifs: {
-    type: Array,
+    type: Object,
     required: false
   }
 })

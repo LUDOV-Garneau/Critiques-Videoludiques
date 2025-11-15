@@ -31,25 +31,25 @@ function closeModal() {
 // Fonction pour formater les auteurs avec leurs tags d'identité
 const formattedAuthorsWithTags = computed(() => {
   if (!modalItem.value || !headers.value.length) return []
-  
+
   // Trouver l'index de la ligne originale dans mappedObjects
   const originalItem = modalItem.value._full || modalItem.value
   let originalIndex = mappedObjects.value.findIndex(item => item === originalItem)
-  
+
   // Si pas trouvé par référence directe, chercher par contenu
   if (originalIndex === -1) {
     originalIndex = mappedObjects.value.findIndex(item => {
-      return item.Titre === originalItem.Titre && 
-             item.Année === originalItem.Année &&
-             item.Magazine === originalItem.Magazine
+      return item.Titre === originalItem.Titre &&
+        item.Année === originalItem.Année &&
+        item.Magazine === originalItem.Magazine
     })
   }
-  
+
   if (originalIndex === -1 || originalIndex >= rows.value.length) return []
-  
+
   const row = rows.value[originalIndex]
   const authorsWithTags = []
-  
+
   // Indices des colonnes
   const maleAuthorIndex = headers.value.indexOf('Nom des auteurs masculins')
   const femaleAuthorIndex = headers.value.indexOf('Nom des autrices féminin')
@@ -58,10 +58,10 @@ const formattedAuthorsWithTags = computed(() => {
     const lower = String(h || '').toLowerCase()
     return lower.includes('minorité') || lower.includes('minorite') || lower === 'cp'
   })
-  
+
   // Vérifier si c'est une minorité ethnique
   const isMinority = minorityIndex !== -1 && row[minorityIndex] && row[minorityIndex] !== '' && row[minorityIndex] !== '0'
-  
+
   // Auteurs masculins
   if (maleAuthorIndex !== -1 && row[maleAuthorIndex] && row[maleAuthorIndex] !== '' && row[maleAuthorIndex] !== '0') {
     const authors = String(row[maleAuthorIndex]).split(/[,;]+/).map(a => a.trim()).filter(a => a && a !== '0' && !/^\d+$/.test(a))
@@ -71,7 +71,7 @@ const formattedAuthorsWithTags = computed(() => {
       authorsWithTags.push({ name: author, tags })
     })
   }
-  
+
   // Auteurs féminins
   if (femaleAuthorIndex !== -1 && row[femaleAuthorIndex] && row[femaleAuthorIndex] !== '' && row[femaleAuthorIndex] !== '0') {
     const authors = String(row[femaleAuthorIndex]).split(/[,;]+/).map(a => a.trim()).filter(a => a && a !== '0' && !/^\d+$/.test(a))
@@ -81,7 +81,7 @@ const formattedAuthorsWithTags = computed(() => {
       authorsWithTags.push({ name: author, tags })
     })
   }
-  
+
   // Auteurs ambigu (colonne CY)
   if (ambiguousAuthorIndex !== -1 && row[ambiguousAuthorIndex] && row[ambiguousAuthorIndex] !== '' && row[ambiguousAuthorIndex] !== '0') {
     const authors = String(row[ambiguousAuthorIndex]).split(/[,;]+/).map(a => a.trim()).filter(a => a && a !== '0' && !/^\d+$/.test(a))
@@ -91,31 +91,31 @@ const formattedAuthorsWithTags = computed(() => {
       authorsWithTags.push({ name: author, tags })
     })
   }
-  
+
   return authorsWithTags
 })
 
 // Fonction pour vérifier si la critique est anonyme
 const isAnonymousCritique = computed(() => {
   if (!modalItem.value || !headers.value.length) return false
-  
+
   // Trouver l'index de la ligne originale dans mappedObjects
   const originalItem = modalItem.value._full || modalItem.value
   let originalIndex = mappedObjects.value.findIndex(item => item === originalItem)
-  
+
   // Si pas trouvé par référence directe, chercher par contenu
   if (originalIndex === -1) {
     originalIndex = mappedObjects.value.findIndex(item => {
-      return item.Titre === originalItem.Titre && 
-             item.Année === originalItem.Année &&
-             item.Magazine === originalItem.Magazine
+      return item.Titre === originalItem.Titre &&
+        item.Année === originalItem.Année &&
+        item.Magazine === originalItem.Magazine
     })
   }
-  
+
   if (originalIndex === -1 || originalIndex >= rows.value.length) return false
-  
+
   const row = rows.value[originalIndex]
-  
+
   // Chercher la colonne CJ (Critiques anonymes)
   let anonymousIndex = headers.value.indexOf('CJ')
   if (anonymousIndex === -1) {
@@ -125,7 +125,7 @@ const isAnonymousCritique = computed(() => {
       return normalized === 'CJ' || lower === 'cj' || lower.includes('anonyme')
     })
   }
-  
+
   if (anonymousIndex !== -1) {
     const value = row[anonymousIndex]
     if (value !== undefined && value !== null && value !== '') {
@@ -134,7 +134,7 @@ const isAnonymousCritique = computed(() => {
       return numValue === 1 || strValue === '1' || strValue.toLowerCase() === 'true'
     }
   }
-  
+
   return false
 })
 
@@ -159,7 +159,7 @@ const filteredAndSorted = computed(() => {
   }
   // Appliquer le tri
   if (sortKey.value) {
-    items = items.slice().sort((a,b) => {
+    items = items.slice().sort((a, b) => {
       const va = a[sortKey.value]
       const vb = b[sortKey.value]
       const na = Number(va); const nb = Number(vb)
@@ -171,7 +171,7 @@ const filteredAndSorted = computed(() => {
   return items
 })
 const totalPages = computed(() => Math.max(1, Math.ceil((filteredAndSorted.value.length || 0) / pageSize)))
-const pageSlice = computed(() => filteredAndSorted.value.slice((page.value-1)*pageSize, page.value*pageSize))
+const pageSlice = computed(() => filteredAndSorted.value.slice((page.value - 1) * pageSize, page.value * pageSize))
 const mapping = ref({
   TypeImageUtilise: '',
   TitreJeu: '',
@@ -199,14 +199,14 @@ const mapping = ref({
 
 function initMapping() {
   const lower = (headers.value || []).map(h => String(h || '').toLowerCase())
-  function find(labels) { const i = lower.findIndex(h => labels.some(l => h.includes(l))); return i>=0 ? headers.value[i] : '' }
+  function find(labels) { const i = lower.findIndex(h => labels.some(l => h.includes(l))); return i >= 0 ? headers.value[i] : '' }
   // Fonction pour trouver une colonne avec un nom exact (sans préfixe/suffixe)
   function findExact(labels) {
     const i = lower.findIndex(h => {
       const trimmed = h.trim()
       return labels.some(l => trimmed === l)
     })
-    return i>=0 ? headers.value[i] : ''
+    return i >= 0 ? headers.value[i] : ''
   }
   mapping.value.TypeImageUtilise = find(["type d'images utilisés", "type d'image utilisé", "type image", "image type"])
   mapping.value.TitreJeu = find(['titre du jeu', 'game title', 'nom du jeu'])
@@ -214,13 +214,13 @@ function initMapping() {
   mapping.value.Modele = find(['modèle', 'modele', 'model'])
   mapping.value.TypePlateforme = find(['type de plateforme', 'platform type'])
   mapping.value.TypeJeu = find(['titre des étiquettes génériques de genre', 'genre', 'type de jeu', 'game genre'])
-  mapping.value.Note = find(['score','rating','note'])
-  mapping.value.Année = find(['year','release year','annee','année','date'])
-  mapping.value.Magazine = find(['magazine','revue','journal','publication'])
-  mapping.value.Auteurs = find(['author','auteur','autrice','writer'])
-  mapping.value.Pays = find(['country','pays','region'])
-  mapping.value.CritiqueTitre = find(['titre de la critique','review title','article title','titre article'])
-  mapping.value.PDF = find(['pdf','lien','link','url','document','fichier'])
+  mapping.value.Note = find(['score', 'rating', 'note'])
+  mapping.value.Année = find(['year', 'release year', 'annee', 'année', 'date'])
+  mapping.value.Magazine = find(['magazine', 'revue', 'journal', 'publication'])
+  mapping.value.Auteurs = find(['author', 'auteur', 'autrice', 'writer'])
+  mapping.value.Pays = find(['country', 'pays', 'region'])
+  mapping.value.CritiqueTitre = find(['titre de la critique', 'review title', 'article title', 'titre article'])
+  mapping.value.PDF = find(['pdf', 'lien', 'link', 'url', 'document', 'fichier'])
   mapping.value.Consoles = find(['consoles', 'console', 'plateforme'])
   // Notations par critères
   mapping.value.NoteGenerale = find(['critères généraux', 'criteres generaux', 'general score'])
@@ -235,7 +235,7 @@ function initMapping() {
 }
 const mappedObjects = computed(() => {
   if (!headers.value.length) return []
-  const idx = Object.fromEntries(Object.entries(mapping.value).map(([k,v]) => [k, headers.value.indexOf(v)]))
+  const idx = Object.fromEntries(Object.entries(mapping.value).map(([k, v]) => [k, headers.value.indexOf(v)]))
   // Indices pour les colonnes d'auteurs spécifiques
   const maleAuthorIndex = headers.value.indexOf('Nom des auteurs masculins')
   const femaleAuthorIndex = headers.value.indexOf('Nom des autrices féminin')
@@ -248,17 +248,17 @@ const mappedObjects = computed(() => {
       idx = headers.value.findIndex(h => {
         const normalized = String(h || '').trim()
         return normalized.toLowerCase().includes('auteurs.rices ambigus') ||
-               normalized.toLowerCase().includes('auteurs.rices ambig')
+          normalized.toLowerCase().includes('auteurs.rices ambig')
       })
     }
     // Si toujours pas trouvé, chercher par autres variantes
     if (idx === -1) {
       idx = headers.value.findIndex(h => {
         const lower = String(h || '').toLowerCase()
-        return (lower.includes('auteurs') && lower.includes('ambigu')) || 
-               (lower.includes('auteur') && lower.includes('ambigu')) ||
-               lower === 'cy' ||
-               (lower.includes('auteur') && lower.includes('ambig'))
+        return (lower.includes('auteurs') && lower.includes('ambigu')) ||
+          (lower.includes('auteur') && lower.includes('ambigu')) ||
+          lower === 'cy' ||
+          (lower.includes('auteur') && lower.includes('ambig'))
       })
     }
     return idx
@@ -304,11 +304,11 @@ const mappedObjects = computed(() => {
     const parseScore = (value) => {
       return normalizeScore(value)
     }
-    const titreJeu = idx.TitreJeu>=0 ? r[idx.TitreJeu] : undefined;
-    const critiqueTitre = idx.CritiqueTitre>=0 ? r[idx.CritiqueTitre] : undefined;
+    const titreJeu = idx.TitreJeu >= 0 ? r[idx.TitreJeu] : undefined;
+    const critiqueTitre = idx.CritiqueTitre >= 0 ? r[idx.CritiqueTitre] : undefined;
     // Utiliser la colonne Type d'images utilisés si présente
     let imageType = idx.TypeImageUtilise >= 0 ? r[idx.TypeImageUtilise] : undefined;
-    
+
     // Récupérer la colonne DC "identité du pseudo" si l'auteur est un pseudonyme
     const pseudonymeIdentityIndex = headers.value.findIndex(h => {
       const lower = String(h || '').toLowerCase()
@@ -333,29 +333,29 @@ const mappedObjects = computed(() => {
     const critique = {
       Titre: titreJeu || critiqueTitre || '-',
       TitreJeu: titreJeu,
-      Plateforme: idx.Plateforme>=0 ? r[idx.Plateforme] : undefined,
-      Modele: idx.Modele>=0 ? r[idx.Modele] : undefined,
-      TypePlateforme: idx.TypePlateforme>=0 ? r[idx.TypePlateforme] : undefined,
-      TypeJeu: idx.TypeJeu>=0 ? r[idx.TypeJeu] : undefined,
-      Note: parseScore(idx.Note>=0 ? r[idx.Note] : undefined),
+      Plateforme: idx.Plateforme >= 0 ? r[idx.Plateforme] : undefined,
+      Modele: idx.Modele >= 0 ? r[idx.Modele] : undefined,
+      TypePlateforme: idx.TypePlateforme >= 0 ? r[idx.TypePlateforme] : undefined,
+      TypeJeu: idx.TypeJeu >= 0 ? r[idx.TypeJeu] : undefined,
+      Note: parseScore(idx.Note >= 0 ? r[idx.Note] : undefined),
       Année: annee,
-      Magazine: idx.Magazine>=0 ? r[idx.Magazine] : undefined,
+      Magazine: idx.Magazine >= 0 ? r[idx.Magazine] : undefined,
       Auteurs: validAuthors.length > 0 ? validAuthors.join(', ') : '-', // Afficher "-" si pas d'auteurs
-      Pays: idx.Pays>=0 ? r[idx.Pays] : undefined,
+      Pays: idx.Pays >= 0 ? r[idx.Pays] : undefined,
       CritiqueTitre: critiqueTitre,
-      PDF: idx.PDF>=0 ? r[idx.PDF] : undefined,
+      PDF: idx.PDF >= 0 ? r[idx.PDF] : undefined,
       Consoles: idx.Consoles >= 0 ? r[idx.Consoles] : '-',
       PseudonymeIdentity: pseudonymeIdentity, // Colonne DC "identité du pseudo"
       // Notations par critères
-      NoteGenerale: parseScore(idx.NoteGenerale>=0 ? r[idx.NoteGenerale] : undefined),
-      NoteVisuelle: parseScore(idx.NoteVisuelle>=0 ? r[idx.NoteVisuelle] : undefined),
-      NoteSonore: parseScore(idx.NoteSonore>=0 ? r[idx.NoteSonore] : undefined),
-      NoteContenu: parseScore(idx.NoteContenu>=0 ? r[idx.NoteContenu] : undefined),
-      NoteJouabilite: parseScore(idx.NoteJouabilite>=0 ? r[idx.NoteJouabilite] : undefined),
-      NoteTempsJeu: parseScore(idx.NoteTempsJeu>=0 ? r[idx.NoteTempsJeu] : undefined),
-      NoteDifficulte: parseScore(idx.NoteDifficulte>=0 ? r[idx.NoteDifficulte] : undefined),
-      NotePrix: parseScore(idx.NotePrix>=0 ? r[idx.NotePrix] : undefined),
-      NoteAutre: parseScore(idx.NoteAutre>=0 ? r[idx.NoteAutre] : undefined),
+      NoteGenerale: parseScore(idx.NoteGenerale >= 0 ? r[idx.NoteGenerale] : undefined),
+      NoteVisuelle: parseScore(idx.NoteVisuelle >= 0 ? r[idx.NoteVisuelle] : undefined),
+      NoteSonore: parseScore(idx.NoteSonore >= 0 ? r[idx.NoteSonore] : undefined),
+      NoteContenu: parseScore(idx.NoteContenu >= 0 ? r[idx.NoteContenu] : undefined),
+      NoteJouabilite: parseScore(idx.NoteJouabilite >= 0 ? r[idx.NoteJouabilite] : undefined),
+      NoteTempsJeu: parseScore(idx.NoteTempsJeu >= 0 ? r[idx.NoteTempsJeu] : undefined),
+      NoteDifficulte: parseScore(idx.NoteDifficulte >= 0 ? r[idx.NoteDifficulte] : undefined),
+      NotePrix: parseScore(idx.NotePrix >= 0 ? r[idx.NotePrix] : undefined),
+      NoteAutre: parseScore(idx.NoteAutre >= 0 ? r[idx.NoteAutre] : undefined),
       ImageType: imageType
     }
 
@@ -410,17 +410,17 @@ const facets = computed(() => {
       ambiguousAuthorIndex = headers.value.findIndex(h => {
         const normalized = String(h || '').trim()
         return normalized.toLowerCase().includes('auteurs.rices ambigus') ||
-               normalized.toLowerCase().includes('auteurs.rices ambig')
+          normalized.toLowerCase().includes('auteurs.rices ambig')
       })
     }
     // Si toujours pas trouvé, chercher par autres variantes
     if (ambiguousAuthorIndex === -1) {
       ambiguousAuthorIndex = headers.value.findIndex(h => {
         const lower = String(h || '').toLowerCase()
-        return (lower.includes('auteurs') && lower.includes('ambigu')) || 
-               (lower.includes('auteur') && lower.includes('ambigu')) ||
-               lower === 'cy' ||
-               (lower.includes('auteur') && lower.includes('ambig'))
+        return (lower.includes('auteurs') && lower.includes('ambigu')) ||
+          (lower.includes('auteur') && lower.includes('ambigu')) ||
+          lower === 'cy' ||
+          (lower.includes('auteur') && lower.includes('ambig'))
       })
     }
     // Chercher la colonne DB (Pseudonyme)
@@ -433,7 +433,7 @@ const facets = computed(() => {
       const lower = String(h || '').toLowerCase()
       return lower.includes('minorité') || lower.includes('minorite') || lower === 'cp'
     })
-    
+
     if (maleAuthorIndex !== -1) {
       rows.value.forEach(row => {
         const author = row[maleAuthorIndex]
@@ -513,7 +513,7 @@ const facets = computed(() => {
         }
       })
     }
-    
+
     // Créer une liste combinée : pseudonymes des auteurs minorités ethniques
     if (pseudonymeIndex !== -1 && pseudonymeIdentityIndex !== -1 && minorityIndex !== -1) {
       rows.value.forEach((row, rowIndex) => {
@@ -565,10 +565,29 @@ const facets = computed(() => {
   let hasUnspecifiedGameTypes = false
 
   if (headers.value.length > 0) {
-    const gameTypeIndex = headers.value.indexOf('Titre des étiquettes génériques de genre')
+    // Chercher la colonne de genre - recherche insensible à la casse
+    let gameTypeIndex = -1
+
+    // Essayer plusieurs variantes
+    const gameTypeVariants = [
+      'Titre des étiquettes génériques de genre',
+      'Étiquette de genre',
+      'Etiquette de genre', 
+      'Genre'
+    ]
+
+    for (const variant of gameTypeVariants) {
+      gameTypeIndex = headers.value.findIndex(h =>
+        String(h || '').trim().toLowerCase() === variant.toLowerCase()
+      )
+      if (gameTypeIndex !== -1) break
+    }
+
+    
     if (gameTypeIndex !== -1) {
-      rows.value.forEach(row => {
+      rows.value.forEach((row, rowIdx) => {  
         const gameType = row[gameTypeIndex]
+
         if (gameType && gameType !== '' && gameType !== '0') {
           // Utiliser processGameTypes pour nettoyer et séparer les types
           const cleanedTypes = processGameTypes(gameType)
@@ -580,6 +599,7 @@ const facets = computed(() => {
       })
     }
   }
+
 
   const gameTypesArray = Array.from(gameTypes).sort((a, b) => {
     return a.localeCompare(b, 'fr', { sensitivity: 'base' })
@@ -593,7 +613,7 @@ const facets = computed(() => {
   const validYears = arr
     .map(x => x.Année)
     .filter(y => y !== '-' && y !== undefined && typeof y === 'number' && !isNaN(y))
-  
+
   return {
     platformTypes: Array.from(platformTypes).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' })),
     platforms: Array.from(platforms).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' })),
@@ -622,7 +642,7 @@ const filteredByFilters = computed(() => {
     // Filtre par année - seulement si l'année est valide
     const year = x.Année
     if (year !== '-' && year !== undefined && typeof year === 'number') {
-      // Appliquer le filtre d'année seulement si l'année est un nombre valide
+       // Appliquer le filtre d'année seulement si l'année est un nombre valide
       if (year < f.yearRange[0] || year > f.yearRange[1]) return false
     }
     // Si pas d'année valide, on garde la critique (ne pas filtrer)
@@ -636,6 +656,7 @@ const filteredByFilters = computed(() => {
         }
       }
     }
+
     // Filtre par types de plateformes
     if (f.platformTypes.length > 0) {
       if (headers.value.length > 0 && index < rows.value.length) {
@@ -644,8 +665,10 @@ const filteredByFilters = computed(() => {
           const platformType = rows.value[index][platformTypeIndex]
           if (platformType && platformType !== '' && platformType !== '0') {
             // Séparer les types multiples (séparés par " ; ")
+
             const typeList = String(platformType).split(/\s*;\s*/).map(t => t.trim()).filter(t => t)
             // Vérifier si au moins un des types correspond au filtre
+
             const hasMatch = typeList.some(t => f.platformTypes.includes(t))
             if (!hasMatch) return false
           } else {
@@ -654,6 +677,7 @@ const filteredByFilters = computed(() => {
         }
       }
     }
+
     // Filtre par plateformes spécifiques (colonne Plateforme EN)
     if (f.platforms && f.platforms.length > 0) {
       if (headers.value.length > 0 && index < rows.value.length) {
@@ -677,9 +701,24 @@ const filteredByFilters = computed(() => {
     }
 
     // Filtre par types de jeux
-    if (f.gameTypes.length > 0) {
+    if (f.gameTypes && f.gameTypes.length > 0) {
       if (headers.value.length > 0 && index < rows.value.length) {
-        const gameTypeIndex = headers.value.indexOf('Titre des étiquettes génériques de genre')
+        // Chercher la colonne de genre - recherche insensible à la casse
+        let gameTypeIndex = -1
+        const gameTypeVariants = [
+          'Titre des étiquettes génériques de genre',
+          'Étiquette de genre',
+          'Etiquette de genre',
+          'Genre'
+        ]
+
+        for (const variant of gameTypeVariants) {
+          gameTypeIndex = headers.value.findIndex(h =>
+            String(h || '').trim().toLowerCase() === variant.toLowerCase()
+          )
+          if (gameTypeIndex !== -1) break
+        }
+
         if (gameTypeIndex !== -1) {
           const gameType = rows.value[index][gameTypeIndex]
 
@@ -708,22 +747,19 @@ const filteredByFilters = computed(() => {
       }
     }
 
-    // Filtre par types de notes (scoreTypes)
-    if (f.scoreTypes.length > 0) {
+    // Filtre par types de notes(scoreTypes)
+   if (f.scoreTypes && f.scoreTypes.length > 0) {
       if (headers.value.length > 0 && index < rows.value.length) {
-        // Mapping des types de scores vers leurs indices de colonnes
         const scoreTypeMapping = {
           'general': 35, 'visual': 39, 'sound': 43, 'content': 47,
           'gameplay': 51, 'playtime': 63, 'difficulty': 67, 'price': 75, 'other': 83
         }
-        // Vérifier si au moins un des types de scores sélectionnés a une valeur
         let hasValidScore = false
         for (const scoreType of f.scoreTypes) {
           const colIndex = scoreTypeMapping[scoreType]
           if (colIndex !== undefined) {
             const scoreValue = Number(rows.value[index][colIndex])
             if (!isNaN(scoreValue) && scoreValue > 0) {
-              // Vérifier si le score est dans la plage
               if (scoreValue >= f.scoreRange[0] && scoreValue <= f.scoreRange[1]) {
                 hasValidScore = true
                 break
@@ -731,255 +767,13 @@ const filteredByFilters = computed(() => {
             }
           }
         }
-        // Si includeUnscored est false, exclure les critiques sans note pour ces critères
         if (!hasValidScore && !f.includeUnscored) return false
-        // Si on a trouvé un score valide, vérifier qu'il est dans la plage
-        if (hasValidScore) {
-          // Le score est déjà vérifié dans la boucle ci-dessus
-        }
       }
-    }
-    // Filtre par magazines
-    if (f.magazines.length > 0 && !f.magazines.includes(String(x.Magazine))) return false
-    // Filtre par pays
-    if (f.countries.length > 0 && !f.countries.includes(String(x.Pays))) return false
-    // Filtre par nom d'auteur ou pseudonyme (match exact insensible à la casse sur les tokens)
-    if (f.authorName) {
-      const normalize = (s) => String(s || '').toLowerCase().trim()
-      const target = normalize(f.authorName)
-      
-      // Si "Sous pseudonyme" est sélectionné, chercher dans la colonne DC
-      if (f.authorCharacteristics && f.authorCharacteristics.includes('pseudonyme')) {
-        if (headers.value.length > 0 && index < rows.value.length) {
-          const row = rows.value[index]
-          const pseudonymeIdentityIndex = headers.value.findIndex(h => {
-            const lower = String(h || '').toLowerCase()
-            return (lower.includes('identité') && lower.includes('pseudo')) || lower === 'dc'
-          })
-          if (pseudonymeIdentityIndex !== -1 && row[pseudonymeIdentityIndex]) {
-            const pseudonymeIdentity = normalize(row[pseudonymeIdentityIndex])
-            // Vérifier si le pseudonyme sélectionné correspond (match exact ou partiel)
-            if (pseudonymeIdentity.includes(target) || target.includes(pseudonymeIdentity)) {
-              return true
-            }
-          }
-          return false
-        }
-      } else {
-        // Filtre normal par nom d'auteur
-        // Construire la liste complète des auteurs de la critique à partir
-        // du champ combiné et des colonnes spécifiques brutes
-        const tokens = new Set()
-        const pushTokens = (val) => {
-          String(val || '')
-            .split(/[,;]+/)
-            .map(v => normalize(v))
-            .filter(v => v && v !== '0' && !/^\d+$/.test(v))
-            .forEach(v => tokens.add(v))
-        }
-        // Auteurs combinés mappés
-        pushTokens(x.Auteurs)
-        // Auteurs spécifiques (données brutes)
-        if (headers.value.length > 0 && index < rows.value.length) {
-          const row = rows.value[index]
-          const maleAuthorIndex = headers.value.indexOf('Nom des auteurs masculins')
-          const femaleAuthorIndex = headers.value.indexOf('Nom des autrices féminin')
-          // Chercher la colonne CY "Nom des auteurs.rices ambigus.ës" (contient les pseudonymes)
-          const findAmbiguousAuthorIndex = () => {
-            // Chercher d'abord par le nom exact avec indexOf (plus fiable)
-            let idx = headers.value.indexOf('Nom des auteurs.rices ambigus.ës')
-            // Si pas trouvé, chercher par variantes
-            if (idx === -1) {
-              idx = headers.value.findIndex(h => {
-                const normalized = String(h || '').trim()
-                return normalized.toLowerCase().includes('auteurs.rices ambigus') ||
-                       normalized.toLowerCase().includes('auteurs.rices ambig')
-              })
-            }
-            // Si toujours pas trouvé, chercher par autres variantes
-            if (idx === -1) {
-              idx = headers.value.findIndex(h => {
-                const lower = String(h || '').toLowerCase()
-                return (lower.includes('auteurs') && lower.includes('ambigu')) || 
-                       (lower.includes('auteur') && lower.includes('ambigu')) ||
-                       lower === 'cy' ||
-                       (lower.includes('auteur') && lower.includes('ambig'))
-              })
-            }
-            return idx
-          }
-          const ambiguousAuthorIndex = findAmbiguousAuthorIndex()
-          if (maleAuthorIndex !== -1) pushTokens(row[maleAuthorIndex])
-          if (femaleAuthorIndex !== -1) pushTokens(row[femaleAuthorIndex])
-          // La colonne CY contient les pseudonymes des auteurs ambigu
-          if (ambiguousAuthorIndex !== -1 && row[ambiguousAuthorIndex] && row[ambiguousAuthorIndex] !== '' && row[ambiguousAuthorIndex] !== '0') {
-            pushTokens(row[ambiguousAuthorIndex])
-          }
-        }
-        if (!Array.from(tokens).includes(target)) return false
-      }
-    }
-    // Filtre par genre d'auteur (sélection unique)
-    if (f.authorGender && headers.value.length > 0) {
-      const maleAuthorIndex = headers.value.indexOf('Nom des auteurs masculins')
-      const femaleAuthorIndex = headers.value.indexOf('Nom des autrices féminin')
-      // Chercher la colonne CY "Nom des auteurs.rices ambigus.ës"
-      const findAmbiguousAuthorIndex = () => {
-        // Chercher d'abord par le nom exact avec indexOf (plus fiable)
-        let idx = headers.value.indexOf('Nom des auteurs.rices ambigus.ës')
-        // Si pas trouvé, chercher par variantes
-        if (idx === -1) {
-          idx = headers.value.findIndex(h => {
-            const normalized = String(h || '').trim()
-            return normalized.toLowerCase().includes('auteurs.rices ambigus') ||
-                   normalized.toLowerCase().includes('auteurs.rices ambig')
-          })
-        }
-        // Si toujours pas trouvé, chercher par autres variantes
-        if (idx === -1) {
-          idx = headers.value.findIndex(h => {
-            const lower = String(h || '').toLowerCase()
-            return (lower.includes('auteurs') && lower.includes('ambigu')) || 
-                   (lower.includes('auteur') && lower.includes('ambigu')) ||
-                   lower === 'cy' ||
-                   (lower.includes('auteur') && lower.includes('ambig'))
-          })
-        }
-        return idx
-      }
-      const ambiguousAuthorIndex = findAmbiguousAuthorIndex()
-      const originalRowIndex = index
-      if (originalRowIndex < rows.value.length) {
-        const row = rows.value[originalRowIndex]
-        let matchesGender = false
-        
-        // Vérifier selon le genre sélectionné
-        if (f.authorGender === 'masculin' && maleAuthorIndex !== -1) {
-          const maleAuthor = row[maleAuthorIndex]
-          if (maleAuthor && maleAuthor !== '' && maleAuthor !== '0') {
-            matchesGender = true
-          }
-        } else if (f.authorGender === 'féminin' && femaleAuthorIndex !== -1) {
-          const femaleAuthor = row[femaleAuthorIndex]
-          if (femaleAuthor && femaleAuthor !== '' && femaleAuthor !== '0') {
-            matchesGender = true
-          }
-        } else if (f.authorGender === 'ambigu') {
-          // Chercher la colonne CY "Nom des auteurs.rices ambigus.ës"
-          const findAmbiguousAuthorIndex = () => {
-            // Chercher d'abord par le nom exact avec indexOf (plus fiable)
-            let idx = headers.value.indexOf('Nom des auteurs.rices ambigus.ës')
-            // Si pas trouvé, chercher par variantes
-            if (idx === -1) {
-              idx = headers.value.findIndex(h => {
-                const normalized = String(h || '').trim()
-                return normalized.toLowerCase().includes('auteurs.rices ambigus') ||
-                       normalized.toLowerCase().includes('auteurs.rices ambig')
-              })
-            }
-            // Si toujours pas trouvé, chercher par autres variantes
-            if (idx === -1) {
-              idx = headers.value.findIndex(h => {
-                const lower = String(h || '').toLowerCase()
-                return (lower.includes('auteurs') && lower.includes('ambigu')) || 
-                       (lower.includes('auteur') && lower.includes('ambigu')) ||
-                       lower === 'cy' ||
-                       (lower.includes('auteur') && lower.includes('ambig'))
-              })
-            }
-            return idx
-          }
-          const ambiguousAuthorIndex = findAmbiguousAuthorIndex()
-          if (ambiguousAuthorIndex !== -1) {
-            // Si la colonne CY n'est pas vide, c'est un auteur ambigu
-            const ambiguousAuthor = row[ambiguousAuthorIndex]
-            if (ambiguousAuthor && ambiguousAuthor !== '' && ambiguousAuthor !== '0') {
-              matchesGender = true
-            }
-          }
-        }
-        
-        if (!matchesGender) return false
-      }
-    }
-    
-    // Filtre par caractéristiques d'auteur (logique OR)
-    if (f.authorCharacteristics && f.authorCharacteristics.length > 0 && headers.value.length > 0) {
-      const originalRowIndex = index
-      if (originalRowIndex < rows.value.length) {
-        const row = rows.value[originalRowIndex]
-        let matchesCharacteristic = false
-        
-        // Critiques anonymes (CJ = 1)
-        if (f.authorCharacteristics.includes('anonyme')) {
-          // Chercher d'abord par le code CJ exact, puis par nom
-          let anonymousIndex = headers.value.indexOf('CJ')
-          if (anonymousIndex === -1) {
-            anonymousIndex = headers.value.findIndex(h => {
-              const normalized = String(h || '').trim()
-              const lower = normalized.toLowerCase()
-              return normalized === 'CJ' || lower === 'cj' || lower.includes('anonyme')
-            })
-          }
-          if (anonymousIndex !== -1) {
-            const value = row[anonymousIndex]
-            // Vérifier si la valeur est 1 (peut être nombre ou chaîne "1")
-            if (value !== undefined && value !== null && value !== '') {
-              const numValue = Number(value)
-              const strValue = String(value).trim()
-              const isAnonymous = numValue === 1 || strValue === '1' || strValue.toLowerCase() === 'true'
-              if (isAnonymous) {
-                matchesCharacteristic = true
-              }
-            }
-          }
-        }
-        
-        // Minorité ethnique (CP)
-        if (!matchesCharacteristic && f.authorCharacteristics.includes('minorite')) {
-          const minorityIndex = headers.value.findIndex(h => {
-            const lower = String(h || '').toLowerCase()
-            return lower.includes('minorité') || lower.includes('minorite') || lower === 'cp'
-          })
-          if (minorityIndex !== -1) {
-            const isMinority = row[minorityIndex] && row[minorityIndex] !== '' && row[minorityIndex] !== '0'
-            if (isMinority) {
-              matchesCharacteristic = true
-            }
-          }
-        }
-        
-        // Sous pseudonyme (DB)
-        if (!matchesCharacteristic && f.authorCharacteristics.includes('pseudonyme')) {
-          const pseudonymeIndex = headers.value.findIndex(h => {
-            const lower = String(h || '').toLowerCase()
-            return lower.includes('pseudonyme') || lower === 'db'
-          })
-          if (pseudonymeIndex !== -1) {
-            const isPseudonyme = row[pseudonymeIndex] && row[pseudonymeIndex] !== '' && row[pseudonymeIndex] !== '0'
-            if (isPseudonyme) {
-              matchesCharacteristic = true
-            }
-          }
-        }
-        
-        if (!matchesCharacteristic) return false
-      }
-    }
-
-    // Filtre pour afficher seulement les critiques sans auteurs
-    if (f.showWithoutAuthors) {
-      // Une critique sans auteurs a Auteurs === '-'
-      if (x.Auteurs !== '-') return false
-    }
-
-    // Filtre par type d'image
-    if (f.imageTypes && f.imageTypes.length > 0) {
-      if (!f.imageTypes.includes(x.ImageType)) return false
-    }
-    return true
-  })
+    }  
+  
 })
+})
+
 function updateFilters(newFilters) {
   sidebarFilters.value = { ...newFilters }
   page.value = 1 // Reset pagination
@@ -999,7 +793,7 @@ const filteredRowsObjects = computed(() => {
   return arr.map(item => {
     return keys.map(key => {
       // Mapper les clés d'affichage vers les propriétés de l'objet
-      switch(key) {
+      switch (key) {
         case 'Titre': return item.Titre
         case 'Type de Plateformes': return item.TypePlateforme
         case 'Plateforme': return item.Plateforme
@@ -1059,16 +853,16 @@ onMounted(async () => {
 function buildImportantColumns(allHeaders) {
   const lower = allHeaders.map(h => String(h || '').toLowerCase())
   const want = [
-    { key: 'title', labels: ['title','game','name','titre','jeu'], display: 'Titre' },
-    { key: 'platformType', labels: ['type de plateforme','platform type'], display: 'Type de Plateformes' },
+    { key: 'title', labels: ['title', 'game', 'name', 'titre', 'jeu'], display: 'Titre' },
+    { key: 'platformType', labels: ['type de plateforme', 'platform type'], display: 'Type de Plateformes' },
     // Retirer Plateforme et Note de l'affichage principal
-    { key: 'year', labels: ['year','release year','annee','année','date'], display: 'Année' },
-    { key: 'country', labels: ['country','pays','region'], display: 'Pays' },
-    { key: 'author', labels: ['author','auteur','autrice','writer'], display: 'Auteurs' },
-    { key: 'pseudonymeIdentity', labels: ['identité du pseudo','identite du pseudo','dc'], display: 'Identité du pseudo' },
-    { key: 'developer', labels: ['developer','dev','studio'], display: 'Développeur' },
-    { key: 'publisher', labels: ['publisher','éditeur','editeur'], display: 'Éditeur' },
-    { key: 'magazine', labels: ['magazine','revue','journal','publication'], display: 'Magazine' },
+    { key: 'year', labels: ['year', 'release year', 'annee', 'année', 'date'], display: 'Année' },
+    { key: 'country', labels: ['country', 'pays', 'region'], display: 'Pays' },
+    { key: 'author', labels: ['author', 'auteur', 'autrice', 'writer'], display: 'Auteurs' },
+    { key: 'pseudonymeIdentity', labels: ['identité du pseudo', 'identite du pseudo', 'dc'], display: 'Identité du pseudo' },
+    { key: 'developer', labels: ['developer', 'dev', 'studio'], display: 'Développeur' },
+    { key: 'publisher', labels: ['publisher', 'éditeur', 'editeur'], display: 'Éditeur' },
+    { key: 'magazine', labels: ['magazine', 'revue', 'journal', 'publication'], display: 'Magazine' },
   ]
   const selected = []
   for (const w of want) {
@@ -1077,16 +871,13 @@ function buildImportantColumns(allHeaders) {
   }
   return selected
 }
+
 </script>
 
 <template>
   <div class="page-layout">
     <!-- Sidebar des filtres -->
-    <FiltersSidebar
-      :facets="facets"
-      :active-filters="sidebarFilters"
-      @update:filters="updateFilters"
-    />
+    <FiltersSidebar :facets="facets" :active-filters="sidebarFilters" @update:filters="updateFilters" />
     <!-- Contenu principal -->
     <div class="main-content">
       <div class="container">
@@ -1102,7 +893,7 @@ function buildImportantColumns(allHeaders) {
         <div v-else-if="error" class="error">Erreur: {{ error }}</div>
         <template v-else>
           <div style="max-width:1080px;margin:0 auto;">
-            <ChartsGraphique :items="filteredAndSorted" :filtre-actifs="sidebarFilters"/>
+            <ChartsGraphique :items="filteredAndSorted" :filtre-actifs="sidebarFilters" />
           </div>
           <div class="toolbar">
             <input class="input" type="search" v-model="query" placeholder="Rechercher… (titre, plateforme, etc.)" />
@@ -1141,9 +932,10 @@ function buildImportantColumns(allHeaders) {
               </tbody>
             </table>
             <div class="pager">
-              <button class="btn" :disabled="page<=1" @click="page = Math.max(1, page-1)">Précédent</button>
+              <button class="btn" :disabled="page <= 1" @click="page = Math.max(1, page - 1)">Précédent</button>
               <span class="page-info">Page {{ page }} / {{ totalPages }}</span>
-              <button class="btn" :disabled="page>=totalPages" @click="page = Math.min(totalPages, page+1)">Suivant</button>
+              <button class="btn" :disabled="page >= totalPages"
+                @click="page = Math.min(totalPages, page + 1)">Suivant</button>
             </div>
           </div>
           <section class="panel" v-if="showRaw">
@@ -1205,8 +997,8 @@ function buildImportantColumns(allHeaders) {
                           <div v-for="(author, idx) in formattedAuthorsWithTags" :key="idx" class="author-item">
                             <span class="author-name">{{ author.name }}</span>
                             <span class="author-tags">
-                              <span v-for="(tag, tagIdx) in author.tags" :key="tag" 
-                                    :class="['author-tag', tagIdx === 0 ? 'author-tag-gender' : 'author-tag-minority']">
+                              <span v-for="(tag, tagIdx) in author.tags" :key="tag"
+                                :class="['author-tag', tagIdx === 0 ? 'author-tag-gender' : 'author-tag-minority']">
                                 {{ tag }}
                               </span>
                             </span>
@@ -1225,7 +1017,8 @@ function buildImportantColumns(allHeaders) {
                       <div class="label">Type de plateforme</div>
                       <div class="value">
                         <template v-if="modalItem?.TypePlateforme && modalItem.TypePlateforme.includes(' ; ')">
-                          <div v-for="(item, idx) in modalItem.TypePlateforme.split(' ; ')" :key="idx" class="list-item">
+                          <div v-for="(item, idx) in modalItem.TypePlateforme.split(' ; ')" :key="idx"
+                            class="list-item">
                             - {{ item.trim() }}
                           </div>
                         </template>
@@ -1307,16 +1100,16 @@ function buildImportantColumns(allHeaders) {
                       <div class="value">{{ modalItem?.NoteAutre || '-' }}</div>
                     </div>
                   </div>
-                                <!-- Section: Type d'image -->
-              <div class="modal-section">
-                <h4 class="section-title">Type d'image utilisé</h4>
-                <div class="modal-grid">
-                  <div class="modal-field">
-                    <div class="label">Type d'image</div>
-                    <div class="value">{{ modalItem?.ImageType || '-' }}</div>
+                  <!-- Section: Type d'image -->
+                  <div class="modal-section">
+                    <h4 class="section-title">Type d'image utilisé</h4>
+                    <div class="modal-grid">
+                      <div class="modal-field">
+                        <div class="label">Type d'image</div>
+                        <div class="value">{{ modalItem?.ImageType || '-' }}</div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
                 </div>
               </div>
               <footer class="modal-footer">
@@ -1336,332 +1129,394 @@ function buildImportantColumns(allHeaders) {
   display: flex;
   min-height: 100vh;
 }
+
 .main-content {
   flex: 1;
   overflow-x: auto;
 }
+
 .container {
- .container {
-  max-width: 820px;
-  margin: 0 auto;
-  padding: 16px;
-  width: 100%;
-}
-.page-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #e5e7eb;
-}
-h1 {
-  margin: 0;
-  color: #111827;
-  font-size: 24px;
-}
-.btn {
-  background: #000000;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s;
-}
-.btn:hover {
-  background: #333333;
-}
-/* Toolbar de recherche et tri */
-.toolbar {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  margin-bottom: 16px;
-  padding: 16px;
-  background: #f9fafb;
-  border-radius: 8px;
-}
-.input {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 14px;
-}
-.input:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-.sort {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.sort label {
-  font-weight: 500;
-  color: #374151;
-  white-space: nowrap;
-}
-.select {
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 14px;
-  background: white;
-}
-/* Tables et contenu */
-.table-wrap {
-  overflow: auto;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  max-width: 100%;
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-th, td {
-  padding: 12px 16px;
-  border-bottom: 1px solid #e5e7eb;
-  text-align: left;
-}
-thead th {
-  background: #f9fafb;
-  position: sticky;
-  top: 0;
-  font-weight: 600;
-  color: #374151;
-}
-tbody tr:hover {
-  background: #f9fafb;
-}
-.clickable-row {
-  cursor: pointer;
-  transition: background-color 0.2s, transform 0.05s;
-}
-.clickable-row:active {
-  transform: scale(0.998);
-}
-/* Pagination avec style noir */
-.pager {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  padding: 16px;
-}
-.pager button {
-  padding: 8px 12px;
-  border: 1px solid #000000;
-  background: #000000;
-  color: white;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-}
-.pager button:hover:not(:disabled) {
-  background: #333333;
-  border-color: #333333;
-}
-.pager button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background: #666666;
-  border-color: #666666;
-}
-.pager .current {
-  background: #3b82f6;
-  color: white;
-  border-color: #3b82f6;
-}
-/* États */
-.loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 48px;
-}
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--border);
-  border-top: 3px solid #02dcde;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-.loading-text {
-  margin-top: 16px;
-  color: #6b7280;
-}
-.error {
-  color: #dc2626;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  padding: 16px;
-  border-radius: 8px;
-  margin: 16px 0;
-}
-.hint {
-  color: #4b5563;
-  margin-top: 12px;
-  font-size: 14px;
-}
-/* Message aucun résultat */
-.no-results {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 64px 24px;
-  text-align: center;
-  background: #f9fafb;
-  border: 2px dashed #d1d5db;
-  border-radius: 12px;
-  margin: 24px 0;
-}
-.no-results-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-.no-results-title {
-  margin: 0 0 12px 0;
-  color: #374151;
-  font-size: 20px;
-  font-weight: 600;
-}
-.no-results-text {
-  margin: 0;
-  color: #6b7280;
-  font-size: 14px;
-  max-width: 400px;
-}
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  z-index: 50;
-}
-.modal-card {
-  width: min(800px, 95vw);
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-  overflow: hidden;
-  border: 1px solid #e5e7eb;
-}
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: #111827;
-  color: #ffffff;
-}
-.modal-title {
-  margin: 0;
-  font-size: 18px;
-}
-.modal-close {
-  background: transparent;
-  border: none;
-  color: #ffffff;
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
-}
-.modal-body {
-  padding: 20px;
-  max-height: 70vh;
-  overflow-y: auto;
-}
-.modal-section {
-  margin-bottom: 24px;
-}
-.modal-section:last-child {
-  margin-bottom: 0;
-}
-.section-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 12px 0;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #e5e7eb;
-}
-.modal-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-.modal-grid-3 {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-.modal-field {
-  min-width: 0;
-}
-.modal-field-full {
-  grid-column: 1 / -1;
-}
-/* PDF styles removed in simple modal */
-.modal-field .label {
-  font-size: 12px;
-  color: #6b7280;
-  margin-bottom: 4px;
-  font-weight: 500;
-}
-.modal-field .value {
-  font-size: 14px;
-  color: #111827;
-  word-wrap: break-word;
-}
-.modal-field .value .list-item {
-  line-height: 1.6;
-  margin: 2px 0;
-}
-.modal-footer {
-  padding: 16px 20px;
-  border-top: 1px solid #e5e7eb;
-  display: flex;
-  justify-content: flex-end;
-}
-/* Responsive */
-@media (max-width: 1024px) {
-  .toolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .sort {
-    justify-content: space-between;
-  }
-}
-@media (max-width: 768px) {
-  .page-layout {
-    flex-direction: column;
-  }
-  .page-head {
-    flex-direction: column;
-    gap: 16px;
-    align-items: stretch;
-  }
   .container {
-    padding: 12px;
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 16px;
+    width: 100%;
   }
-}
+
+  .page-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  h1 {
+    margin: 0;
+    color: #111827;
+    font-size: 24px;
+  }
+
+  .btn {
+    background: #000000;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+  }
+
+  .btn:hover {
+    background: #333333;
+  }
+
+  /* Toolbar de recherche et tri */
+  .toolbar {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 16px;
+    background: #f9fafb;
+    border-radius: 8px;
+  }
+
+  .input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+
+  .input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  .sort {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .sort label {
+    font-weight: 500;
+    color: #374151;
+    white-space: nowrap;
+  }
+
+  .select {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    background: white;
+  }
+
+  /* Tables et contenu */
+  .table-wrap {
+    overflow: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    max-width: 100%;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  th,
+  td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+  }
+
+  thead th {
+    background: #f9fafb;
+    position: sticky;
+    top: 0;
+    font-weight: 600;
+    color: #374151;
+  }
+
+  tbody tr:hover {
+    background: #f9fafb;
+  }
+
+  .clickable-row {
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.05s;
+  }
+
+  .clickable-row:active {
+    transform: scale(0.998);
+  }
+
+  /* Pagination avec style noir */
+  .pager {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+  }
+
+  .pager button {
+    padding: 8px 12px;
+    border: 1px solid #000000;
+    background: #000000;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  .pager button:hover:not(:disabled) {
+    background: #333333;
+    border-color: #333333;
+  }
+
+  .pager button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #666666;
+    border-color: #666666;
+  }
+
+  .pager .current {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+  }
+
+  /* États */
+  .loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px;
+  }
+
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border);
+    border-top: 3px solid #02dcde;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  .loading-text {
+    margin-top: 16px;
+    color: #6b7280;
+  }
+
+  .error {
+    color: #dc2626;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    padding: 16px;
+    border-radius: 8px;
+    margin: 16px 0;
+  }
+
+  .hint {
+    color: #4b5563;
+    margin-top: 12px;
+    font-size: 14px;
+  }
+
+  /* Message aucun résultat */
+  .no-results {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 64px 24px;
+    text-align: center;
+    background: #f9fafb;
+    border: 2px dashed #d1d5db;
+    border-radius: 12px;
+    margin: 24px 0;
+  }
+
+  .no-results-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  .no-results-title {
+    margin: 0 0 12px 0;
+    color: #374151;
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  .no-results-text {
+    margin: 0;
+    color: #6b7280;
+    font-size: 14px;
+    max-width: 400px;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 50;
+  }
+
+  .modal-card {
+    width: min(800px, 95vw);
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: #111827;
+    color: #ffffff;
+  }
+
+  .modal-title {
+    margin: 0;
+    font-size: 18px;
+  }
+
+  .modal-close {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .modal-body {
+    padding: 20px;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  .modal-section {
+    margin-bottom: 24px;
+  }
+
+  .modal-section:last-child {
+    margin-bottom: 0;
+  }
+
+  .section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e5e7eb;
+  }
+
+  .modal-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .modal-grid-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .modal-field {
+    min-width: 0;
+  }
+
+  .modal-field-full {
+    grid-column: 1 / -1;
+  }
+
+  /* PDF styles removed in simple modal */
+  .modal-field .label {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+
+  .modal-field .value {
+    font-size: 14px;
+    color: #111827;
+    word-wrap: break-word;
+  }
+
+  .modal-field .value .list-item {
+    line-height: 1.6;
+    margin: 2px 0;
+  }
+
+  .modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  /* Responsive */
+  @media (max-width: 1024px) {
+    .toolbar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .sort {
+      justify-content: space-between;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .page-layout {
+      flex-direction: column;
+    }
+
+    .page-head {
+      flex-direction: column;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .container {
+      padding: 12px;
+    }
+  }
 }
 </style>
