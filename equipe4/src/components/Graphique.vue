@@ -262,46 +262,46 @@ function ChartGeneration(arrayX01, arrayY01, type) {
           }
         },
         tooltip: {
-    enabled: true,
-    custom: function({ series, seriesIndex, dataPointIndex, w }) {
-      const itemsPerColumn = 5; // Number of items per column
+          enabled: true,
+          custom: function({ series, seriesIndex, dataPointIndex, w }) {
+            const itemsPerColumn = 5;
 
-      let html = `<div style="
-        display:flex; 
-        flex-wrap: wrap; 
-        max-width: 500px; 
-        gap: 20px; 
-        background:#222; 
-        color:#fff; 
-        padding:10px; 
-        border-radius:5px;
-      ">`;
+            let html = `<div style="
+              display:flex; 
+              flex-wrap: wrap; 
+              max-width: 500px; 
+              gap: 20px; 
+              background:#222; 
+              color:#fff; 
+              padding:10px; 
+              border-radius:5px;
+            ">`;
 
-      w.config.series.forEach((s, i) => {
-        const value = s.data[dataPointIndex];
+            w.config.series.forEach((s, i) => {
+              const value = s.data[dataPointIndex];
 
-        // Start new column every `itemsPerColumn` items
-        if (i % itemsPerColumn === 0) {
-          html += `<div style="flex:1; min-width:140px;">`;
+              // Début d'un colonnes
+              if (i % itemsPerColumn === 0) {
+                html += `<div style="flex:1; min-width:140px;">`;
+              }
+
+              // Formattage par Lignes
+              html += `<div style="
+                white-space: normal; 
+                word-wrap: break-word; 
+                margin-bottom:5px;
+              "><strong>${s.name}</strong> : ${value}</div>`;
+
+              // Fin d'un colonne
+              if ((i + 1) % itemsPerColumn === 0 || i === w.config.series.length - 1) {
+                html += `</div>`;
+              }
+            });
+
+            html += `</div>`;
+            return html;
+          }
         }
-
-        // Each row with wrapped text
-        html += `<div style="
-          white-space: normal; 
-          word-wrap: break-word; 
-          margin-bottom:5px;
-        ">${s.name} : ${value}</div>`;
-
-        // Close column div at end of column or last item
-        if ((i + 1) % itemsPerColumn === 0 || i === w.config.series.length - 1) {
-          html += `</div>`;
-        }
-      });
-
-      html += `</div>`;
-      return html;
-    }
-  }
       }
       break;
     case 'bar':
