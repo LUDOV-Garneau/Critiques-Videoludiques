@@ -614,7 +614,7 @@ function buildImportantColumns(allHeaders) {
         </div>
         <div v-else-if="error" class="error">Erreur: {{ error }}</div>
         <template v-else>
-          <div style="max-width:820px;margin:0 auto;">
+          <div style="max-width:1080px;margin:0 auto;">
             <ChartsGraphique :items="filteredAndSorted" :filtre-actifs="sidebarFilters"/>
           </div>
           <div class="toolbar">

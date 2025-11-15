@@ -202,11 +202,11 @@ function dividedY(mode) {
   const items = filteredAndSorted.value;
 
   // Initialisation
-  const ValeurUniqueOptions = [...new Set(items.map(i => i._full[keyX]))];
-  const ValeurUniqueSeries = [...new Set(items.map(i => i._full[keySeries]))];
+  const ValeurUniqueOptions = [...new Set(items.map(i => i._full[keyX]).sort())];
+  const ValeurUniqueSeries = [...new Set(items.map(i => i._full[keySeries]).sort())];
 
   const map = Object.create(null);
-  
+
   for (const item of items) {
     const ValeursX = item._full[keyX];
     const ValeursY = item._full[keySeries];
@@ -227,7 +227,7 @@ function dividedY(mode) {
     const data = ValeurUniqueOptions.map(ValeursX => {
       const row = map[ValeursX];
       if (!row) return 0;
-      return Object.values(row).reduce((a,b)=>a+b,0);
+      return Object.values(row).reduce((a, b) => a + b, 0);
     });
 
     arrayY01.push({ name: "Critiques", data });
@@ -252,146 +252,47 @@ function dividedY(mode) {
 }
 
 function ChartGeneration(arrayX01, arrayY01, type) {
-  const valueTooltip = []
 
   switch (type) {
+    
     case 'line':
-      chartSeriesFinal.value = arrayY01
-
+      chartSeriesFinal.value = arrayY01;
       chartOptionsFinal.value = {
-        chart: {
-          type: type,
-          height: 300,
-        },
-        title: {
-          text: 'Nombre Critique selon Année',
-          align: 'left'
-        },
-        xaxis: {
-          categories: arrayX01
-        },
+        chart: { type: 'line', height: 300 },
+        title: { text: 'Nombre Critique selon Année', align: 'left' },
+        xaxis: { categories: arrayX01 },
+        legend: { position: 'right', horizontalAlign: 'center' },
         noData: {
           text: 'Donnée indisponible',
           align: 'center',
-          verticalAlign: 'middle',
-          style: {
-            fontSize: '16px',
-            color: '#999'
-          }
+          style: { fontSize: '16px', color: '#999' }
         },
         tooltip: {
           enabled: true,
-          custom: function({ series, seriesIndex, dataPointIndex, w }) {
-            const itemsPerColumn = 5;
-
-            let html = `<div style="
-              display:flex; 
-              flex-wrap: wrap; 
-              max-width: 500px; 
-              gap: 20px; 
-              background:#222; 
-              color:#fff; 
-              padding:10px; 
-              border-radius:5px;
-            ">`;
-
-            w.config.series.forEach((s, i) => {
-              const value = s.data[dataPointIndex];
-
-              // Début d'une colonne
-              if (i % itemsPerColumn === 0) {
-                html += `<div style="flex:1; min-width:140px;">`;
-              }
-
-              // Formattage par Lignes
-              html += `<div style="
-                white-space: normal; 
-                word-wrap: break-word; 
-                margin-bottom:5px;
-              "><strong>${s.name}</strong> : ${value}</div>`;
-
-              // Fin d'une colonne
-              if ((i + 1) % itemsPerColumn === 0 || i === w.config.series.length - 1) {
-                html += `</div>`;
-              }
-            });
-
-            html += `</div>`;
-            return html;
-          }
+          custom: coloredTooltip(5, false)
         }
-      }
+      };
       break;
-    case 'bar':
-      chartSeriesFinal.value = arrayY01
 
+    case 'bar':
+      chartSeriesFinal.value = arrayY01;
       chartOptionsFinal.value = {
-        chart: {
-          type: type,
-          height: 300,
-          stacked: true
-        },
-        title: {
-          text: 'Nombre Critique selon Pays',
-          align: 'left'
-        },
-        xaxis: {
-          categories: arrayX01
-        },
+        chart: { type: 'bar', height: 300, stacked: true },
+        title: { text: 'Nombre Critique selon Pays', align: 'left' },
+        xaxis: { categories: arrayX01 },
+        legend: { position: 'right', horizontalAlign: 'center' },
         noData: {
           text: 'Donnée indisponible',
           align: 'center',
-          verticalAlign: 'middle',
-          style: {
-            fontSize: '16px',
-            color: '#999'
-          }
+          style: { fontSize: '16px', color: '#999' }
         },
         tooltip: {
           shared: true,
           intersect: false,
           enabled: true,
-          custom: function({ series, seriesIndex, dataPointIndex, w }) {
-            const itemsPerColumn = 5;
-
-            let html = `<div style="
-              display:flex; 
-              flex-wrap: wrap; 
-              max-width: 500px; 
-              gap: 20px; 
-              background:#222; 
-              color:#fff; 
-              padding:10px; 
-              border-radius:5px;
-            ">`;
-
-            w.config.series.forEach((s, i) => {
-              const value = s.data[dataPointIndex];
-
-              // Début d'une colonne
-              if (i % itemsPerColumn === 0) {
-                html += `<div style="flex:1; min-width:140px;">`;
-              }
-
-              // Formattage par Lignes
-              html += `<div style="
-                white-space: normal; 
-                word-wrap: break-word; 
-                margin-bottom:5px;
-              "><strong>${s.name}</strong> : ${value}</div>`;
-
-              // Fin d'une colonne
-              if ((i + 1) % itemsPerColumn === 0 || i === w.config.series.length - 1) {
-                html += `</div>`;
-              }
-            });
-
-            html += `</div>`;
-            return html;
-          }
+          custom: coloredTooltip(5, true)
         }
-      }
-
+      };
       break;
   }
 }
@@ -406,7 +307,7 @@ function updateChartSpecific(newChart) {
         ...typeArray.slice(7, 10),
         typeArray[12],
         typeArray[typeArray.length - 1]
-      ];
+      ].sort();
       if (!SeriesParameterArray.value.includes(checkedOutSeries.value)) {
         checkedOutSeries.value = 'Pays'
       }
@@ -414,7 +315,7 @@ function updateChartSpecific(newChart) {
 
     case 'bar':
       sortKeyOptions.value = 'Pays'
-      SeriesParameterArray.value = typeArray.slice(12, typeArray.length - 1)
+      SeriesParameterArray.value = typeArray.slice(12, typeArray.length - 1).sort()
       if (!SeriesParameterArray.value.includes(checkedOutSeries.value)) {
         checkedOutSeries.value = 'Consoles'
       }
@@ -451,6 +352,52 @@ watch(checkedOutSeries, (newSelect) => {
   updateData(checkedTypeCharts.value, checkedOutData.value, newSelect)
 })
 
+function coloredTooltip(itemsPerColumn = 5, sort = false) {
+  return function ({ series, dataPointIndex, w }) {
+    const itemsPerColumn = 5;
+
+    // Initialisation
+    let entries = w.config.series.map((s, i) => ({
+      name: s.name,
+      value: s.data[dataPointIndex],
+      color: w.globals.colors[i]
+    }));
+
+    // Sorting par Nom d'attribut
+    entries.sort((a, b) => a.name.localeCompare(b.name));
+
+    let html = `<div style="
+      display:flex; 
+      flex-wrap: wrap; 
+      max-width: 500px; 
+      gap: 20px; 
+      background:#222; 
+      color:#fff; 
+      padding:10px; 
+      border-radius:5px;
+    ">`;
+
+    entries.forEach((entry, i) => {
+      if (i % itemsPerColumn === 0) {
+        html += `<div style="flex:1; min-width:140px;">`;
+      }
+
+      html += `
+        <div style="white-space: normal; word-wrap: break-word; margin-bottom:5px;">
+          <strong style="color:${entry.color}">${entry.name}</strong> : ${entry.value}
+        </div>
+      `;
+
+      if ((i + 1) % itemsPerColumn === 0 || i === entries.length - 1) {
+        html += `</div>`;
+      }
+    });
+
+    html += `</div>`;
+    return html;
+  }
+}
+
 </script>
 
 <template>
@@ -476,10 +423,7 @@ watch(checkedOutSeries, (newSelect) => {
     <div v-if="isMultipleFilter === true">
 
       <select v-model="checkedOutSeries">
-        <option 
-          v-for="type in SeriesParameterArray"
-          :key="type" 
-          :value="type">
+        <option v-for="type in SeriesParameterArray" :key="type" :value="type">
           {{ type }}
         </option>
       </select>
