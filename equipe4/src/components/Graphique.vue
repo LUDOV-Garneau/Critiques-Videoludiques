@@ -32,44 +32,7 @@ const typeArray = [
   "ImageType"
 ];
 
-
-
 const SeriesParameterArray = ref([])
-
-// {
-//   "Titre": "Mario Kart 64",
-//   "Plateforme spécifique": "Console",
-//   "Année": "-",
-//   "Pays": "Canada",
-//   "Auteurs": "-",
-//   "Magazine": "NEdgeComputer Gaming World",
-//   "_full": {
-//     "Titre": "Mario Kart 64",
-//     "TitreJeu": "Mario Kart 64",
-//     "Plateforme": 1,
-//     "TypePlateforme": "Console",
-//     "TypeJeu": "Course automobile",
-//     "Note": 0,
-//     "Année": "-",
-//     "Magazine": "NEdgeComputer Gaming World",
-//     "Auteurs": "-",
-//     "Pays": "Canada",
-//     "CritiqueTitre": "MARIO KART 64",
-//     "PDF": "N64-no-001-critiques.pdf",
-//     "Consoles": "Nintendo64",
-//     "NoteGenerale": 1,
-//     "NoteVisuelle": 0,
-//     "NoteSonore": 0,
-//     "NoteContenu": 0,
-//     "NoteJouabilite": 0,
-//     "NoteTempsJeu": 0,
-//     "NoteDifficulte": 0,
-//     "NotePrix": 0,
-//     "NoteAutre": 0,
-//     "ImageType": "Illustration"
-//   }
-// }
-
 
 // FiltreActifs {
 // magazines: [],
@@ -127,8 +90,6 @@ const filteredAndSorted = computed(() => {
 
   return sortedItems;
 });
-
-const allPays = computed(() => [...new Set(filteredAndSorted.value.map(item => item.Pays))]);
 
 // Initialisation avec des données par défaut
 let chartOptionsFinal = ref({
@@ -227,15 +188,72 @@ const updateData = (type, mode, select) => {
   // Génération du graphique avec logique combine/divided
   const [ArrayX, ArrayY] = dividedY(mode, select)
   ChartGeneration(ArrayX, ArrayY, type)
-
-  
 }
 
 function erreurCharts() {
 
 }
 
+function dividedY(mode) {
+
+  const keyX = sortKeyOptions.value;
+  const keySeries = checkedOutSeries.value;
+
+  const items = filteredAndSorted.value;
+
+  // Initialisation
+  const ValeurUniqueOptions = [...new Set(items.map(i => i._full[keyX]))];
+  const ValeurUniqueSeries = [...new Set(items.map(i => i._full[keySeries]))];
+
+  const map = Object.create(null);
+  
+  for (const item of items) {
+    const ValeursX = item._full[keyX];
+    const ValeursY = item._full[keySeries];
+
+    if (!map[ValeursX]) map[ValeursX] = Object.create(null);
+    if (!map[ValeursX][ValeursY]) map[ValeursX][ValeursY] = 0;
+
+    map[ValeursX][ValeursY]++;
+  }
+
+  // Construction X et Y
+  const arrayX01 = ValeurUniqueOptions.map(v => v.toString());
+  const arrayY01 = [];
+
+  if (ValeurUniqueSeries.length === 1 || mode === "combine") {
+
+    // Combiner --> 1 seule série
+    const data = ValeurUniqueOptions.map(ValeursX => {
+      const row = map[ValeursX];
+      if (!row) return 0;
+      return Object.values(row).reduce((a,b)=>a+b,0);
+    });
+
+    arrayY01.push({ name: "Critiques", data });
+    isMultipleFilter = ValeurUniqueSeries.length > 1;
+
+  } else {
+
+    // Diviser --> 1 série par Valeur Unique (Y)
+    for (const seriesValue of ValeurUniqueSeries) {
+      const data = ValeurUniqueOptions.map(ValeursX => (map[ValeursX]?.[seriesValue] ?? 0));
+
+      arrayY01.push({
+        name: seriesValue,
+        data
+      });
+    }
+
+    isMultipleFilter = true;
+  }
+
+  return [arrayX01, arrayY01];
+}
+
 function ChartGeneration(arrayX01, arrayY01, type) {
+  const valueTooltip = []
+
   switch (type) {
     case 'line':
       chartSeriesFinal.value = arrayY01
@@ -280,7 +298,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
             w.config.series.forEach((s, i) => {
               const value = s.data[dataPointIndex];
 
-              // Début d'un colonnes
+              // Début d'une colonne
               if (i % itemsPerColumn === 0) {
                 html += `<div style="flex:1; min-width:140px;">`;
               }
@@ -292,7 +310,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
                 margin-bottom:5px;
               "><strong>${s.name}</strong> : ${value}</div>`;
 
-              // Fin d'un colonne
+              // Fin d'une colonne
               if ((i + 1) % itemsPerColumn === 0 || i === w.config.series.length - 1) {
                 html += `</div>`;
               }
@@ -311,6 +329,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
         chart: {
           type: type,
           height: 300,
+          stacked: true
         },
         title: {
           text: 'Nombre Critique selon Pays',
@@ -327,66 +346,54 @@ function ChartGeneration(arrayX01, arrayY01, type) {
             fontSize: '16px',
             color: '#999'
           }
+        },
+        tooltip: {
+          shared: true,
+          intersect: false,
+          enabled: true,
+          custom: function({ series, seriesIndex, dataPointIndex, w }) {
+            const itemsPerColumn = 5;
+
+            let html = `<div style="
+              display:flex; 
+              flex-wrap: wrap; 
+              max-width: 500px; 
+              gap: 20px; 
+              background:#222; 
+              color:#fff; 
+              padding:10px; 
+              border-radius:5px;
+            ">`;
+
+            w.config.series.forEach((s, i) => {
+              const value = s.data[dataPointIndex];
+
+              // Début d'une colonne
+              if (i % itemsPerColumn === 0) {
+                html += `<div style="flex:1; min-width:140px;">`;
+              }
+
+              // Formattage par Lignes
+              html += `<div style="
+                white-space: normal; 
+                word-wrap: break-word; 
+                margin-bottom:5px;
+              "><strong>${s.name}</strong> : ${value}</div>`;
+
+              // Fin d'une colonne
+              if ((i + 1) % itemsPerColumn === 0 || i === w.config.series.length - 1) {
+                html += `</div>`;
+              }
+            });
+
+            html += `</div>`;
+            return html;
+          }
         }
       }
 
       break;
   }
-}
-
-function dividedY(newMode) {
-  let ValeurCourante = filteredAndSorted.value[0]._full[sortKeyOptions.value]
-  const ValeurUniqueOptions = [...new Set(filteredAndSorted.value.map(item => item._full[sortKeyOptions.value]))]
-  const ValeurUniqueSeries = [...new Set(filteredAndSorted.value.map(item => item._full[checkedOutSeries.value]))]
-  let nbOccurence = 0
-  let arrayY01 = []
-  let arrayX01 = []
-
-  for (let i = 0; i < ValeurUniqueOptions.length; i++) {
-    
-    if (ValeurUniqueSeries.length === 1) {
-      // Si 1 seul pays filtré
-      if (arrayY01.length <= 0) {
-        arrayY01.push({ name: ValeurUniqueSeries[0], data: [] })
-      }
-
-      nbOccurence = filteredAndSorted.value.filter(item => item._full[sortKeyOptions.value] === ValeurUniqueOptions[i]).length
-      arrayY01[0].data.push(nbOccurence) // Y
-
-      isMultipleFilter = false
-
-    } else {
-      // Plusieurs pays filtrés
-      if (newMode === 'divided') {
-        // SÉPARER selon choix DropDown Y
-
-          for (let j = 0; j < ValeurUniqueSeries.length; j++) {
-            if (arrayY01.length < ValeurUniqueSeries.length) {
-              arrayY01.push({ name: ValeurUniqueSeries[j], data: [] })
-            }
-            nbOccurence = filteredAndSorted.value.filter(item => item._full[sortKeyOptions.value] === ValeurUniqueOptions[i] && item._full[checkedOutSeries.value] === ValeurUniqueSeries[j]).length
-            arrayY01[j].data.push(nbOccurence)
-          }
-
-      } else {
-        // COMBINER les pays filtrés
-        if (arrayY01.length <= 0) {
-          arrayY01.push({ name: 'Critiques', data: [] })
-        }
-
-        nbOccurence = filteredAndSorted.value.filter(item => item._full[sortKeyOptions.value] === ValeurUniqueOptions[i]).length
-        arrayY01[0].data.push(nbOccurence) // Y
-      }
-      isMultipleFilter = true
-    }
-
-    arrayX01.push(ValeurUniqueOptions[i].toString()) // X
-    // Passer à l'année suivante;
-  }
-  
-  return [arrayX01, arrayY01]
-
-  
 }
 
 function updateChartSpecific(newChart) {
