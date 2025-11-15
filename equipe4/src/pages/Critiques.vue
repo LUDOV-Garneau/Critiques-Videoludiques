@@ -221,6 +221,7 @@ function initMapping() {
   mapping.value.Pays = find(['country','pays','region'])
   mapping.value.CritiqueTitre = find(['titre de la critique','review title','article title','titre article'])
   mapping.value.PDF = find(['pdf','lien','link','url','document','fichier'])
+  mapping.value.Consoles = find(['consoles', 'console', 'plateforme'])
   // Notations par critères
   mapping.value.NoteGenerale = find(['critères généraux', 'criteres generaux', 'general score'])
   mapping.value.NoteVisuelle = find(['critères visuels', 'criteres visuels', 'visual score'])
@@ -343,7 +344,7 @@ const mappedObjects = computed(() => {
       Pays: idx.Pays>=0 ? r[idx.Pays] : undefined,
       CritiqueTitre: critiqueTitre,
       PDF: idx.PDF>=0 ? r[idx.PDF] : undefined,
-      Consoles: activeConsoles.length > 0 ? activeConsoles.join(', ') : '-',
+      Consoles: idx.Consoles >= 0 ? r[idx.Consoles] : '-',
       PseudonymeIdentity: pseudonymeIdentity, // Colonne DC "identité du pseudo"
       // Notations par critères
       NoteGenerale: parseScore(idx.NoteGenerale>=0 ? r[idx.NoteGenerale] : undefined),
@@ -595,7 +596,7 @@ const facets = computed(() => {
   
   return {
     platformTypes: Array.from(platformTypes).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' })),
-    platforms: sortedPlatforms,
+    platforms: Array.from(platforms).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' })),
     gameTypes: gameTypesArray,
     magazines: uniq(arr.map(x => x.Magazine)),
     countries: uniq(arr.map(x => x.Pays)),
