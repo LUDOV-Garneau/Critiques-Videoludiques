@@ -196,6 +196,7 @@ const mapping = ref({
   NotePrix: '',
   NoteAutre: '',
 })
+
 function initMapping() {
   const lower = (headers.value || []).map(h => String(h || '').toLowerCase())
   function find(labels) { const i = lower.findIndex(h => labels.some(l => h.includes(l))); return i>=0 ? headers.value[i] : '' }
@@ -1099,7 +1100,7 @@ function buildImportantColumns(allHeaders) {
         </div>
         <div v-else-if="error" class="error">Erreur: {{ error }}</div>
         <template v-else>
-          <div style="max-width:820px;margin:0 auto;">
+          <div style="max-width:1080px;margin:0 auto;">
             <ChartsGraphique :items="filteredAndSorted" :filtre-actifs="sidebarFilters"/>
           </div>
           <div class="toolbar">
