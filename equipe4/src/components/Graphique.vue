@@ -211,6 +211,11 @@ function dividedY(mode) {
     const ValeursX = item._full[keyX];
     const ValeursY = item._full[keySeries];
 
+    // skip si valeurs invalides
+    if (!ValeursX || ValeursX === '-' || !ValeursY || ValeursY === '-') {
+      continue;
+    }
+
     if (!map[ValeursX]) map[ValeursX] = Object.create(null);
     if (!map[ValeursX][ValeursY]) map[ValeursX][ValeursY] = 0;
 
@@ -278,7 +283,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
       chartSeriesFinal.value = arrayY01;
       chartOptionsFinal.value = {
         chart: { type: 'bar', height: 300, stacked: true },
-        title: { text: 'Nombre Critique selon Pays', align: 'left' },
+        title: { text: 'Nombre de critiques par année', align: 'left' },
         xaxis: { categories: arrayX01 },
         legend: { position: 'right', horizontalAlign: 'center' },
         noData: {
@@ -294,6 +299,76 @@ function ChartGeneration(arrayX01, arrayY01, type) {
         }
       };
       break;
+    case 'scatter':
+       chartSeriesFinal.value = arrayY01;
+  chartOptionsFinal.value = {
+    chart: { 
+      type: 'scatter', 
+      height: 300,
+      zoom: {
+        enabled: true,
+        type: 'xy'
+      }
+    },
+    title: { text: 'Notes selon l\'Année', align: 'left' },
+    xaxis: { 
+      type: 'numeric',
+      title: {
+        text: 'Année'
+      },
+      tickAmount: 10,
+      labels: {
+        formatter: function(val) {
+          return parseFloat(val).toFixed(0)
+        }
+      }
+    },
+    yaxis: {
+      title: {
+        text: 'Note'
+      },
+      tickAmount: 7,
+      labels: {
+        formatter: function(val) {
+          return parseFloat(val).toFixed(1)
+        }
+      }
+    },
+    legend: { position: 'right', horizontalAlign: 'center' },
+    noData: {
+      text: 'Donnée indisponible',
+      align: 'center',
+      style: { fontSize: '16px', color: '#999' }
+    },
+    tooltip: {
+      enabled: true,
+      x: {
+        formatter: function(val) {
+          return 'Année: ' + val
+        }
+      },
+      y: {
+        formatter: function(val) {
+          return 'Note: ' + val.toFixed(1)
+        }
+      }
+    }
+  };
+  break;
+
+    default:
+      chartSeriesFinal.value = arrayY01;
+      chartOptionsFinal.value = {
+        chart: { type: 'line', height: 300 },
+        title: { text: 'Nombre Critique selon Année', align: 'left' },
+        xaxis: { categories: arrayX01 },
+        legend: { position: 'right', horizontalAlign: 'center' },
+        noData: {
+          text: 'Donnée indisponible',
+          align: 'center',
+          style: { fontSize: '16px', color: '#999' }
+        }
+      };
   }
 }
 
@@ -314,7 +389,16 @@ function updateChartSpecific(newChart) {
       break;
 
     case 'bar':
-      sortKeyOptions.value = 'Pays'
+      sortKeyOptions.value = 'Année'
+      SeriesParameterArray.value = [
+        ...typeArray.slice(3, 6),
+        ...typeArray.slice(7, 10),
+        typeArray[12],
+        typeArray[typeArray.length - 1]
+      ].sort();
+      break;
+    case 'scatter':
+      sortKeyOptions.value = 'Année'
       SeriesParameterArray.value = typeArray.slice(12, typeArray.length - 1).sort()
       if (!SeriesParameterArray.value.includes(checkedOutSeries.value)) {
         checkedOutSeries.value = 'Consoles'
