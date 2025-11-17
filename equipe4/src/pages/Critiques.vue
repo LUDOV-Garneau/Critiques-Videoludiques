@@ -1703,6 +1703,56 @@ function buildImportantColumns(allHeaders) {
     margin: 2px 0;
   }
 
+  /* Styles pour les tags d'auteurs */
+  .authors-with-tags {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .author-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .author-name {
+    font-weight: 500;
+    color: #111827;
+  }
+
+  .author-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .author-tag {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .author-tag-gender {
+    background-color: #dbeafe;
+    color: #1e40af;
+  }
+
+  .author-tag-minority {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+
+  .author-tag-anonymous {
+    background-color: #fee2e2;
+    color: #991b1b;
+  }
+
   .modal-footer {
     padding: 16px 20px;
     border-top: 1px solid #e5e7eb;
