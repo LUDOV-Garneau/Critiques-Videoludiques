@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import FiltersSidebar from '../components/FiltersSidebar.vue'
-import { processGameTypes } from '../utils/gameTypesCleaner.js'
+import { extractGenres } from '../utils/genreCleaner.js'
 import { applyDataCorrections, normalizeScore } from '../utils/dataCorrections.js'
 import ChartsGraphique from '../components/Graphique.vue'
 
@@ -101,7 +101,7 @@ function initMapping() {
   mapping.value.Plateforme = findExact(['plateforme', 'platform'])
   mapping.value.Modele = find(['modèle', 'modele', 'model'])
   mapping.value.TypePlateforme = find(['type de plateforme', 'platform type'])
-  mapping.value.TypeJeu = find(['titre des étiquettes génériques de genre', 'genre', 'type de jeu', 'game genre'])
+  mapping.value.Genre = findExact(['genre'])  // Colonne EQ "Genre LUDOV"
   mapping.value.Note = find(['score','rating','note'])
   mapping.value.Année = find(['year','release year','annee','année','date'])
   mapping.value.Magazine = find(['magazine','revue','journal','publication'])
@@ -282,33 +282,33 @@ const facets = computed(() => {
     }
   }
 
-  // Récupérer les types de jeux depuis les données brutes (colonne 143)
-  const gameTypes = new Set()
-  let hasUnspecifiedGameTypes = false
+  // Récupérer les genres depuis les données brutes (colonne EQ "Genre")
+  const genres = new Set()
+  let hasUnspecifiedGenres = false
 
   if (headers.value.length > 0) {
-    const gameTypeIndex = headers.value.indexOf('Titre des étiquettes génériques de genre')
-    if (gameTypeIndex !== -1) {
+    const genreIndex = headers.value.indexOf('Genre')
+    if (genreIndex !== -1) {
       rows.value.forEach(row => {
-        const gameType = row[gameTypeIndex]
-        if (gameType && gameType !== '' && gameType !== '0') {
-          // Utiliser processGameTypes pour nettoyer et séparer les types
-          const cleanedTypes = processGameTypes(gameType)
-          cleanedTypes.forEach(type => gameTypes.add(type))
+        const genreValue = row[genreIndex]
+        if (genreValue && genreValue !== '' && genreValue !== '0') {
+          // Utiliser extractGenres pour nettoyer et séparer les genres
+          const cleanedGenres = extractGenres(genreValue)
+          cleanedGenres.forEach(genre => genres.add(genre))
         } else {
-          // Marquer qu'il y a des types non spécifiés
-          hasUnspecifiedGameTypes = true
+          // Marquer qu'il y a des genres non spécifiés
+          hasUnspecifiedGenres = true
         }
       })
     }
   }
 
-  const gameTypesArray = Array.from(gameTypes).sort((a, b) => {
+  const genresArray = Array.from(genres).sort((a, b) => {
     return a.localeCompare(b, 'fr', { sensitivity: 'base' })
   })
 
-  if (hasUnspecifiedGameTypes) {
-    gameTypesArray.push('Non spécifiés')
+  if (hasUnspecifiedGenres) {
+    genresArray.push('Non spécifiés')
   }
 
   // Filtrer les années valides (exclure "-" et les valeurs invalides)
@@ -332,7 +332,7 @@ const facets = computed(() => {
   return {
     platformTypes: Array.from(platformTypes).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' })),
     platforms: sortedPlatforms,
-    gameTypes: gameTypesArray,
+    gameTypes: genresArray,  // Utilise les genres de la colonne EQ
     magazines: uniq(arr.map(x => x.Magazine)),
     countries: uniq(arr.map(x => x.Pays)),
     authors: {
@@ -407,15 +407,16 @@ const filteredByFilters = computed(() => {
       }
     }
 
-    // Filtre par types de jeux
+    // Filtre par genres (colonne EQ "Genre")
     if (f.gameTypes.length > 0) {
       if (headers.value.length > 0 && index < rows.value.length) {
-        const gameTypeIndex = headers.value.indexOf('Titre des étiquettes génériques de genre')
-        if (gameTypeIndex !== -1) {
-          const gameType = rows.value[index][gameTypeIndex]
+        const genreIndex = headers.value.indexOf('Genre')
+        if (genreIndex !== -1) {
+          const genreValue = rows.value[index][genreIndex]
 
+          // Gérer le cas "Non spécifiés"
           if (f.gameTypes.includes('Non spécifiés')) {
-            if (!gameType || gameType === '' || gameType === '0') {
+            if (!genreValue || genreValue === '' || genreValue === '0') {
               return true
             }
             if (f.gameTypes.length === 1) {
@@ -423,16 +424,19 @@ const filteredByFilters = computed(() => {
             }
           }
 
-          if (!gameType || gameType === '' || gameType === '0') {
+          if (!genreValue || genreValue === '' || genreValue === '0') {
             return false
           }
 
-          const cleanedTypes = processGameTypes(gameType)
-          const hasSelectedGameType = f.gameTypes.some(selectedType =>
-            selectedType !== 'Non spécifiés' && cleanedTypes.includes(selectedType)
+          // Extraire et nettoyer les genres de cette critique
+          const cleanedGenres = extractGenres(genreValue)
+
+          // Logique "OU" : au moins un genre doit correspondre
+          const hasSelectedGenre = f.gameTypes.some(selectedGenre =>
+            selectedGenre !== 'Non spécifiés' && cleanedGenres.includes(selectedGenre)
           )
 
-          if (!hasSelectedGameType) return false
+          if (!hasSelectedGenre) return false
         } else {
           return false
         }
