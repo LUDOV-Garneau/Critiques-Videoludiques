@@ -793,6 +793,32 @@ watch(() => props.facets, (newFacets) => {
         </button>
 
         <div v-if="expandedCards.gameTypes" class="card-content">
+          <!-- Boutons radio OU/ET -->
+          <div class="filter-group" style="margin-bottom: 15px;">
+            <div class="radio-group">
+              <label class="radio-option">
+                <input
+                  type="radio"
+                  name="gameTypesLogic"
+                  value="OU"
+                  :checked="localFilters.gameTypesLogic === 'OU'"
+                  @change="localFilters.gameTypesLogic = 'OU'; applyFilters()"
+                />
+                <span>OU</span>
+              </label>
+              <label class="radio-option">
+                <input
+                  type="radio"
+                  name="gameTypesLogic"
+                  value="ET"
+                  :checked="localFilters.gameTypesLogic === 'ET'"
+                  @change="localFilters.gameTypesLogic = 'ET'; applyFilters()"
+                />
+                <span>ET</span>
+              </label>
+            </div>
+          </div>
+
           <div class="filter-group">
             <label class="filter-group-label">Sélectionner les types de jeux</label>
             <div class="filter-options">

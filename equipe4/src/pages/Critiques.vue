@@ -165,6 +165,17 @@ const mappedObjects = computed(() => {
     // Utiliser la colonne Type d'images utilisés si présente
     let imageType = idx.TypeImageUtilise >= 0 ? r[idx.TypeImageUtilise] : undefined;
 
+    // Formater les genres (garder le format français/anglais)
+    let genreDisplay = '-'
+    if (idx.Genre >= 0 && r[idx.Genre]) {
+      const genreValue = String(r[idx.Genre]).trim()
+      if (genreValue && genreValue !== '0' && genreValue !== '') {
+        // Séparer par " ; " pour les genres multiples, mais garder le format français/anglais
+        const genres = genreValue.split(/\s*;\s*/).map(g => g.trim()).filter(g => g)
+        genreDisplay = genres.length > 0 ? genres.join(', ') : '-'
+      }
+    }
+
     // Créer l'objet critique de base
     const critique = {
       Titre: titreJeu || critiqueTitre || '-',
@@ -173,6 +184,7 @@ const mappedObjects = computed(() => {
       Modele: idx.Modele>=0 ? r[idx.Modele] : undefined,
       TypePlateforme: idx.TypePlateforme>=0 ? r[idx.TypePlateforme] : undefined,
       TypeJeu: idx.TypeJeu>=0 ? r[idx.TypeJeu] : undefined,
+      Genre: genreDisplay,
       Note: parseScore(idx.Note>=0 ? r[idx.Note] : undefined),
       Année: annee,
       Magazine: idx.Magazine>=0 ? r[idx.Magazine] : undefined,
@@ -431,12 +443,23 @@ const filteredByFilters = computed(() => {
           // Extraire et nettoyer les genres de cette critique
           const cleanedGenres = extractGenres(genreValue)
 
-          // Logique "OU" : au moins un genre doit correspondre
-          const hasSelectedGenre = f.gameTypes.some(selectedGenre =>
-            selectedGenre !== 'Non spécifiés' && cleanedGenres.includes(selectedGenre)
-          )
+          // Filtrer les genres sélectionnés (exclure "Non spécifiés")
+          const selectedGenres = f.gameTypes.filter(g => g !== 'Non spécifiés')
 
-          if (!hasSelectedGenre) return false
+          // Appliquer la logique ET ou OU
+          if (f.gameTypesLogic === 'ET') {
+            // Logique "ET" : tous les genres sélectionnés doivent être présents
+            const hasAllGenres = selectedGenres.every(selectedGenre =>
+              cleanedGenres.includes(selectedGenre)
+            )
+            if (!hasAllGenres) return false
+          } else {
+            // Logique "OU" (par défaut) : au moins un genre doit correspondre
+            const hasSelectedGenre = selectedGenres.some(selectedGenre =>
+              cleanedGenres.includes(selectedGenre)
+            )
+            if (!hasSelectedGenre) return false
+          }
         } else {
           return false
         }
@@ -618,6 +641,7 @@ function buildImportantColumns(allHeaders) {
     // Retirer Plateforme et Note de l'affichage principal
     { key: 'year', labels: ['year','release year','annee','année','date'], display: 'Année' },
     { key: 'country', labels: ['country','pays','region'], display: 'Pays' },
+    { key: 'genre', labels: ['genre'], display: 'Genre LUDOV' },
     { key: 'author', labels: ['author','auteur','autrice','writer'], display: 'Auteurs' },
     { key: 'developer', labels: ['developer','dev','studio'], display: 'Développeur' },
     { key: 'publisher', labels: ['publisher','éditeur','editeur'], display: 'Éditeur' },
@@ -747,6 +771,10 @@ function buildImportantColumns(allHeaders) {
                     <div class="modal-field">
                       <div class="label">Pays</div>
                       <div class="value">{{ modalItem?.Pays || '-' }}</div>
+                    </div>
+                    <div class="modal-field">
+                      <div class="label">Genre LUDOV</div>
+                      <div class="value">{{ modalItem?.Genre || '-' }}</div>
                     </div>
                     <div class="modal-field">
                       <div class="label">Auteurs</div>
