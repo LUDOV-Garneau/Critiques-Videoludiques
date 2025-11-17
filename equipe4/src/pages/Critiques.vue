@@ -195,6 +195,11 @@ const mapping = ref({
   NoteDifficulte: '',
   NotePrix: '',
   NoteAutre: '',
+  Mois: '',
+  Volume: '',
+  Numéro: '',
+  Page: '',
+  NombrePages: '',
 })
 
 function initMapping() {
@@ -232,6 +237,17 @@ function initMapping() {
   mapping.value.NoteDifficulte = find(['critères sur la difficulté', 'criteres sur la difficulte', 'difficulty score'])
   mapping.value.NotePrix = find(['critères sur le prix', 'criteres sur le prix', 'price score'])
   mapping.value.NoteAutre = find(['autres critères', 'autres criteres', 'other score'])
+  // Colonnes pour les détails de publication
+  // Chercher d'abord par nom exact (E, F, G, H, I) puis par labels
+  const findExactLetter = (letter) => {
+    const exactIdx = lower.findIndex(h => String(h || '').trim().toUpperCase() === letter.toUpperCase())
+    return exactIdx >= 0 ? headers.value[exactIdx] : ''
+  }
+  mapping.value.Mois = findExactLetter('E') || find(['mois', 'month'])
+  mapping.value.Volume = findExactLetter('F') || find(['volume'])
+  mapping.value.Numéro = findExactLetter('G') || find(['numéro', 'numero', 'number', 'num'])
+  mapping.value.Page = findExactLetter('H') || find(['page', 'pages'])
+  mapping.value.NombrePages = findExactLetter('I') || find(['nombre de pages', 'nombre pages', 'nb pages', 'pages count'])
 }
 const mappedObjects = computed(() => {
   if (!headers.value.length) return []
@@ -300,6 +316,16 @@ const mappedObjects = computed(() => {
       const yearValue = Number(String(r[idx.Année]).slice(0, 4))
       annee = !isNaN(yearValue) && yearValue > 0 ? yearValue : '-'
     }
+    
+    // Fonction helper pour formater le mois (ex: "1 (janvier)")
+    const formatMois = (moisValue) => {
+      if (!moisValue || moisValue === '' || moisValue === '0') return '-'
+      const moisNum = Number(moisValue)
+      if (isNaN(moisNum) || moisNum < 1 || moisNum > 12) return String(moisValue)
+      const moisNoms = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
+      return `${moisNum} (${moisNoms[moisNum - 1]})`
+    }
+    
     // Fonction helper pour parser les notes (utilise la normalisation)
     const parseScore = (value) => {
       return normalizeScore(value)
@@ -356,7 +382,13 @@ const mappedObjects = computed(() => {
       NoteDifficulte: parseScore(idx.NoteDifficulte >= 0 ? r[idx.NoteDifficulte] : undefined),
       NotePrix: parseScore(idx.NotePrix >= 0 ? r[idx.NotePrix] : undefined),
       NoteAutre: parseScore(idx.NoteAutre >= 0 ? r[idx.NoteAutre] : undefined),
-      ImageType: imageType
+      ImageType: imageType,
+      // Détails de publication
+      Mois: idx.Mois >= 0 ? formatMois(r[idx.Mois]) : undefined,
+      Volume: idx.Volume >= 0 ? (r[idx.Volume] && r[idx.Volume] !== '' && r[idx.Volume] !== '0' ? String(r[idx.Volume]).trim() : '-') : '-',
+      Numéro: idx.Numéro >= 0 ? (r[idx.Numéro] && r[idx.Numéro] !== '' && r[idx.Numéro] !== '0' ? String(r[idx.Numéro]).trim() : '-') : '-',
+      Page: idx.Page >= 0 ? (r[idx.Page] && r[idx.Page] !== '' && r[idx.Page] !== '0' ? String(r[idx.Page]).trim() : '-') : '-',
+      NombrePages: idx.NombrePages >= 0 ? (r[idx.NombrePages] && r[idx.NombrePages] !== '' && r[idx.NombrePages] !== '0' ? String(r[idx.NombrePages]).trim() : '-') : '-'
     }
 
     // Appliquer les corrections de données
@@ -1195,12 +1227,32 @@ function buildImportantColumns(allHeaders) {
                       <div class="value">{{ modalItem?.TitreJeu || '-' }}</div>
                     </div>
                     <div class="modal-field">
-                      <div class="label">Magazine</div>
+                      <div class="label">Revue</div>
                       <div class="value">{{ modalItem?.Magazine || '-' }}</div>
                     </div>
                     <div class="modal-field">
                       <div class="label">Année</div>
                       <div class="value">{{ modalItem?.Année || '-' }}</div>
+                    </div>
+                    <div class="modal-field">
+                      <div class="label">Mois</div>
+                      <div class="value">{{ modalItem?.Mois || '-' }}</div>
+                    </div>
+                    <div class="modal-field">
+                      <div class="label">Volume</div>
+                      <div class="value">{{ modalItem?.Volume || '-' }}</div>
+                    </div>
+                    <div class="modal-field">
+                      <div class="label">Numéro</div>
+                      <div class="value">{{ modalItem?.Numéro || '-' }}</div>
+                    </div>
+                    <div class="modal-field">
+                      <div class="label">Page</div>
+                      <div class="value">{{ modalItem?.Page || '-' }}</div>
+                    </div>
+                    <div class="modal-field">
+                      <div class="label">Nombre de pages</div>
+                      <div class="value">{{ modalItem?.NombrePages || '-' }}</div>
                     </div>
                     <div class="modal-field">
                       <div class="label">Pays</div>
@@ -1701,6 +1753,56 @@ function buildImportantColumns(allHeaders) {
   .modal-field .value .list-item {
     line-height: 1.6;
     margin: 2px 0;
+  }
+
+  /* Styles pour les tags d'auteurs */
+  .authors-with-tags {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .author-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .author-name {
+    font-weight: 500;
+    color: #111827;
+  }
+
+  .author-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .author-tag {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .author-tag-gender {
+    background-color: #dbeafe;
+    color: #1e40af;
+  }
+
+  .author-tag-minority {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+
+  .author-tag-anonymous {
+    background-color: #fee2e2;
+    color: #991b1b;
   }
 
   .modal-footer {
