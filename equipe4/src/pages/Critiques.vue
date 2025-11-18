@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import FiltersSidebar from '../components/FiltersSidebar.vue'
-import { processGameTypes } from '../utils/gameTypesCleaner.js'
+import { extractGenres } from '../utils/genreCleaner.js'
 import { applyDataCorrections, normalizeScore } from '../utils/dataCorrections.js'
 import ChartsGraphique from '../components/Graphique.vue'
 
@@ -146,7 +146,7 @@ if (typeof window !== 'undefined') {
 const filteredAndSorted = computed(() => {
   // Utiliser directement les objets complets de filteredByFilters
   let items = filteredByFilters.value
-  
+
   // Appliquer la recherche textuelle
   if (query.value.trim()) {
     const q = query.value.toLowerCase()
@@ -214,7 +214,8 @@ function initMapping() {
   mapping.value.Plateforme = findExact(['plateforme', 'platform'])
   mapping.value.Modele = find(['modèle', 'modele', 'model'])
   mapping.value.TypePlateforme = find(['type de plateforme', 'platform type'])
-  mapping.value.TypeJeu = find(['titre des étiquettes génériques de genre', 'genre', 'type de jeu', 'game genre'])
+  mapping.value.Genre = findExact(['genre'])  // Colonne EQ "Genre LUDOV"
+  mapping.value.TypeJeu = find(['titre des étiquettes génériques de genre', 'type de jeu', 'game genre'])
   mapping.value.Note = find(['score', 'rating', 'note'])
   mapping.value.Année = find(['year', 'release year', 'annee', 'année', 'date'])
   mapping.value.Magazine = find(['magazine', 'revue', 'journal', 'publication'])
@@ -350,6 +351,21 @@ const mappedObjects = computed(() => {
     // Utiliser la colonne Type d'images utilisés si présente
     let imageType = idx.TypeImageUtilise >= 0 ? r[idx.TypeImageUtilise] : undefined;
 
+    // Formater les genres (garder le format français/anglais)
+    // Utiliser directement l'index 146 pour la colonne EQ "Genre"
+    const genreIndex = 146
+    let genreDisplay = 'Non spécifié'
+
+    if (r[genreIndex]) {
+      const genreValue = r[genreIndex]
+      if (genreValue && genreValue !== '0' && genreValue !== '') {
+        const genreStr = String(genreValue).trim()
+        // Séparer par " ; " pour les genres multiples, mais garder le format français/anglais
+        const genres = genreStr.split(/\s*;\s*/).map(g => g.trim()).filter(g => g)
+        genreDisplay = genres.length > 0 ? genres.join(', ') : 'Non spécifié'
+      }
+    }
+
     // Récupérer la colonne DC "identité du pseudo" si l'auteur est un pseudonyme
     const pseudonymeIdentityIndex = headers.value.findIndex(h => {
       const lower = String(h || '').toLowerCase()
@@ -378,6 +394,7 @@ const mappedObjects = computed(() => {
       Modele: idx.Modele >= 0 ? r[idx.Modele] : undefined,
       TypePlateforme: idx.TypePlateforme >= 0 ? r[idx.TypePlateforme] : undefined,
       TypeJeu: idx.TypeJeu >= 0 ? r[idx.TypeJeu] : undefined,
+      Genre: genreDisplay,
       Note: parseScore(idx.Note >= 0 ? r[idx.Note] : undefined),
       Année: annee,
       Magazine: idx.Magazine >= 0 ? r[idx.Magazine] : undefined,
@@ -410,14 +427,6 @@ const mappedObjects = computed(() => {
     // Appliquer les corrections de données
     return applyDataCorrections(critique, r, headers.value)
   })
-  if (mapped.length > 0) {
-    console.log('Objets mappés:', {
-      total: mapped.length,
-      mapping: mapping.value,
-      indices: idx,
-      premier: mapped[0]
-    })
-  }
   return mapped
 })
 const sidebarFilters = ref({
@@ -608,54 +617,38 @@ const facets = computed(() => {
     }
   }
 
-  // Récupérer les types de jeux depuis les données brutes (colonne 143)
-  const gameTypes = new Set()
-  let hasUnspecifiedGameTypes = false
+  // Récupérer les genres depuis les données brutes (colonne EQ "Genre")
+  const genres = new Set()
+  let hasUnspecifiedGenres = false
 
   if (headers.value.length > 0) {
-    // Chercher la colonne de genre - recherche insensible à la casse
-    let gameTypeIndex = -1
-
-    // Essayer plusieurs variantes
-    const gameTypeVariants = [
-      'Titre des étiquettes génériques de genre',
-      'Étiquette de genre',
-      'Etiquette de genre', 
-      'Genre'
-    ]
-
-    for (const variant of gameTypeVariants) {
-      gameTypeIndex = headers.value.findIndex(h =>
-        String(h || '').trim().toLowerCase() === variant.toLowerCase()
-      )
-      if (gameTypeIndex !== -1) break
-    }
-
-    
-    if (gameTypeIndex !== -1) {
-      rows.value.forEach((row, rowIdx) => {  
-        const gameType = row[gameTypeIndex]
-
-        if (gameType && gameType !== '' && gameType !== '0') {
-          // Utiliser processGameTypes pour nettoyer et séparer les types
-          const cleanedTypes = processGameTypes(gameType)
-          cleanedTypes.forEach(type => gameTypes.add(type))
+    const genreIndex = headers.value.indexOf('Genre')
+    if (genreIndex !== -1) {
+      rows.value.forEach(row => {
+        const genreValue = row[genreIndex]
+        if (genreValue && genreValue !== '' && genreValue !== '0') {
+          // Utiliser extractGenres pour nettoyer et séparer les genres
+          const cleanedGenres = extractGenres(genreValue)
+          cleanedGenres.forEach(genre => genres.add(genre))
         } else {
-          // Marquer qu'il y a des types non spécifiés
-          hasUnspecifiedGameTypes = true
+          // Marquer qu'il y a des genres non spécifiés
+          hasUnspecifiedGenres = true
         }
       })
     }
   }
 
-
-  const gameTypesArray = Array.from(gameTypes).sort((a, b) => {
+  const genresArray = Array.from(genres).sort((a, b) => {
     return a.localeCompare(b, 'fr', { sensitivity: 'base' })
   })
 
-  if (hasUnspecifiedGameTypes) {
-    gameTypesArray.push('Non spécifiés')
+  // Ajouter "Non spécifié" à la fin si des critiques n'ont pas de genre
+  if (hasUnspecifiedGenres) {
+    genresArray.push('Non spécifié')
   }
+
+  // Trier les plateformes
+  const sortedPlatforms = Array.from(platforms).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
 
   // Filtrer les années valides (exclure "-" et les valeurs invalides)
   const validYears = arr
@@ -664,8 +657,8 @@ const facets = computed(() => {
 
   return {
     platformTypes: Array.from(platformTypes).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' })),
-    platforms: Array.from(platforms).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' })),
-    gameTypes: gameTypesArray,
+    platforms: sortedPlatforms,
+    gameTypes: genresArray,  // Utilise les genres de la colonne EQ "Genre LUDOV"
     magazines: uniq(arr.map(x => x.Magazine)),
     countries: uniq(arr.map(x => x.Pays)),
     authors: {
@@ -747,30 +740,16 @@ const filteredByFilters = computed(() => {
       }
     }
 
-    // Filtre par types de jeux
+    // Filtre par genres (colonne EQ "Genre LUDOV")
     if (f.gameTypes && f.gameTypes.length > 0) {
       if (headers.value.length > 0 && index < rows.value.length) {
-        // Chercher la colonne de genre - recherche insensible à la casse
-        let gameTypeIndex = -1
-        const gameTypeVariants = [
-          'Titre des étiquettes génériques de genre',
-          'Étiquette de genre',
-          'Etiquette de genre',
-          'Genre'
-        ]
+        const genreIndex = headers.value.indexOf('Genre')
+        if (genreIndex !== -1) {
+          const genreValue = rows.value[index][genreIndex]
 
-        for (const variant of gameTypeVariants) {
-          gameTypeIndex = headers.value.findIndex(h =>
-            String(h || '').trim().toLowerCase() === variant.toLowerCase()
-          )
-          if (gameTypeIndex !== -1) break
-        }
-
-        if (gameTypeIndex !== -1) {
-          const gameType = rows.value[index][gameTypeIndex]
-
-          if (f.gameTypes.includes('Non spécifiés')) {
-            if (!gameType || gameType === '' || gameType === '0') {
+          // Gérer le cas "Non spécifié"
+          if (f.gameTypes.includes('Non spécifié')) {
+            if (!genreValue || genreValue === '' || genreValue === '0') {
               return true
             }
             if (f.gameTypes.length === 1) {
@@ -778,16 +757,30 @@ const filteredByFilters = computed(() => {
             }
           }
 
-          if (!gameType || gameType === '' || gameType === '0') {
+          if (!genreValue || genreValue === '' || genreValue === '0') {
             return false
           }
 
-          const cleanedTypes = processGameTypes(gameType)
-          const hasSelectedGameType = f.gameTypes.some(selectedType =>
-            selectedType !== 'Non spécifiés' && cleanedTypes.includes(selectedType)
-          )
+          // Extraire et nettoyer les genres de cette critique
+          const cleanedGenres = extractGenres(genreValue)
 
-          if (!hasSelectedGameType) return false
+          // Filtrer les genres sélectionnés (exclure "Non spécifié")
+          const selectedGenres = f.gameTypes.filter(g => g !== 'Non spécifié')
+
+          // Appliquer la logique ET ou OU
+          if (f.gameTypesLogic === 'ET') {
+            // Logique "ET" : tous les genres sélectionnés doivent être présents
+            const hasAllGenres = selectedGenres.every(selectedGenre =>
+              cleanedGenres.includes(selectedGenre)
+            )
+            if (!hasAllGenres) return false
+          } else {
+            // Logique "OU" (par défaut) : au moins un genre doit correspondre
+            const hasSelectedGenre = selectedGenres.some(selectedGenre =>
+              cleanedGenres.includes(selectedGenre)
+            )
+            if (!hasSelectedGenre) return false
+          }
         } else {
           return false
         }
@@ -1057,7 +1050,7 @@ const filteredRowsObjects = computed(() => {
   const keys = filteredHeaders.value
   const arr = filteredByFilters.value
   // Convertir les objets mappés en format tableau pour l'affichage
-  return arr.map(item => {
+  const result = arr.map(item => {
     return keys.map(key => {
       // Mapper les clés d'affichage vers les propriétés de l'objet
       switch (key) {
@@ -1067,6 +1060,7 @@ const filteredRowsObjects = computed(() => {
         case 'Note': return item.Note
         case 'Année': return item.Année
         case 'Pays': return item.Pays
+        case 'Genre LUDOV': return item.Genre
         case 'Auteurs': return item.Auteurs
         case 'Identité du pseudo': return item.PseudonymeIdentity || '' // Afficher seulement si présent
         case 'Développeur': return item.Développeur
@@ -1076,6 +1070,8 @@ const filteredRowsObjects = computed(() => {
       }
     })
   })
+
+  return result
 })
 async function fetchArrayBuffer(path) {
   const res = await fetch(path)
@@ -1098,17 +1094,9 @@ onMounted(async () => {
     })
     headers.value = parsed[0] || []
     rows.value = parsed.slice(1)
-    console.log('Données chargées:', {
-      headers: headers.value.length,
-      rows: rows.value.length,
-      firstRow: rows.value[0]?.slice(0, 5)
-    })
     const selection = buildImportantColumns(headers.value)
     filteredHeaders.value = selection.map(c => c.label)
     filteredRows.value = rows.value.map(r => selection.map(c => r[c.index]))
-    console.log('Colonnes sélectionnées:', selection)
-    console.log('Headers filtrés:', filteredHeaders.value)
-    console.log('Premières lignes filtrées:', filteredRows.value.slice(0, 3))
     // Initialiser le mapping automatiquement
     initMapping()
   } catch (e) {
@@ -1125,6 +1113,7 @@ function buildImportantColumns(allHeaders) {
     // Retirer Plateforme et Note de l'affichage principal
     { key: 'year', labels: ['year', 'release year', 'annee', 'année', 'date'], display: 'Année' },
     { key: 'country', labels: ['country', 'pays', 'region'], display: 'Pays' },
+    { key: 'genre', labels: ['genre'], display: 'Genre LUDOV', forceIndex: 146 }, // Forcer l'index 146 pour la colonne EQ
     { key: 'author', labels: ['author', 'auteur', 'autrice', 'writer'], display: 'Auteurs' },
     { key: 'pseudonymeIdentity', labels: ['identité du pseudo', 'identite du pseudo', 'dc'], display: 'Identité du pseudo' },
     { key: 'developer', labels: ['developer', 'dev', 'studio'], display: 'Développeur' },
@@ -1133,8 +1122,11 @@ function buildImportantColumns(allHeaders) {
   ]
   const selected = []
   for (const w of want) {
-    const idx = lower.findIndex(h => w.labels.some(l => h.includes(l)))
-    if (idx !== -1) selected.push({ key: w.key, index: idx, label: w.display })
+    // Si forceIndex est défini, utiliser cet index directement
+    const idx = w.forceIndex !== undefined ? w.forceIndex : lower.findIndex(h => w.labels.some(l => h.includes(l)))
+    if (idx !== -1) {
+      selected.push({ key: w.key, index: idx, label: w.display })
+    }
   }
   return selected
 }
@@ -1273,6 +1265,10 @@ function buildImportantColumns(allHeaders) {
                     <div class="modal-field">
                       <div class="label">Pays</div>
                       <div class="value">{{ modalItem?.Pays || '-' }}</div>
+                    </div>
+                    <div class="modal-field">
+                      <div class="label">Genre LUDOV</div>
+                      <div class="value">{{ modalItem?.Genre || '-' }}</div>
                     </div>
                     <div class="modal-field modal-field-full">
                       <div class="label">Auteurs</div>
