@@ -29,6 +29,7 @@ const localFilters = ref({
   platformTypes: [],
   platforms: [],
   gameTypes: [],
+  gameTypesLogic: 'OU',
   authorGender: '',
   authorName: '',
   showWithoutAuthors: false,
@@ -348,6 +349,7 @@ function clearFilter(filterType) {
       break
     case 'gameTypes':
       localFilters.value.gameTypes = []
+      localFilters.value.gameTypesLogic = 'OU'
       break
     case 'authorGender':
       localFilters.value.authorGender = ''
@@ -382,6 +384,7 @@ function clearAllFilters() {
     platformTypes: [],
     platforms: [],
     gameTypes: [],
+    gameTypesLogic: 'OU',
     authorGender: '',
     authorName: '',
     showWithoutAuthors: false,

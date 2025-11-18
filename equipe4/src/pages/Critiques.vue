@@ -41,6 +41,7 @@ const filteredAndSorted = computed(() => {
     obj._full = filteredByFilters.value[idx]
     return obj
   })
+
   // Appliquer la recherche textuelle
   if (query.value.trim()) {
     const q = query.value.toLowerCase()
@@ -166,13 +167,17 @@ const mappedObjects = computed(() => {
     let imageType = idx.TypeImageUtilise >= 0 ? r[idx.TypeImageUtilise] : undefined;
 
     // Formater les genres (garder le format français/anglais)
-    let genreDisplay = '-'
-    if (idx.Genre >= 0 && r[idx.Genre]) {
-      const genreValue = String(r[idx.Genre]).trim()
+    // Utiliser directement l'index 146 pour la colonne EQ "Genre"
+    const genreIndex = 146
+    let genreDisplay = 'Non spécifié'
+
+    if (r[genreIndex]) {
+      const genreValue = r[genreIndex]
       if (genreValue && genreValue !== '0' && genreValue !== '') {
+        const genreStr = String(genreValue).trim()
         // Séparer par " ; " pour les genres multiples, mais garder le format français/anglais
-        const genres = genreValue.split(/\s*;\s*/).map(g => g.trim()).filter(g => g)
-        genreDisplay = genres.length > 0 ? genres.join(', ') : '-'
+        const genres = genreStr.split(/\s*;\s*/).map(g => g.trim()).filter(g => g)
+        genreDisplay = genres.length > 0 ? genres.join(', ') : 'Non spécifié'
       }
     }
 
@@ -208,14 +213,6 @@ const mappedObjects = computed(() => {
     // Appliquer les corrections de données
     return applyDataCorrections(critique, r, headers.value)
   })
-  if (mapped.length > 0) {
-    console.log('Objets mappés:', {
-      total: mapped.length,
-      mapping: mapping.value,
-      indices: idx,
-      premier: mapped[0]
-    })
-  }
   return mapped
 })
 const sidebarFilters = ref({
@@ -319,8 +316,9 @@ const facets = computed(() => {
     return a.localeCompare(b, 'fr', { sensitivity: 'base' })
   })
 
+  // Ajouter "Non spécifié" à la fin si des critiques n'ont pas de genre
   if (hasUnspecifiedGenres) {
-    genresArray.push('Non spécifiés')
+    genresArray.push('Non spécifié')
   }
 
   // Filtrer les années valides (exclure "-" et les valeurs invalides)
@@ -426,8 +424,8 @@ const filteredByFilters = computed(() => {
         if (genreIndex !== -1) {
           const genreValue = rows.value[index][genreIndex]
 
-          // Gérer le cas "Non spécifiés"
-          if (f.gameTypes.includes('Non spécifiés')) {
+          // Gérer le cas "Non spécifié"
+          if (f.gameTypes.includes('Non spécifié')) {
             if (!genreValue || genreValue === '' || genreValue === '0') {
               return true
             }
@@ -443,8 +441,8 @@ const filteredByFilters = computed(() => {
           // Extraire et nettoyer les genres de cette critique
           const cleanedGenres = extractGenres(genreValue)
 
-          // Filtrer les genres sélectionnés (exclure "Non spécifiés")
-          const selectedGenres = f.gameTypes.filter(g => g !== 'Non spécifiés')
+          // Filtrer les genres sélectionnés (exclure "Non spécifié")
+          const selectedGenres = f.gameTypes.filter(g => g !== 'Non spécifié')
 
           // Appliquer la logique ET ou OU
           if (f.gameTypesLogic === 'ET') {
@@ -574,7 +572,7 @@ const filteredRowsObjects = computed(() => {
   const keys = filteredHeaders.value
   const arr = filteredByFilters.value
   // Convertir les objets mappés en format tableau pour l'affichage
-  return arr.map(item => {
+  const result = arr.map(item => {
     return keys.map(key => {
       // Mapper les clés d'affichage vers les propriétés de l'objet
       switch(key) {
@@ -584,6 +582,7 @@ const filteredRowsObjects = computed(() => {
         case 'Note': return item.Note
         case 'Année': return item.Année
         case 'Pays': return item.Pays
+        case 'Genre LUDOV': return item.Genre
         case 'Auteurs': return item.Auteurs
         case 'Développeur': return item.Développeur
         case 'Éditeur': return item.Éditeur
@@ -592,6 +591,8 @@ const filteredRowsObjects = computed(() => {
       }
     })
   })
+
+  return result
 })
 async function fetchArrayBuffer(path) {
   const res = await fetch(path)
@@ -614,17 +615,9 @@ onMounted(async () => {
     })
     headers.value = parsed[0] || []
     rows.value = parsed.slice(1)
-    console.log('Données chargées:', {
-      headers: headers.value.length,
-      rows: rows.value.length,
-      firstRow: rows.value[0]?.slice(0, 5)
-    })
     const selection = buildImportantColumns(headers.value)
     filteredHeaders.value = selection.map(c => c.label)
     filteredRows.value = rows.value.map(r => selection.map(c => r[c.index]))
-    console.log('Colonnes sélectionnées:', selection)
-    console.log('Headers filtrés:', filteredHeaders.value)
-    console.log('Premières lignes filtrées:', filteredRows.value.slice(0, 3))
     // Initialiser le mapping automatiquement
     initMapping()
   } catch (e) {
@@ -641,7 +634,7 @@ function buildImportantColumns(allHeaders) {
     // Retirer Plateforme et Note de l'affichage principal
     { key: 'year', labels: ['year','release year','annee','année','date'], display: 'Année' },
     { key: 'country', labels: ['country','pays','region'], display: 'Pays' },
-    { key: 'genre', labels: ['genre'], display: 'Genre LUDOV' },
+    { key: 'genre', labels: ['genre'], display: 'Genre LUDOV', forceIndex: 146 }, // Forcer l'index 146 pour la colonne EQ
     { key: 'author', labels: ['author','auteur','autrice','writer'], display: 'Auteurs' },
     { key: 'developer', labels: ['developer','dev','studio'], display: 'Développeur' },
     { key: 'publisher', labels: ['publisher','éditeur','editeur'], display: 'Éditeur' },
@@ -649,8 +642,11 @@ function buildImportantColumns(allHeaders) {
   ]
   const selected = []
   for (const w of want) {
-    const idx = lower.findIndex(h => w.labels.some(l => h.includes(l)))
-    if (idx !== -1) selected.push({ key: w.key, index: idx, label: w.display })
+    // Si forceIndex est défini, utiliser cet index directement
+    const idx = w.forceIndex !== undefined ? w.forceIndex : lower.findIndex(h => w.labels.some(l => h.includes(l)))
+    if (idx !== -1) {
+      selected.push({ key: w.key, index: idx, label: w.display })
+    }
   }
   return selected
 }
