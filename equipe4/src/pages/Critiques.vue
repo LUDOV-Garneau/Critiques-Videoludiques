@@ -168,6 +168,26 @@ const filteredAndSorted = computed(() => {
 })
 const totalPages = computed(() => Math.max(1, Math.ceil((filteredAndSorted.value.length || 0) / pageSize)))
 const pageSlice = computed(() => filteredAndSorted.value.slice((page.value - 1) * pageSize, page.value * pageSize))
+
+// Mapping entre les noms de colonnes affichés et les propriétés des objets
+const columnPropertyMap = {
+  'Titre': 'Titre',
+  'Type de Plateformes': 'TypePlateforme',
+  'Année': 'Année',
+  'Pays': 'Pays',
+  'Genre LUDOV': 'Genre',
+  'Auteurs': 'Auteurs',
+  'Identité du pseudo': 'PseudonymeIdentity',
+  'Développeur': 'Développeur',
+  'Éditeur': 'Éditeur',
+  'Magazine': 'Magazine'
+}
+
+// Fonction helper pour obtenir la valeur d'une cellule
+function getCellValue(item, columnName) {
+  const propertyName = columnPropertyMap[columnName] || columnName
+  return item[propertyName]
+}
 const mapping = ref({
   TypeImageUtilise: '',
   TitreJeu: '',
@@ -261,6 +281,12 @@ function initMapping() {
 function translateRatingLabel(label) {
   if (!label || typeof label !== 'string') return null
 
+  // Nettoyer l'étiquette: enlever espaces superflus, convertir en minuscules
+  const cleanLabel = String(label).toLowerCase().trim()
+
+  // Si vide ou juste des espaces
+  if (!cleanLabel || cleanLabel === '-' || cleanLabel === 'n/a') return null
+
   const translations = {
     // Étiquettes positives
     'excellent': 'Excellent',
@@ -304,8 +330,16 @@ function translateRatingLabel(label) {
     'very long': 'Très long'
   }
 
-  const lowerLabel = label.toLowerCase().trim()
-  return translations[lowerLabel] || label // Retourner la traduction ou l'original si pas trouvé
+  const translated = translations[cleanLabel]
+
+  // Debug: afficher les étiquettes non traduites (seulement une fois par étiquette)
+  if (!translated && !window._loggedLabels) window._loggedLabels = new Set()
+  if (!translated && !window._loggedLabels.has(cleanLabel)) {
+    console.log('Étiquette non traduite:', cleanLabel, '(original:', label, ')')
+    window._loggedLabels.add(cleanLabel)
+  }
+
+  return translated || label // Retourner la traduction ou l'original si pas trouvé
 }
 
 const mappedObjects = computed(() => {
@@ -1258,7 +1292,7 @@ function buildImportantColumns(allHeaders) {
               </thead>
               <tbody>
                 <tr v-for="(it, i) in pageSlice" :key="i" class="clickable-row" @click="openModal(it._full || it)">
-                  <td v-for="h in filteredHeaders" :key="h">{{ it[h] }}</td>
+                  <td v-for="h in filteredHeaders" :key="h">{{ getCellValue(it, h) }}</td>
                 </tr>
               </tbody>
             </table>
