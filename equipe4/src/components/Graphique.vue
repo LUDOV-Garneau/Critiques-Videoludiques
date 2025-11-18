@@ -6,31 +6,26 @@ let checkedTypeCharts = ref('line')
 let checkedOutData = ref('combine')
 let checkedOutSeries = ref('Pays')
 
+//tpp
 const typeArray = [
   "Titre", // 0
   "TitreJeu", // 1
   "Plateforme", // 2
-  "TypePlateforme", //3
-  "TypeJeu", //4
-  "Note", //5
-  "Année", //6
-  "Magazine", //7
-  "Auteurs", //8
-  "Pays", //9
-  "CritiqueTitre", //10
-  "PDF", //11
-  "Consoles", //12
-  "NoteGenerale", //13
-  "NoteVisuelle", //14
-  "NoteSonore", //15
-  "NoteContenu",  //16
-  "NoteJouabilite", //17
-  "NoteTempsJeu", //18
-  "NoteDifficulte", //19
-  "NotePrix", //20
-  "NoteAutre", //21
-  "ImageType",//22
-  "GenreAuteur" //23
+  "Modele", //3
+  "TypePlateforme", //4
+  "Année", //5
+  "Magazine", //6
+  "Auteurs", //7
+  "Pays", //8
+  "CritiqueTitre", //9
+  "PDF", //10
+  "Consoles", //11
+  "ImageType",//12
+  "Mois", //13
+  "Volume", //14
+  "Numéro", //15
+  "Pages", //16
+  "GenreAuteur" //17
 ];
 
 const SeriesParameterArray = ref([])
@@ -198,31 +193,47 @@ function erreurCharts() {
 }
 
 function dividedY(mode) {
-
   const keyX = sortKeyOptions.value;
   const keySeries = checkedOutSeries.value;
-
   const items = filteredAndSorted.value;
 
+  // Fonction helper pour séparer les valeurs multiples
+  const splitMultipleValues = (value) => {
+    if (!value || value === '-') return [];
+    return String(value)
+      .split(/\s*;\s*/)  // Séparer par " ; "
+      .map(v => v.trim())
+      .filter(v => v);
+  };
+
   // Initialisation
-  const ValeurUniqueOptions = [...new Set(items.map(i => i._full[keyX]).sort())];
-  const ValeurUniqueSeries = [...new Set(items.map(i => i._full[keySeries]).sort())];
+  const ValeurUniqueOptions = [...new Set(
+    items.flatMap(i => splitMultipleValues(i[keyX]))
+  )].sort();
+
+  const ValeurUniqueSeries = [...new Set(
+    items.flatMap(i => splitMultipleValues(i[keySeries]))
+  )].sort();
 
   const map = Object.create(null);
 
   for (const item of items) {
-    const ValeursX = item._full[keyX];
-    const ValeursY = item._full[keySeries];
+    const valeursX = splitMultipleValues(item[keyX]);
+    const valeursY = splitMultipleValues(item[keySeries]);
 
-    // skip si valeurs invalides
-    if (!ValeursX || ValeursX === '-' || !ValeursY || ValeursY === '-') {
-      continue;
+    // Si pas de valeurs valides, skip
+    if (valeursX.length === 0 || valeursY.length === 0) continue;
+
+    // Compter chaque combinaison X-Y
+    for (const valX of valeursX) {
+      if (!map[valX]) map[valX] = Object.create(null);
+
+      for (const valY of valeursY) {
+        if (!map[valX][valY]) map[valX][valY] = 0;
+        // Diviser le compte par le nombre de combinaisons pour éviter le double-comptage
+        map[valX][valY] += 1 / (valeursX.length * valeursY.length);
+      }
     }
-
-    if (!map[ValeursX]) map[ValeursX] = Object.create(null);
-    if (!map[ValeursX][ValeursY]) map[ValeursX][ValeursY] = 0;
-
-    map[ValeursX][ValeursY]++;
   }
 
   // Construction X et Y
@@ -230,22 +241,22 @@ function dividedY(mode) {
   const arrayY01 = [];
 
   if (ValeurUniqueSeries.length === 1 || mode === "combine") {
-
-    // Combiner --> 1 seule série
-    const data = ValeurUniqueOptions.map(ValeursX => {
-      const row = map[ValeursX];
+    // Combiner
+    const data = ValeurUniqueOptions.map(valX => {
+      const row = map[valX];
       if (!row) return 0;
-      return Object.values(row).reduce((a, b) => a + b, 0);
+      return Math.round(Object.values(row).reduce((a, b) => a + b, 0));
     });
 
     arrayY01.push({ name: "Critiques", data });
     isMultipleFilter = ValeurUniqueSeries.length > 1;
 
   } else {
-
-    // Diviser --> 1 série par Valeur Unique (Y)
+    // Diviser
     for (const seriesValue of ValeurUniqueSeries) {
-      const data = ValeurUniqueOptions.map(ValeursX => (map[ValeursX]?.[seriesValue] ?? 0));
+      const data = ValeurUniqueOptions.map(valX => {
+        return Math.round(map[valX]?.[seriesValue] ?? 0);
+      });
 
       arrayY01.push({
         name: seriesValue,
@@ -257,6 +268,67 @@ function dividedY(mode) {
   }
 
   return [arrayX01, arrayY01];
+}
+
+function generateHeatmapData() {
+  const keyX = sortKeyOptions.value;  // Année
+  const keySeries = checkedOutSeries.value;  // Pays, Magazine, etc.
+  const items = filteredAndSorted.value;
+
+  // Fonction helper pour séparer les valeurs multiples
+  const splitMultipleValues = (value) => {
+    if (!value || value === '-') return [];
+    return String(value)
+      .split(/\s*;\s*/)
+      .map(v => v.trim())
+      .filter(v => v);
+  };
+
+  // Obtenir toutes les valeurs uniques pour X et Y
+  const valeursX = [...new Set(
+    items.flatMap(i => splitMultipleValues(i[keyX]))
+  )].sort();
+  
+  const valeursY = [...new Set(
+    items.flatMap(i => splitMultipleValues(i[keySeries]))
+  )].sort();
+
+  // Créer une map pour compter les occurrences
+  const map = {};
+  
+  for (const item of items) {
+    const itemValeursX = splitMultipleValues(item[keyX]);
+    const itemValeursY = splitMultipleValues(item[keySeries]);
+
+    if (itemValeursX.length === 0 || itemValeursY.length === 0) continue;
+
+    for (const valX of itemValeursX) {
+      for (const valY of itemValeursY) {
+        const key = `${valY}|||${valX}`;  // Format: "Pays|||Année"
+        if (!map[key]) map[key] = 0;
+        map[key] += 1 / (itemValeursX.length * itemValeursY.length);
+      }
+    }
+  }
+
+  // Construire les séries pour le heatmap
+  // Chaque série = une ligne (un pays, un magazine, etc.)
+  const series = valeursY.map(valY => {
+    const data = valeursX.map(valX => {
+      const key = `${valY}|||${valX}`;
+      return {
+        x: valX.toString(),
+        y: Math.round(map[key] || 0)
+      };
+    });
+
+    return {
+      name: valY,
+      data: data
+    };
+  });
+
+  return { series, categories: valeursX };
 }
 
 function ChartGeneration(arrayX01, arrayY01, type) {
@@ -303,23 +375,38 @@ function ChartGeneration(arrayX01, arrayY01, type) {
       };
       break;
 
-    
     case 'pie':
       // Pour pie chart, on compte la distribution du paramètre Series dans les données filtrées
       const keySeries = checkedOutSeries.value;
       const items = filteredAndSorted.value;
 
-      // Compter les occurrences
+      // Fonction helper pour séparer les valeurs multiples (même que dans dividedY)
+      const splitMultipleValues = (value) => {
+        if (!value || value === '-') return [];
+        return String(value)
+          .split(/\s*;\s*/)  // Séparer par " ; "
+          .map(v => v.trim())
+          .filter(v => v);
+      };
+
       const countMap = {};
       for (const item of items) {
-        const value = item._full[keySeries];
-        if (value && value !== '-') {
-          countMap[value] = (countMap[value] || 0) + 1;
+        const values = splitMultipleValues(item[keySeries]); // ← Séparer les valeurs multiples
+
+        // Compter chaque valeur séparément
+        for (const value of values) {
+          if (value) {
+            // Diviser par le nombre de valeurs pour éviter le surcomptage
+            countMap[value] = (countMap[value] || 0) + (1 / values.length);
+          }
         }
       }
 
-      // Trier par nom pour cohérence
-      const sortedEntries = Object.entries(countMap).sort((a, b) => a[0].localeCompare(b[0]));
+      // Arrondir les valeurs et trier par nom pour cohérence
+      const sortedEntries = Object.entries(countMap)
+        .map(([key, value]) => [key, Math.round(value)])
+        .sort((a, b) => a[0].localeCompare(b[0]));
+
       const pieLabels = sortedEntries.map(([key]) => key);
       const pieValues = sortedEntries.map(([, value]) => value);
 
@@ -354,6 +441,97 @@ function ChartGeneration(arrayX01, arrayY01, type) {
       };
       break;
 
+       case 'heatmap':
+      const { series: heatmapSeries, categories: heatmapCategories } = generateHeatmapData();
+      
+      chartSeriesFinal.value = heatmapSeries;
+      chartOptionsFinal.value = {
+        chart: {
+          type: 'heatmap',
+          height: 450,
+          toolbar: {
+            show: true
+          }
+        },
+        title: {
+          text: `Heatmap: ${checkedOutSeries.value} par ${sortKeyOptions.value}`,
+          align: 'left'
+        },
+        plotOptions: {
+          heatmap: {
+            shadeIntensity: 0.5,
+            radius: 0,
+            useFillColorAsStroke: false,
+            colorScale: {
+              ranges: [
+                {
+                  from: 0,
+                  to: 10,
+                  color: '#008FFB',
+                  name: '0-10'
+                },
+                {
+                  from: 11,
+                  to: 30,
+                  color: '#00E396',
+                  name: '11-30'
+                },
+                {
+                  from: 31,
+                  to: 60,
+                  color: '#FEB019',
+                  name: '31-60'
+                },
+                {
+                  from: 61,
+                  to: 100,
+                  color: '#FF4560',
+                  name: '61-100'
+                },
+                {
+                  from: 101,
+                  to: 999,
+                  color: '#775DD0',
+                  name: '100+'
+                }
+              ]
+            }
+          }
+        },
+        dataLabels: {
+          enabled: false
+        },
+        xaxis: {
+          type: 'category',
+          categories: heatmapCategories,
+          title: {
+            text: sortKeyOptions.value
+          }
+        },
+        yaxis: {
+          title: {
+            text: checkedOutSeries.value
+          }
+        },
+        tooltip: {
+          y: {
+            formatter: function(value) {
+              return value + ' critiques';
+            }
+          }
+        },
+        legend: {
+          position: 'right',
+          horizontalAlign: 'center'
+        },
+        noData: {
+          text: 'Donnée indisponible',
+          align: 'center',
+          style: { fontSize: '16px', color: '#999' }
+        }
+      };
+      break;
+      
     default:
       chartSeriesFinal.value = arrayY01;
       chartOptionsFinal.value = {
@@ -374,12 +552,15 @@ function updateChartSpecific(newChart) {
   switch (newChart) {
     case 'line':
       sortKeyOptions.value = 'Année';
-
       SeriesParameterArray.value = [
-        ...typeArray.slice(3, 6),
-        ...typeArray.slice(7, 10),
-        typeArray[12],
-        typeArray[typeArray.length - 1]
+        typeArray[2],  // Plateforme
+        typeArray[3],  // Modele
+        typeArray[4],  // TypePlateforme
+        typeArray[6],  // Magazine
+        typeArray[8],  // Pays
+        typeArray[12], // ImageType
+        typeArray[13], // Mois
+        typeArray[17]  // GenreAuteur
       ].sort();
       if (!SeriesParameterArray.value.includes(checkedOutSeries.value)) {
         checkedOutSeries.value = 'Pays'
@@ -389,27 +570,45 @@ function updateChartSpecific(newChart) {
     case 'bar':
       sortKeyOptions.value = 'Année'
       SeriesParameterArray.value = [
-        ...typeArray.slice(3, 6),
-        ...typeArray.slice(7, 10),
-        typeArray[12],
-        typeArray[typeArray.length - 1]
-      ].sort();
-      break;
-
-    case 'pie':
-      
-      SeriesParameterArray.value = [
-        typeArray[2],  // Plateforme
-        typeArray[3],  // TypePlateforme
-        typeArray[7],  // Magazine
-        typeArray[9],  // Pays
-        typeArray[22], // ImageType
-        
+        typeArray[4],  // TypePlateforme
+        typeArray[6],  // Magazine
+        typeArray[8],  // Pays
+        typeArray[12], // ImageType
+        typeArray[13], // Mois
+        typeArray[17]  // GenreAuteur 
       ].sort();
       if (!SeriesParameterArray.value.includes(checkedOutSeries.value)) {
         checkedOutSeries.value = 'Pays'
       }
-      
+      break;
+
+    case 'pie':
+      SeriesParameterArray.value = [
+        typeArray[2],  // Plateforme
+        typeArray[4],  // TypePlateforme 
+        typeArray[6],  // Magazine
+        typeArray[8],  // Pays 
+        typeArray[12], // ImageType 
+        typeArray[17]  // GenreAuteur 
+      ].sort();
+      if (!SeriesParameterArray.value.includes(checkedOutSeries.value)) {
+        checkedOutSeries.value = 'GenreAuteur'
+      }
+      break;
+
+    case 'heatmap':
+      sortKeyOptions.value = 'Année'; // X = Années
+      SeriesParameterArray.value = [
+        typeArray[4],  // TypePlateforme
+        typeArray[6],  // Magazine
+        typeArray[8],  // Pays
+        typeArray[12], // ImageType
+        typeArray[13], // Mois
+        typeArray[17]  // GenreAuteur 
+      ].sort();
+      if (!SeriesParameterArray.value.includes(checkedOutSeries.value)) {
+        checkedOutSeries.value = 'Pays'
+      }
       break;
 
     default:
@@ -506,6 +705,9 @@ function coloredTooltip(itemsPerColumn = 5, sort = false) {
 
       <input type="radio" id="pie" name="charts" value="pie" v-model="checkedTypeCharts" />
       <label for="pie">Pie</label>
+
+      <input type="radio" id="heatmap" name="charts" value="heatmap" v-model="checkedTypeCharts" />
+      <label for="heatmap">Heatmap</label>
     </div>
     <div>
       <apexchart :key="checkedTypeCharts" width="100%" height="300" :options="chartOptionsFinal"
