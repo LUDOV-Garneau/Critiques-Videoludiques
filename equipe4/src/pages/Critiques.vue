@@ -144,20 +144,15 @@ if (typeof window !== 'undefined') {
   })
 }
 const filteredAndSorted = computed(() => {
-  const keys = filteredHeaders.value
-  // Utiliser les données filtrées par la sidebar au lieu de filteredRows
-  let items = filteredRowsObjects.value.map((r, idx) => {
-    const obj = Object.fromEntries(r.map((v, i) => [keys[i], v]))
-    // Conserver l'objet source complet pour l'affichage en modal
-    obj._full = filteredByFilters.value[idx]
-    return obj
-  })
+  // Utiliser directement les objets complets de filteredByFilters
+  let items = filteredByFilters.value
 
   // Appliquer la recherche textuelle
   if (query.value.trim()) {
     const q = query.value.toLowerCase()
     items = items.filter(it => Object.values(it).some(v => String(v ?? '').toLowerCase().includes(q)))
   }
+  
   // Appliquer le tri
   if (sortKey.value) {
     items = items.slice().sort((a, b) => {
@@ -282,9 +277,28 @@ const mappedObjects = computed(() => {
     return idx
   }
   const ambiguousAuthorIndex = findAmbiguousAuthorIndex()
-  const mapped = rows.value.map(r => {
-    // Combiner les noms d'auteurs masculins, féminins et ambigu
-    let authorNames = []
+ const mapped = rows.value.map(r => {
+  // Déterminer le genre de l'auteur (pour le pie chart)
+  let genreAuteur = '-'
+  const hasMale = maleAuthorIndex !== -1 && r[maleAuthorIndex] && r[maleAuthorIndex] !== '0' && String(r[maleAuthorIndex]).trim() !== ''
+  const hasFemale = femaleAuthorIndex !== -1 && r[femaleAuthorIndex] && r[femaleAuthorIndex] !== '0' && String(r[femaleAuthorIndex]).trim() !== ''
+  const hasAmbiguous = ambiguousAuthorIndex !== -1 && r[ambiguousAuthorIndex] && r[ambiguousAuthorIndex] !== '0' && String(r[ambiguousAuthorIndex]).trim() !== ''
+  
+  const genreCount = [hasMale, hasFemale, hasAmbiguous].filter(Boolean).length
+  
+  if (genreCount === 0) {
+    genreAuteur = 'Non spécifié'
+  } else if (hasMale) {
+    genreAuteur = 'Masculin'
+  } else if (hasFemale) {
+    genreAuteur = 'Féminin'
+  } else if (hasAmbiguous) {
+    genreAuteur = 'Ambigu'
+  }
+  
+  // Combiner les noms d'auteurs masculins, féminins et ambigu
+  let authorNames = []
+
     if (maleAuthorIndex !== -1 && r[maleAuthorIndex] && r[maleAuthorIndex] !== '0') {
       // Séparer les auteurs multiples s'ils sont dans la même cellule
       const authors = String(r[maleAuthorIndex]).split(/[,;]+/).map(a => a.trim()).filter(a => a)
@@ -385,6 +399,7 @@ const mappedObjects = computed(() => {
       Année: annee,
       Magazine: idx.Magazine >= 0 ? r[idx.Magazine] : undefined,
       Auteurs: validAuthors.length > 0 ? validAuthors.join(', ') : '-', // Afficher "-" si pas d'auteurs
+      GenreAuteur: genreAuteur,
       Pays: idx.Pays >= 0 ? r[idx.Pays] : undefined,
       CritiqueTitre: critiqueTitre,
       PDF: idx.PDF >= 0 ? r[idx.PDF] : undefined,
