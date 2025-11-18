@@ -224,16 +224,26 @@ function initMapping() {
   mapping.value.CritiqueTitre = find(['titre de la critique', 'review title', 'article title', 'titre article'])
   mapping.value.PDF = find(['pdf', 'lien', 'link', 'url', 'document', 'fichier'])
   mapping.value.Consoles = find(['consoles', 'console', 'plateforme'])
-  // Notations par critères
-  mapping.value.NoteGenerale = find(['critères généraux', 'criteres generaux', 'general score'])
-  mapping.value.NoteVisuelle = find(['critères visuels', 'criteres visuels', 'visual score'])
-  mapping.value.NoteSonore = find(['critères sonores', 'criteres sonores', 'sound score'])
-  mapping.value.NoteContenu = find(['critères de contenu', 'criteres de contenu', 'content score'])
-  mapping.value.NoteJouabilite = find(['critères de jouabilité', 'criteres de jouabilite', 'gameplay score'])
-  mapping.value.NoteTempsJeu = find(['critères sur le temps de jeu', 'criteres sur le temps de jeu', 'playtime score'])
-  mapping.value.NoteDifficulte = find(['critères sur la difficulté', 'criteres sur la difficulte', 'difficulty score'])
-  mapping.value.NotePrix = find(['critères sur le prix', 'criteres sur le prix', 'price score'])
-  mapping.value.NoteAutre = find(['autres critères', 'autres criteres', 'other score'])
+  // Notations par critères (moyennes)
+  mapping.value.NoteGenerale = find(['moyenne des critères généraux', 'criteres generaux', 'general score'])
+  mapping.value.NoteVisuelle = find(['moyenne des critères visuels', 'criteres visuels', 'visual score'])
+  mapping.value.NoteSonore = find(['moyenne des critères sonores', 'criteres sonores', 'sound score'])
+  mapping.value.NoteContenu = find(['moyenne des critères de contenu', 'criteres de contenu', 'content score'])
+  mapping.value.NoteJouabilite = find(['moyenne des critères de jouabilité', 'criteres de jouabilite', 'gameplay score'])
+  mapping.value.NoteTempsJeu = find(['moyenne des critères sur le temps de jeu', 'criteres sur le temps de jeu', 'playtime score'])
+  mapping.value.NoteDifficulte = find(['moyenne des critères sur la difficulté', 'criteres sur la difficulte', 'difficulty score'])
+  mapping.value.NotePrix = find(['moyenne des critères sur le prix', 'criteres sur le prix', 'price score'])
+  mapping.value.NoteAutre = find(['moyenne des autres critères', 'autres criteres', 'other score'])
+  // Étiquettes de notation par critères
+  mapping.value.EtiquetteGenerale = find(['étiquettes des critères généraux', 'etiquettes criteres generaux'])
+  mapping.value.EtiquetteVisuelle = find(['étiquettes des critères visuels', 'etiquettes criteres visuels'])
+  mapping.value.EtiquetteSonore = find(['étiquettes des critères sonores', 'etiquettes criteres sonores'])
+  mapping.value.EtiquetteContenu = find(['étiquettes des critères de contenu', 'etiquettes criteres de contenu'])
+  mapping.value.EtiquetteJouabilite = find(['étiquettes des critères de jouabilité', 'etiquettes criteres de jouabilite'])
+  mapping.value.EtiquetteTempsJeu = find(['étiquettes des critères sur le temps de jeu', 'etiquettes criteres temps de jeu'])
+  mapping.value.EtiquetteDifficulte = find(['étiquettes des critères sur la difficulté', 'etiquettes criteres difficulte'])
+  mapping.value.EtiquettePrix = find(['étiquettes des critères sur le prix', 'etiquettes criteres prix'])
+  mapping.value.EtiquetteAutre = find(['étiquettes des autres critères', 'etiquettes autres criteres'])
   // Colonnes pour les détails de publication
   // Chercher d'abord par nom exact (E, F, G, H, I) puis par labels
   const findExactLetter = (letter) => {
@@ -246,6 +256,58 @@ function initMapping() {
   mapping.value.Page = findExactLetter('H') || find(['page', 'pages'])
   mapping.value.NombrePages = findExactLetter('I') || find(['nombre de pages', 'nombre pages', 'nb pages', 'pages count'])
 }
+
+// Fonction pour traduire les étiquettes de notation de l'anglais vers le français
+function translateRatingLabel(label) {
+  if (!label || typeof label !== 'string') return null
+
+  const translations = {
+    // Étiquettes positives
+    'excellent': 'Excellent',
+    'very good': 'Très bon',
+    'good': 'Bon',
+    'above average': 'Au-dessus de la moyenne',
+    'average': 'Moyen',
+    'below average': 'En-dessous de la moyenne',
+    'poor': 'Faible',
+    'very poor': 'Très faible',
+    'bad': 'Mauvais',
+    'very bad': 'Très mauvais',
+    'terrible': 'Terrible',
+
+    // Étiquettes spécifiques
+    'outstanding': 'Exceptionnel',
+    'great': 'Excellent',
+    'decent': 'Correct',
+    'mediocre': 'Médiocre',
+    'awful': 'Affreux',
+
+    // Étiquettes de difficulté
+    'very easy': 'Très facile',
+    'easy': 'Facile',
+    'moderate': 'Modéré',
+    'hard': 'Difficile',
+    'very hard': 'Très difficile',
+
+    // Étiquettes de prix
+    'very cheap': 'Très bon marché',
+    'cheap': 'Bon marché',
+    'reasonable': 'Raisonnable',
+    'expensive': 'Cher',
+    'very expensive': 'Très cher',
+
+    // Étiquettes de temps de jeu
+    'very short': 'Très court',
+    'short': 'Court',
+    'medium': 'Moyen',
+    'long': 'Long',
+    'very long': 'Très long'
+  }
+
+  const lowerLabel = label.toLowerCase().trim()
+  return translations[lowerLabel] || label // Retourner la traduction ou l'original si pas trouvé
+}
+
 const mappedObjects = computed(() => {
   if (!headers.value.length) return []
   const idx = Object.fromEntries(Object.entries(mapping.value).map(([k, v]) => [k, headers.value.indexOf(v)]))
@@ -405,7 +467,7 @@ const mappedObjects = computed(() => {
       PDF: idx.PDF >= 0 ? r[idx.PDF] : undefined,
       Consoles: idx.Consoles >= 0 ? r[idx.Consoles] : '-',
       PseudonymeIdentity: pseudonymeIdentity, // Colonne DC "identité du pseudo"
-      // Notations par critères
+      // Notations par critères (moyennes)
       NoteGenerale: parseScore(idx.NoteGenerale >= 0 ? r[idx.NoteGenerale] : undefined),
       NoteVisuelle: parseScore(idx.NoteVisuelle >= 0 ? r[idx.NoteVisuelle] : undefined),
       NoteSonore: parseScore(idx.NoteSonore >= 0 ? r[idx.NoteSonore] : undefined),
@@ -415,6 +477,16 @@ const mappedObjects = computed(() => {
       NoteDifficulte: parseScore(idx.NoteDifficulte >= 0 ? r[idx.NoteDifficulte] : undefined),
       NotePrix: parseScore(idx.NotePrix >= 0 ? r[idx.NotePrix] : undefined),
       NoteAutre: parseScore(idx.NoteAutre >= 0 ? r[idx.NoteAutre] : undefined),
+      // Étiquettes de notation par critères (traduites)
+      EtiquetteGenerale: translateRatingLabel(idx.EtiquetteGenerale >= 0 ? r[idx.EtiquetteGenerale] : undefined),
+      EtiquetteVisuelle: translateRatingLabel(idx.EtiquetteVisuelle >= 0 ? r[idx.EtiquetteVisuelle] : undefined),
+      EtiquetteSonore: translateRatingLabel(idx.EtiquetteSonore >= 0 ? r[idx.EtiquetteSonore] : undefined),
+      EtiquetteContenu: translateRatingLabel(idx.EtiquetteContenu >= 0 ? r[idx.EtiquetteContenu] : undefined),
+      EtiquetteJouabilite: translateRatingLabel(idx.EtiquetteJouabilite >= 0 ? r[idx.EtiquetteJouabilite] : undefined),
+      EtiquetteTempsJeu: translateRatingLabel(idx.EtiquetteTempsJeu >= 0 ? r[idx.EtiquetteTempsJeu] : undefined),
+      EtiquetteDifficulte: translateRatingLabel(idx.EtiquetteDifficulte >= 0 ? r[idx.EtiquetteDifficulte] : undefined),
+      EtiquettePrix: translateRatingLabel(idx.EtiquettePrix >= 0 ? r[idx.EtiquettePrix] : undefined),
+      EtiquetteAutre: translateRatingLabel(idx.EtiquetteAutre >= 0 ? r[idx.EtiquetteAutre] : undefined),
       ImageType: imageType,
       // Détails de publication
       Mois: idx.Mois >= 0 ? formatMois(r[idx.Mois]) : undefined,
@@ -1342,7 +1414,7 @@ function buildImportantColumns(allHeaders) {
                 <div class="modal-section">
                   <h4 class="section-title">Notations</h4>
                   <div class="modal-grid">
-                    <div class="modal-field">
+                    <div class="modal-field modal-field-full">
                       <div class="label">Note générale</div>
                       <div class="value score-value">
                         <template v-if="modalItem?.Note !== undefined && modalItem?.Note !== null && modalItem?.Note !== '-'">
@@ -1355,9 +1427,11 @@ function buildImportantColumns(allHeaders) {
                     </div>
                     <div class="modal-field">
                       <div class="label">Critères généraux</div>
-                      <div class="value score-value">
+                      <div class="value score-value score-with-label">
                         <template v-if="modalItem?.NoteGenerale !== undefined && modalItem?.NoteGenerale !== null && modalItem?.NoteGenerale !== '-'">
                           <span class="score-number">{{ modalItem.NoteGenerale }}</span>
+                          <span v-if="modalItem?.EtiquetteGenerale" class="score-label">{{ modalItem.EtiquetteGenerale }}</span>
+                          <span v-else class="score-label-missing">Aucune étiquette</span>
                         </template>
                         <template v-else>
                           <span class="score-not-available">Non notée</span>
@@ -1366,9 +1440,11 @@ function buildImportantColumns(allHeaders) {
                     </div>
                     <div class="modal-field">
                       <div class="label">Critères visuels</div>
-                      <div class="value score-value">
+                      <div class="value score-value score-with-label">
                         <template v-if="modalItem?.NoteVisuelle !== undefined && modalItem?.NoteVisuelle !== null && modalItem?.NoteVisuelle !== '-'">
                           <span class="score-number">{{ modalItem.NoteVisuelle }}</span>
+                          <span v-if="modalItem?.EtiquetteVisuelle" class="score-label">{{ modalItem.EtiquetteVisuelle }}</span>
+                          <span v-else class="score-label-missing">Aucune étiquette</span>
                         </template>
                         <template v-else>
                           <span class="score-not-available">Non notée</span>
@@ -1377,9 +1453,11 @@ function buildImportantColumns(allHeaders) {
                     </div>
                     <div class="modal-field">
                       <div class="label">Critères sonores</div>
-                      <div class="value score-value">
+                      <div class="value score-value score-with-label">
                         <template v-if="modalItem?.NoteSonore !== undefined && modalItem?.NoteSonore !== null && modalItem?.NoteSonore !== '-'">
                           <span class="score-number">{{ modalItem.NoteSonore }}</span>
+                          <span v-if="modalItem?.EtiquetteSonore" class="score-label">{{ modalItem.EtiquetteSonore }}</span>
+                          <span v-else class="score-label-missing">Aucune étiquette</span>
                         </template>
                         <template v-else>
                           <span class="score-not-available">Non notée</span>
@@ -1388,9 +1466,11 @@ function buildImportantColumns(allHeaders) {
                     </div>
                     <div class="modal-field">
                       <div class="label">Critères de contenu</div>
-                      <div class="value score-value">
+                      <div class="value score-value score-with-label">
                         <template v-if="modalItem?.NoteContenu !== undefined && modalItem?.NoteContenu !== null && modalItem?.NoteContenu !== '-'">
                           <span class="score-number">{{ modalItem.NoteContenu }}</span>
+                          <span v-if="modalItem?.EtiquetteContenu" class="score-label">{{ modalItem.EtiquetteContenu }}</span>
+                          <span v-else class="score-label-missing">Aucune étiquette</span>
                         </template>
                         <template v-else>
                           <span class="score-not-available">Non notée</span>
@@ -1399,9 +1479,11 @@ function buildImportantColumns(allHeaders) {
                     </div>
                     <div class="modal-field">
                       <div class="label">Critères de jouabilité</div>
-                      <div class="value score-value">
+                      <div class="value score-value score-with-label">
                         <template v-if="modalItem?.NoteJouabilite !== undefined && modalItem?.NoteJouabilite !== null && modalItem?.NoteJouabilite !== '-'">
                           <span class="score-number">{{ modalItem.NoteJouabilite }}</span>
+                          <span v-if="modalItem?.EtiquetteJouabilite" class="score-label">{{ modalItem.EtiquetteJouabilite }}</span>
+                          <span v-else class="score-label-missing">Aucune étiquette</span>
                         </template>
                         <template v-else>
                           <span class="score-not-available">Non notée</span>
@@ -1410,9 +1492,11 @@ function buildImportantColumns(allHeaders) {
                     </div>
                     <div class="modal-field">
                       <div class="label">Critères sur le temps de jeu</div>
-                      <div class="value score-value">
+                      <div class="value score-value score-with-label">
                         <template v-if="modalItem?.NoteTempsJeu !== undefined && modalItem?.NoteTempsJeu !== null && modalItem?.NoteTempsJeu !== '-'">
                           <span class="score-number">{{ modalItem.NoteTempsJeu }}</span>
+                          <span v-if="modalItem?.EtiquetteTempsJeu" class="score-label">{{ modalItem.EtiquetteTempsJeu }}</span>
+                          <span v-else class="score-label-missing">Aucune étiquette</span>
                         </template>
                         <template v-else>
                           <span class="score-not-available">Non notée</span>
@@ -1421,9 +1505,11 @@ function buildImportantColumns(allHeaders) {
                     </div>
                     <div class="modal-field">
                       <div class="label">Critères sur la difficulté</div>
-                      <div class="value score-value">
+                      <div class="value score-value score-with-label">
                         <template v-if="modalItem?.NoteDifficulte !== undefined && modalItem?.NoteDifficulte !== null && modalItem?.NoteDifficulte !== '-'">
                           <span class="score-number">{{ modalItem.NoteDifficulte }}</span>
+                          <span v-if="modalItem?.EtiquetteDifficulte" class="score-label">{{ modalItem.EtiquetteDifficulte }}</span>
+                          <span v-else class="score-label-missing">Aucune étiquette</span>
                         </template>
                         <template v-else>
                           <span class="score-not-available">Non notée</span>
@@ -1432,9 +1518,11 @@ function buildImportantColumns(allHeaders) {
                     </div>
                     <div class="modal-field">
                       <div class="label">Critères sur le prix</div>
-                      <div class="value score-value">
+                      <div class="value score-value score-with-label">
                         <template v-if="modalItem?.NotePrix !== undefined && modalItem?.NotePrix !== null && modalItem?.NotePrix !== '-'">
                           <span class="score-number">{{ modalItem.NotePrix }}</span>
+                          <span v-if="modalItem?.EtiquettePrix" class="score-label">{{ modalItem.EtiquettePrix }}</span>
+                          <span v-else class="score-label-missing">Aucune étiquette</span>
                         </template>
                         <template v-else>
                           <span class="score-not-available">Non notée</span>
@@ -1443,9 +1531,11 @@ function buildImportantColumns(allHeaders) {
                     </div>
                     <div class="modal-field">
                       <div class="label">Autres critères</div>
-                      <div class="value score-value">
+                      <div class="value score-value score-with-label">
                         <template v-if="modalItem?.NoteAutre !== undefined && modalItem?.NoteAutre !== null && modalItem?.NoteAutre !== '-'">
                           <span class="score-number">{{ modalItem.NoteAutre }}</span>
+                          <span v-if="modalItem?.EtiquetteAutre" class="score-label">{{ modalItem.EtiquetteAutre }}</span>
+                          <span v-else class="score-label-missing">Aucune étiquette</span>
                         </template>
                         <template v-else>
                           <span class="score-not-available">Non notée</span>
@@ -1841,6 +1931,11 @@ function buildImportantColumns(allHeaders) {
   .score-value {
     display: flex;
     align-items: center;
+    gap: 8px;
+  }
+
+  .score-with-label {
+    flex-wrap: wrap;
   }
 
   .score-number {
@@ -1852,6 +1947,28 @@ function buildImportantColumns(allHeaders) {
     font-weight: 600;
     font-size: 15px;
     box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+  }
+
+  .score-label {
+    display: inline-block;
+    padding: 4px 10px;
+    background: #eff6ff;
+    color: #1e40af;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid #bfdbfe;
+  }
+
+  .score-label-missing {
+    display: inline-block;
+    padding: 4px 10px;
+    background: #fef3c7;
+    color: #92400e;
+    border-radius: 6px;
+    font-size: 12px;
+    font-style: italic;
+    border: 1px solid #fde68a;
   }
 
   .score-not-available {
