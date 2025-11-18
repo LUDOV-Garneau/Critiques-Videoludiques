@@ -342,6 +342,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
 
     case 'line':
       isValideGraphsX = false
+      isValideGraphsY = true
       chartSeriesFinal.value = arrayY01;
       chartOptionsFinal.value = {
         chart: { type: 'line', height: 300 },
@@ -362,6 +363,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
 
     case 'bar':
       isValideGraphsX = true
+      isValideGraphsY = true
       chartSeriesFinal.value = arrayY01;
       chartOptionsFinal.value = {
         chart: { type: 'bar', height: 300, stacked: true },
@@ -384,6 +386,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
 
     case 'pie':
       isValideGraphsX = false
+      isValideGraphsY = true
       // Pour pie chart, on compte la distribution du paramètre Series dans les données filtrées
       const keySeries = checkedOutSeries.value;
       const items = filteredAndSorted.value;
@@ -451,6 +454,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
 
       case 'heatmap':
       isValideGraphsX = true
+      isValideGraphsY = true
       const { series: heatmapSeries, categories: heatmapCategories } = generateHeatmapData();
       
       chartSeriesFinal.value = heatmapSeries;
@@ -718,30 +722,30 @@ function coloredTooltip(itemsPerColumn = 5, sort = false) {
       <input type="radio" id="heatmap" name="charts" value="heatmap" v-model="checkedTypeCharts" />
       <label for="heatmap">Heatmap</label>
     </div>
-    <div v-if="isValideGraphsX">
-      <select v-model="checkedOutSeries">
-        <option v-for="type in SeriesParameterArray" :key="type" :value="type">
-          {{ type }}
-        </option>
-      </select>
-    </div>
-
-    <div>
-      <apexchart :key="checkedTypeCharts" width="100%" height="300" :options="chartOptionsFinal"
-        :series="chartSeriesFinal" />
-    </div>
+    
     <div v-if="isValideGraphsY">
       <select v-model="checkedOutSeries">
         <option v-for="type in SeriesParameterArray" :key="type" :value="type">
           {{ type }}
         </option>
       </select>
-
       <input type="radio" id="combine" name="Data" value="combine" v-model="checkedOutData" />
       <label for="combine">Combiner</label>
 
       <input type="radio" id="divided" name="Data" value="divided" v-model="checkedOutData" />
       <label for="divided">Diviser</label>
+    </div>
+
+    <div>
+      <apexchart :key="checkedTypeCharts" width="100%" height="300" :options="chartOptionsFinal"
+        :series="chartSeriesFinal" />
+    </div>
+    <div v-if="isValideGraphsX">
+      <select v-model="checkedOutSeries">
+        <option v-for="type in SeriesParameterArray" :key="type" :value="type">
+          {{ type }}
+        </option>
+      </select>
     </div>
 
   </div>
