@@ -1344,43 +1344,113 @@ function buildImportantColumns(allHeaders) {
                   <div class="modal-grid">
                     <div class="modal-field">
                       <div class="label">Note générale</div>
-                      <div class="value">{{ modalItem?.Note || '-' }}</div>
+                      <div class="value score-value">
+                        <template v-if="modalItem?.Note !== undefined && modalItem?.Note !== null && modalItem?.Note !== '-'">
+                          <span class="score-number">{{ modalItem.Note }}</span>
+                        </template>
+                        <template v-else>
+                          <span class="score-not-available">Non notée</span>
+                        </template>
+                      </div>
                     </div>
                     <div class="modal-field">
                       <div class="label">Critères généraux</div>
-                      <div class="value">{{ modalItem?.NoteGenerale || '-' }}</div>
+                      <div class="value score-value">
+                        <template v-if="modalItem?.NoteGenerale !== undefined && modalItem?.NoteGenerale !== null && modalItem?.NoteGenerale !== '-'">
+                          <span class="score-number">{{ modalItem.NoteGenerale }}</span>
+                        </template>
+                        <template v-else>
+                          <span class="score-not-available">Non notée</span>
+                        </template>
+                      </div>
                     </div>
                     <div class="modal-field">
                       <div class="label">Critères visuels</div>
-                      <div class="value">{{ modalItem?.NoteVisuelle || '-' }}</div>
+                      <div class="value score-value">
+                        <template v-if="modalItem?.NoteVisuelle !== undefined && modalItem?.NoteVisuelle !== null && modalItem?.NoteVisuelle !== '-'">
+                          <span class="score-number">{{ modalItem.NoteVisuelle }}</span>
+                        </template>
+                        <template v-else>
+                          <span class="score-not-available">Non notée</span>
+                        </template>
+                      </div>
                     </div>
                     <div class="modal-field">
                       <div class="label">Critères sonores</div>
-                      <div class="value">{{ modalItem?.NoteSonore || '-' }}</div>
+                      <div class="value score-value">
+                        <template v-if="modalItem?.NoteSonore !== undefined && modalItem?.NoteSonore !== null && modalItem?.NoteSonore !== '-'">
+                          <span class="score-number">{{ modalItem.NoteSonore }}</span>
+                        </template>
+                        <template v-else>
+                          <span class="score-not-available">Non notée</span>
+                        </template>
+                      </div>
                     </div>
                     <div class="modal-field">
                       <div class="label">Critères de contenu</div>
-                      <div class="value">{{ modalItem?.NoteContenu || '-' }}</div>
+                      <div class="value score-value">
+                        <template v-if="modalItem?.NoteContenu !== undefined && modalItem?.NoteContenu !== null && modalItem?.NoteContenu !== '-'">
+                          <span class="score-number">{{ modalItem.NoteContenu }}</span>
+                        </template>
+                        <template v-else>
+                          <span class="score-not-available">Non notée</span>
+                        </template>
+                      </div>
                     </div>
                     <div class="modal-field">
                       <div class="label">Critères de jouabilité</div>
-                      <div class="value">{{ modalItem?.NoteJouabilite || '-' }}</div>
+                      <div class="value score-value">
+                        <template v-if="modalItem?.NoteJouabilite !== undefined && modalItem?.NoteJouabilite !== null && modalItem?.NoteJouabilite !== '-'">
+                          <span class="score-number">{{ modalItem.NoteJouabilite }}</span>
+                        </template>
+                        <template v-else>
+                          <span class="score-not-available">Non notée</span>
+                        </template>
+                      </div>
                     </div>
                     <div class="modal-field">
                       <div class="label">Critères sur le temps de jeu</div>
-                      <div class="value">{{ modalItem?.NoteTempsJeu || '-' }}</div>
+                      <div class="value score-value">
+                        <template v-if="modalItem?.NoteTempsJeu !== undefined && modalItem?.NoteTempsJeu !== null && modalItem?.NoteTempsJeu !== '-'">
+                          <span class="score-number">{{ modalItem.NoteTempsJeu }}</span>
+                        </template>
+                        <template v-else>
+                          <span class="score-not-available">Non notée</span>
+                        </template>
+                      </div>
                     </div>
                     <div class="modal-field">
                       <div class="label">Critères sur la difficulté</div>
-                      <div class="value">{{ modalItem?.NoteDifficulte || '-' }}</div>
+                      <div class="value score-value">
+                        <template v-if="modalItem?.NoteDifficulte !== undefined && modalItem?.NoteDifficulte !== null && modalItem?.NoteDifficulte !== '-'">
+                          <span class="score-number">{{ modalItem.NoteDifficulte }}</span>
+                        </template>
+                        <template v-else>
+                          <span class="score-not-available">Non notée</span>
+                        </template>
+                      </div>
                     </div>
                     <div class="modal-field">
                       <div class="label">Critères sur le prix</div>
-                      <div class="value">{{ modalItem?.NotePrix || '-' }}</div>
+                      <div class="value score-value">
+                        <template v-if="modalItem?.NotePrix !== undefined && modalItem?.NotePrix !== null && modalItem?.NotePrix !== '-'">
+                          <span class="score-number">{{ modalItem.NotePrix }}</span>
+                        </template>
+                        <template v-else>
+                          <span class="score-not-available">Non notée</span>
+                        </template>
+                      </div>
                     </div>
                     <div class="modal-field">
                       <div class="label">Autres critères</div>
-                      <div class="value">{{ modalItem?.NoteAutre || '-' }}</div>
+                      <div class="value score-value">
+                        <template v-if="modalItem?.NoteAutre !== undefined && modalItem?.NoteAutre !== null && modalItem?.NoteAutre !== '-'">
+                          <span class="score-number">{{ modalItem.NoteAutre }}</span>
+                        </template>
+                        <template v-else>
+                          <span class="score-not-available">Non notée</span>
+                        </template>
+                      </div>
                     </div>
                   </div>
                   <!-- Section: Type d'image -->
@@ -1765,6 +1835,34 @@ function buildImportantColumns(allHeaders) {
   .modal-field .value .list-item {
     line-height: 1.6;
     margin: 2px 0;
+  }
+
+  /* Styles pour les notes/scores */
+  .score-value {
+    display: flex;
+    align-items: center;
+  }
+
+  .score-number {
+    display: inline-block;
+    padding: 4px 12px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 15px;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+  }
+
+  .score-not-available {
+    display: inline-block;
+    padding: 4px 12px;
+    background: #f3f4f6;
+    color: #9ca3af;
+    border-radius: 6px;
+    font-size: 13px;
+    font-style: italic;
+    border: 1px dashed #d1d5db;
   }
 
   /* Styles pour les tags d'auteurs */
