@@ -632,6 +632,9 @@ const facets = computed(() => {
     genresArray.push('Non spécifié')
   }
 
+  // Trier les plateformes
+  const sortedPlatforms = Array.from(platforms).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
+
   // Filtrer les années valides (exclure "-" et les valeurs invalides)
   const validYears = arr
     .map(x => x.Année)
