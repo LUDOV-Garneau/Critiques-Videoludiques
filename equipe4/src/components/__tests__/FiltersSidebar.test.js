@@ -250,33 +250,33 @@ describe('FiltersSidebar - Tests des filtres', () => {
     })
   })
 
-  describe('Filtre par consoles spécifiques', () => {
-    it('devrait permettre de sélectionner une console', async () => {
+  describe('Filtre par plateformes spécifiques', () => {
+    it('devrait permettre de sélectionner une plateforme', async () => {
       const component = wrapper.vm
-      
-      component.toggleArrayFilter('consoles', 'PlayStation')
-      
-      expect(component.localFilters.consoles).toContain('PlayStation')
+
+      component.toggleArrayFilter('platforms', 'Sony PlayStation')
+
+      expect(component.localFilters.platforms).toContain('Sony PlayStation')
     })
 
-    it('devrait permettre de sélectionner plusieurs consoles', async () => {
+    it('devrait permettre de sélectionner plusieurs plateformes', async () => {
       const component = wrapper.vm
-      
-      component.toggleArrayFilter('consoles', 'PlayStation')
-      component.toggleArrayFilter('consoles', 'Xbox')
-      component.toggleArrayFilter('consoles', 'Nintendo64')
-      
-      expect(component.localFilters.consoles).toHaveLength(3)
+
+      component.toggleArrayFilter('platforms', 'Sony PlayStation')
+      component.toggleArrayFilter('platforms', 'Microsoft Xbox')
+      component.toggleArrayFilter('platforms', 'Nintendo 64')
+
+      expect(component.localFilters.platforms).toHaveLength(3)
     })
 
-    it('devrait désélectionner une console', async () => {
+    it('devrait désélectionner une plateforme', async () => {
       const component = wrapper.vm
-      
-      component.toggleArrayFilter('consoles', 'PlayStation')
-      expect(component.localFilters.consoles).toContain('PlayStation')
-      
-      component.toggleArrayFilter('consoles', 'PlayStation')
-      expect(component.localFilters.consoles).not.toContain('PlayStation')
+
+      component.toggleArrayFilter('platforms', 'Sony PlayStation')
+      expect(component.localFilters.platforms).toContain('Sony PlayStation')
+
+      component.toggleArrayFilter('platforms', 'Sony PlayStation')
+      expect(component.localFilters.platforms).not.toContain('Sony PlayStation')
     })
   })
 
@@ -286,15 +286,15 @@ describe('FiltersSidebar - Tests des filtres', () => {
       
       // Appliquer plusieurs filtres
       component.toggleArrayFilter('platformTypes', 'Console')
-      component.toggleArrayFilter('consoles', 'PlayStation')
+      component.toggleArrayFilter('platforms', 'Sony PlayStation')
       component.toggleScoreType('general')
       component.updateYearRange([1990, 2020])
-      
+
       // Réinitialiser tout
       component.clearAllFilters()
-      
+
       expect(component.localFilters.platformTypes).toHaveLength(0)
-      expect(component.localFilters.consoles).toHaveLength(0)
+      expect(component.localFilters.platforms).toHaveLength(0)
       expect(component.localFilters.scoreTypes).toHaveLength(0)
       expect(component.localFilters.yearRange).toEqual([1980, 2025])
       expect(component.localFilters.includeUnscored).toBe(true)
