@@ -31,9 +31,10 @@ const typeArray = [
   "Pages", //16
   "GenreAuteur" //17
 ];
-
-const OptionsParameterArray = ref([])
-const SeriesParameterArray = ref([])
+let OptionsOriginalArray = []
+let OptionsParameterArray = ref([])
+let SeriesOriginalArray = []
+let SeriesParameterArray = ref([])
 
 // FiltreActifs {
 // magazines: [],
@@ -64,18 +65,16 @@ const props = defineProps({
 })
 
 let isMultipleFilter = false
-const sortKeyOptions = ref('Année')
-const sortKeySeries = ref('Pays')
 const sortDir = ref('desc')
 
 const filteredAndSorted = computed(() => {
   console.log("filteredAndSorted recalculated");
   let sortedItems = [...props.items];
 
-  if (sortKeyOptions.value) {
+  if (checkedOutOptions.value) {
     sortedItems = sortedItems.sort((b, a) => {
-      const va = a[sortKeyOptions.value];
-      const vb = b[sortKeyOptions.value];
+      const va = a[checkedOutOptions.value];
+      const vb = b[checkedOutOptions.value];
 
       if (va === '-' && vb !== '-') return 1;
       if (vb === '-' && va !== '-') return -1;
@@ -198,7 +197,7 @@ function erreurCharts() {
 }
 
 function dividedY(mode) {
-  const keyX = sortKeyOptions.value;
+  const keyX = checkedOutOptions.value;
   const keySeries = checkedOutSeries.value;
   const items = filteredAndSorted.value;
 
@@ -276,7 +275,7 @@ function dividedY(mode) {
 }
 
 function generateHeatmapData() {
-  const keyX = sortKeyOptions.value;  // Année
+  const keyX = checkedOutOptions.value;  // Année
   const keySeries = checkedOutSeries.value;  // Pays, Magazine, etc.
   const items = filteredAndSorted.value;
 
@@ -467,7 +466,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
           }
         },
         title: {
-          text: `Heatmap: ${checkedOutSeries.value} par ${sortKeyOptions.value}`,
+          text: `Heatmap: ${checkedOutSeries.value} par ${checkedOutOptions.value}`,
           align: 'left'
         },
         plotOptions: {
@@ -518,7 +517,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
           type: 'category',
           categories: heatmapCategories,
           title: {
-            text: sortKeyOptions.value
+            text: checkedOutOptions.value
           }
         },
         yaxis: {
@@ -564,71 +563,104 @@ function ChartGeneration(arrayX01, arrayY01, type) {
 function updateChartSpecific(newChart) {
   switch (newChart) {
     case 'line':
-      sortKeyOptions.value = 'Année';
-      SeriesParameterArray.value = [
-        typeArray[2],  // Plateforme
-        typeArray[3],  // Modele
-        typeArray[4],  // TypePlateforme
-        typeArray[6],  // Magazine
-        typeArray[8],  // Pays
-        typeArray[12], // ImageType
-        typeArray[13], // Mois
-        typeArray[17]  // GenreAuteur
+      checkedOutOptions.value = 'Année';
+      SeriesOriginalArray.value = [
+        typeArray[2],
+        typeArray[3],
+        typeArray[4],
+        typeArray[6],
+        typeArray[8],
+        typeArray[12],
+        typeArray[13],
+        typeArray[17]
       ].sort();
-      if (!SeriesParameterArray.value.includes(checkedOutSeries.value)) {
-        checkedOutSeries.value = 'Pays'
+
+      if (!SeriesOriginalArray.value.includes(checkedOutSeries.value)) {
+        checkedOutSeries.value = 'Pays';
       }
+
+      SeriesParameterArray.value = [...SeriesOriginalArray.value];
       break;
 
     case 'bar':
-      sortKeyOptions.value = 'Année'
-      SeriesParameterArray.value = [
-        typeArray[4],  // TypePlateforme
-        typeArray[6],  // Magazine
-        typeArray[8],  // Pays
-        typeArray[12], // ImageType
-        typeArray[13], // Mois
-        typeArray[17]  // GenreAuteur 
+      SeriesOriginalArray.value = [
+        typeArray[4],
+        typeArray[6],
+        typeArray[8],
+        typeArray[12],
+        typeArray[13],
+        typeArray[17]
       ].sort();
-      if (!SeriesParameterArray.value.includes(checkedOutSeries.value)) {
-        checkedOutSeries.value = 'Pays'
+
+      if (!SeriesOriginalArray.value.includes(checkedOutSeries.value)) {
+        checkedOutSeries.value = 'Pays';
       }
+
+      OptionsOriginalArray.value = [...SeriesOriginalArray.value];
+
+      if (!OptionsOriginalArray.value.includes(checkedOutOptions.value)) {
+        checkedOutOptions.value = 'ImageType';
+      }
+
+      SeriesParameterArray.value = SeriesOriginalArray.value.filter(
+        item => item !== checkedOutOptions.value
+      );
+      OptionsParameterArray.value = OptionsOriginalArray.value.filter(
+        item => item !== checkedOutSeries.value
+      );
       break;
 
     case 'pie':
       SeriesParameterArray.value = [
-        typeArray[2],  // Plateforme
-        typeArray[4],  // TypePlateforme 
-        typeArray[6],  // Magazine
-        typeArray[8],  // Pays 
-        typeArray[12], // ImageType 
-        typeArray[17]  // GenreAuteur 
+        typeArray[2],
+        typeArray[4],
+        typeArray[6],
+        typeArray[8],
+        typeArray[12],
+        typeArray[17]
       ].sort();
+
       if (!SeriesParameterArray.value.includes(checkedOutSeries.value)) {
-        checkedOutSeries.value = 'GenreAuteur'
+        checkedOutSeries.value = 'GenreAuteur';
       }
       break;
 
     case 'heatmap':
-      sortKeyOptions.value = 'Année'; // X = Années
-      SeriesParameterArray.value = [
-        typeArray[4],  // TypePlateforme
-        typeArray[6],  // Magazine
-        typeArray[8],  // Pays
-        typeArray[12], // ImageType
-        typeArray[13], // Mois
-        typeArray[17]  // GenreAuteur 
+      SeriesOriginalArray.value = [
+        typeArray[4],
+        typeArray[6],
+        typeArray[8],
+        typeArray[12],
+        typeArray[13],
+        typeArray[17]
       ].sort();
-      if (!SeriesParameterArray.value.includes(checkedOutSeries.value)) {
-        checkedOutSeries.value = 'Pays'
+
+      if (!SeriesOriginalArray.value.includes(checkedOutSeries.value)) {
+        checkedOutSeries.value = 'Mois';
       }
+
+      OptionsOriginalArray.value = [
+        typeArray[5],
+        typeArray[13]
+      ].sort();
+
+      if (!OptionsOriginalArray.value.includes(checkedOutOptions.value)) {
+        checkedOutOptions.value = 'Année';
+      }
+
+      SeriesParameterArray.value = SeriesOriginalArray.value.filter(
+        item => item !== checkedOutOptions.value
+      );
+      OptionsParameterArray.value = OptionsOriginalArray.value.filter(
+        item => item !== checkedOutSeries.value
+      );
       break;
 
     default:
-      SeriesParameterArray.value = [...typeArray]
-
+      SeriesParameterArray.value = [...typeArray];
   }
 }
+
 
 
 // Initialiser le graphique au montage du composant
@@ -637,23 +669,38 @@ onMounted(() => {
   updateData(checkedTypeCharts.value, checkedOutData.value, checkedOutSeries.value)
 })
 
-watch(filteredAndSorted, () => {
-  updateChartSpecific(checkedTypeCharts.value)
-  updateData(checkedTypeCharts.value, checkedOutData.value, checkedOutSeries.value)
-});
+watch(
+  [filteredAndSorted, checkedTypeCharts, checkedOutData, checkedOutOptions, checkedOutSeries],
+  () => {
+    updateChartSpecific(checkedTypeCharts.value);
+    updateData(
+      checkedTypeCharts.value,
+      checkedOutData.value,
+      checkedOutSeries.value
+    );
+  }
+);
 
-watch(checkedTypeCharts, (newChart) => {
-  updateChartSpecific(newChart)
-  updateData(newChart, 'combine', checkedOutSeries.value)
-})
 
-watch(checkedOutData, (newMode) => {
-  updateData(checkedTypeCharts.value, newMode, checkedOutSeries.value)
-})
 
-watch(checkedOutSeries, (newSelect) => {
-  updateData(checkedTypeCharts.value, checkedOutData.value, newSelect)
-})
+
+// watch(filteredAndSorted, () => {
+//   updateChartSpecific(checkedTypeCharts.value)
+//   updateData(checkedTypeCharts.value, checkedOutData.value, checkedOutSeries.value)
+// });
+
+// watch(checkedTypeCharts, (newChart) => {
+//   updateChartSpecific(newChart)
+//   updateData(newChart, 'combine', checkedOutSeries.value)
+// })
+
+// watch(checkedOutData, (newMode) => {
+//   updateData(checkedTypeCharts.value, newMode, checkedOutSeries.value)
+// })
+
+// watch(checkedOutSeries, (newSelect) => {
+//   updateData(checkedTypeCharts.value, checkedOutData.value, newSelect)
+// })
 
 function coloredTooltip(itemsPerColumn = 5, sort = false) {
   return function ({ series, dataPointIndex, w }) {
@@ -723,7 +770,7 @@ function coloredTooltip(itemsPerColumn = 5, sort = false) {
       <label for="heatmap">Heatmap</label>
     </div>
     
-    <div v-if="isValideGraphsY">
+    <div v-if="isValideGraphsY">Ligne Y
       <select v-model="checkedOutSeries">
         <option v-for="type in SeriesParameterArray" :key="type" :value="type">
           {{ type }}
@@ -740,9 +787,10 @@ function coloredTooltip(itemsPerColumn = 5, sort = false) {
       <apexchart :key="checkedTypeCharts" width="100%" height="300" :options="chartOptionsFinal"
         :series="chartSeriesFinal" />
     </div>
-    <div v-if="isValideGraphsX">
-      <select v-model="checkedOutSeries">
-        <option v-for="type in SeriesParameterArray" :key="type" :value="type">
+    
+    <div v-if="isValideGraphsX">Ligne X
+      <select v-model="checkedOutOptions">
+        <option v-for="type in OptionsParameterArray" :key="type" :value="type">
           {{ type }}
         </option>
       </select>
