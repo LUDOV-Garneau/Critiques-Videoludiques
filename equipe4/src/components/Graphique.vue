@@ -53,6 +53,22 @@ let SeriesParameterArray = ref([])
 // includeUnscored: true
 // }
 
+const months = [
+  "1 (janvier)",
+  "2 (février)",
+  "3 (mars)",
+  "4 (avril)",
+  "5 (mai)",
+  "6 (juin)",
+  "7 (juillet)",
+  "8 (août)",
+  "9 (septembre)",
+  "10 (octobre)",
+  "11 (novembre)",
+  "12 (décembre)"
+];
+
+
 const props = defineProps({
   items: {
     type: Array,
@@ -72,6 +88,7 @@ const filteredAndSorted = computed(() => {
   let sortedItems = [...props.items];
 
   if (checkedOutOptions.value) {
+  
     sortedItems = sortedItems.sort((b, a) => {
       const va = a[checkedOutOptions.value];
       const vb = b[checkedOutOptions.value];
@@ -680,8 +697,6 @@ watch(
     );
   }
 );
-
-
 
 
 // watch(filteredAndSorted, () => {
