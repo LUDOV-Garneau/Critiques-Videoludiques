@@ -213,6 +213,11 @@ function erreurCharts() {
 
 }
 
+// Helper pour fix le sort (fix "1, 10, 2" dans l'ordre du mois)
+const naturalSort = (a, b) => {
+  return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+};
+
 function dividedY(mode) {
   const keyX = checkedOutOptions.value;
   const keySeries = checkedOutSeries.value;
@@ -230,11 +235,11 @@ function dividedY(mode) {
   // Initialisation
   const ValeurUniqueOptions = [...new Set(
     items.flatMap(i => splitMultipleValues(i[keyX]))
-  )].sort();
+  )].sort(naturalSort);
 
   const ValeurUniqueSeries = [...new Set(
     items.flatMap(i => splitMultipleValues(i[keySeries]))
-  )].sort();
+  )].sort(naturalSort);
 
   const map = Object.create(null);
 
@@ -308,11 +313,11 @@ function generateHeatmapData() {
   // Obtenir toutes les valeurs uniques pour X et Y
   const valeursX = [...new Set(
     items.flatMap(i => splitMultipleValues(i[keyX]))
-  )].sort();
+  )].sort(naturalSort);
   
   const valeursY = [...new Set(
     items.flatMap(i => splitMultipleValues(i[keySeries]))
-  )].sort();
+  )].sort(naturalSort);
 
   // Créer une map pour compter les occurrences
   const map = {};
@@ -432,7 +437,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
       // Arrondir les valeurs et trier par nom pour cohérence
       const sortedEntries = Object.entries(countMap)
         .map(([key, value]) => [key, Math.round(value)])
-        .sort((a, b) => a[0].localeCompare(b[0]));
+        .sort((a, b) => naturalSort(a[0], b[0]));
 
       const pieLabels = sortedEntries.map(([key]) => key);
       const pieValues = sortedEntries.map(([, value]) => value);
@@ -634,6 +639,7 @@ function updateChartSpecific(newChart) {
         typeArray[6],
         typeArray[8],
         typeArray[12],
+        typeArray[13],
         typeArray[17]
       ].sort();
 
