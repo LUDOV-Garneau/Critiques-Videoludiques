@@ -719,16 +719,18 @@ watch(
 
 function coloredTooltip(itemsPerColumn = 5, sort = false) {
   return function ({ series, dataPointIndex, w }) {
-    const itemsPerColumn = 5;
-
-    // Initialisation
     let entries = w.config.series.map((s, i) => ({
       name: s.name,
       value: s.data[dataPointIndex],
       color: w.globals.colors[i]
     }));
 
-    // Sorting par Nom d'attribut
+    //enleve si value est 0 ou null
+    entries = entries.filter(entry => entry.value !== null && entry.value > 0);
+
+    // si pas de data return empty string
+    if (entries.length === 0) return '';
+
     entries.sort((a, b) => a.name.localeCompare(b.name));
 
     let html = `<div style="
