@@ -422,7 +422,7 @@ const mappedObjects = computed(() => {
       // Exclure les chiffres seuls, les valeurs vides, et les "0"
       return trimmed && trimmed !== '0' && !/^\d+$/.test(trimmed)
     })
-    // Traiter l'année pour éviter NaN
+    // Traiter l'année pou3r éviter NaN
     let annee = undefined
     if (idx.Année >= 0) {
       const yearValue = Number(String(r[idx.Année]).slice(0, 4))
