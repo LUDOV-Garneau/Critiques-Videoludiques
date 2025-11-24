@@ -541,6 +541,7 @@ const sidebarFilters = ref({
   platformTypes: [],
   platforms: [],
   gameTypes: [],
+  gameTypesLogic: 'OU', // Ajout de la logique ET/OU pour les types de jeux
   imageTypes: [],
   authorGender: '',
   authorCharacteristics: [],

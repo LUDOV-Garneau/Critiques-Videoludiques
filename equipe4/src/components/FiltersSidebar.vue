@@ -862,9 +862,10 @@ watch(() => props.facets, (newFacets) => {
 
         <div v-if="expandedCards.gameTypes" class="card-content">
           <!-- Boutons radio OU/ET -->
-          <div class="filter-group" style="margin-bottom: 15px;">
-            <div class="radio-group">
-              <label class="radio-option">
+          <div class="logic-selector-wrapper">
+            <label class="logic-selector-label">Mode de filtrage :</label>
+            <div class="logic-toggle-group">
+              <label class="logic-toggle-option" :class="{ active: localFilters.gameTypesLogic === 'OU' }">
                 <input
                   type="radio"
                   name="gameTypesLogic"
@@ -872,9 +873,10 @@ watch(() => props.facets, (newFacets) => {
                   :checked="localFilters.gameTypesLogic === 'OU'"
                   @change="localFilters.gameTypesLogic = 'OU'; applyFilters()"
                 />
-                <span>OU</span>
+                <span class="logic-toggle-text">OU</span>
+                <span class="logic-toggle-description">Au moins un genre</span>
               </label>
-              <label class="radio-option">
+              <label class="logic-toggle-option" :class="{ active: localFilters.gameTypesLogic === 'ET' }">
                 <input
                   type="radio"
                   name="gameTypesLogic"
@@ -882,7 +884,8 @@ watch(() => props.facets, (newFacets) => {
                   :checked="localFilters.gameTypesLogic === 'ET'"
                   @change="localFilters.gameTypesLogic = 'ET'; applyFilters()"
                 />
-                <span>ET</span>
+                <span class="logic-toggle-text">ET</span>
+                <span class="logic-toggle-description">Tous les genres</span>
               </label>
             </div>
           </div>
@@ -1569,6 +1572,86 @@ watch(() => props.facets, (newFacets) => {
   font-size: 13px;
   color: #374151;
   cursor: pointer;
+}
+
+/* Styles pour le sélecteur de logique ET/OU */
+.logic-selector-wrapper {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.logic-selector-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.logic-toggle-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.logic-toggle-option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 8px;
+  background: white;
+  border: 2px solid #cbd5e1;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logic-toggle-option:hover {
+  border-color: #94a3b8;
+  background: #f1f5f9;
+}
+
+.logic-toggle-option.active {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.logic-toggle-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.logic-toggle-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.logic-toggle-option.active .logic-toggle-text {
+  color: #3b82f6;
+}
+
+.logic-toggle-description {
+  font-size: 11px;
+  color: #64748b;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.logic-toggle-option.active .logic-toggle-description {
+  color: #2563eb;
+  font-weight: 500;
 }
 
 /* Styles pour le select d'auteurs avec validation des données */
