@@ -516,5 +516,137 @@ describe('FiltersSidebar - Tests des filtres', () => {
       expect(active.find(f => f.type === 'imageTypes')).toBeTruthy()
     })
   })
+
+  describe('Logique ET/OU pour les types de jeux', () => {
+    it('devrait initialiser gameTypesLogic à "OU" par défaut', () => {
+      const component = wrapper.vm
+      expect(component.localFilters.gameTypesLogic).toBe('OU')
+    })
+
+    it('devrait permettre de changer la logique de OU à ET', async () => {
+      const component = wrapper.vm
+
+      // Changer la logique à ET
+      component.localFilters.gameTypesLogic = 'ET'
+
+      await wrapper.vm.$nextTick()
+
+      expect(component.localFilters.gameTypesLogic).toBe('ET')
+    })
+
+    it('devrait permettre de changer la logique de ET à OU', async () => {
+      const component = wrapper.vm
+
+      // Changer à ET puis revenir à OU
+      component.localFilters.gameTypesLogic = 'ET'
+      await wrapper.vm.$nextTick()
+
+      component.localFilters.gameTypesLogic = 'OU'
+      await wrapper.vm.$nextTick()
+
+      expect(component.localFilters.gameTypesLogic).toBe('OU')
+    })
+
+    it('devrait émettre gameTypesLogic lors de l\'application des filtres', async () => {
+      const component = wrapper.vm
+
+      // Sélectionner des types de jeux (toggleArrayFilter émet automatiquement)
+      component.toggleArrayFilter('gameTypes', 'Action')
+      component.toggleArrayFilter('gameTypes', 'RPG')
+
+      // Changer la logique et émettre manuellement
+      component.localFilters.gameTypesLogic = 'ET'
+      component.emitFilters()
+
+      await wrapper.vm.$nextTick()
+
+      // Vérifier que l'événement a été émis avec gameTypesLogic
+      const emitted = wrapper.emitted('update:filters')
+      expect(emitted).toBeTruthy()
+
+      const lastEmit = emitted[emitted.length - 1][0]
+      expect(lastEmit.gameTypesLogic).toBe('ET')
+      expect(lastEmit.gameTypes).toContain('Action')
+      expect(lastEmit.gameTypes).toContain('RPG')
+    })
+
+    it('devrait réinitialiser gameTypesLogic lors de la réinitialisation des types de jeux', async () => {
+      const component = wrapper.vm
+
+      // Sélectionner des types et changer la logique
+      component.toggleArrayFilter('gameTypes', 'Action')
+      component.localFilters.gameTypesLogic = 'ET'
+      await wrapper.vm.$nextTick()
+
+      // Réinitialiser les types de jeux
+      component.clearFilter('gameTypes')
+      await wrapper.vm.$nextTick()
+
+      // La logique devrait aussi être réinitialisée à OU
+      expect(component.localFilters.gameTypesLogic).toBe('OU')
+      expect(component.localFilters.gameTypes).toHaveLength(0)
+    })
+
+    it('devrait réinitialiser gameTypesLogic à OU lors de clearAllFilters', async () => {
+      const component = wrapper.vm
+
+      // Changer la logique à ET
+      component.localFilters.gameTypesLogic = 'ET'
+      component.toggleArrayFilter('gameTypes', 'Action')
+      await wrapper.vm.$nextTick()
+
+      // Réinitialiser tous les filtres
+      component.clearAllFilters()
+      await wrapper.vm.$nextTick()
+
+      // La logique devrait revenir à OU
+      expect(component.localFilters.gameTypesLogic).toBe('OU')
+      expect(component.localFilters.gameTypes).toHaveLength(0)
+    })
+
+    it('devrait émettre gameTypesLogic même sans types de jeux sélectionnés', async () => {
+      const component = wrapper.vm
+
+      // Changer la logique sans sélectionner de types
+      component.localFilters.gameTypesLogic = 'ET'
+      component.emitFilters()
+
+      await wrapper.vm.$nextTick()
+
+      const emitted = wrapper.emitted('update:filters')
+      const lastEmit = emitted[emitted.length - 1][0]
+
+      expect(lastEmit.gameTypesLogic).toBe('ET')
+      expect(lastEmit.gameTypes).toHaveLength(0)
+    })
+
+    it('devrait maintenir la cohérence entre gameTypes et gameTypesLogic', async () => {
+      const component = wrapper.vm
+
+      // Scénario complet
+      component.toggleArrayFilter('gameTypes', 'Action')
+      component.toggleArrayFilter('gameTypes', 'Aventure')
+      component.localFilters.gameTypesLogic = 'ET'
+      component.emitFilters()
+      await wrapper.vm.$nextTick()
+
+      let emitted = wrapper.emitted('update:filters')
+      let lastEmit = emitted[emitted.length - 1][0]
+
+      expect(lastEmit.gameTypes).toHaveLength(2)
+      expect(lastEmit.gameTypesLogic).toBe('ET')
+
+      // Retirer un type
+      component.toggleArrayFilter('gameTypes', 'Action')
+      await wrapper.vm.$nextTick()
+
+      emitted = wrapper.emitted('update:filters')
+      lastEmit = emitted[emitted.length - 1][0]
+
+      expect(lastEmit.gameTypes).toHaveLength(1)
+      expect(lastEmit.gameTypes).toContain('Aventure')
+      expect(lastEmit.gameTypesLogic).toBe('ET') // La logique reste ET
+    })
+  })
 })
 
