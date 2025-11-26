@@ -30,7 +30,7 @@ const localFilters = ref({
   platforms: [],
   gameTypes: [],
   gameTypesLogic: 'OU',
-  authorGender: '', // String pour sélection unique (radio buttons)
+  authorGender: [], // Tableau pour sélection multiple (checkboxes)
   authorCharacteristics: [], // Nouveau: pour CP, DB, CJ
   authorName: '',
   showWithoutAuthors: false,
@@ -103,17 +103,18 @@ const activeFiltersList = computed(() => {
     })
   }
 
-  if (localFilters.value.authorGender) {
+  if (Array.isArray(localFilters.value.authorGender) && localFilters.value.authorGender.length > 0) {
     const genderLabels = {
-      'masculin': 'Masculin',
-      'féminin': 'Féminin',
-      'ambigu': 'Ambigu'
+      masculin: 'Masculin',
+      féminin: 'Féminin',
+      ambigu: 'Ambigu'
     }
+    const selectedLabels = localFilters.value.authorGender.map(g => genderLabels[g] || g)
     filters.push({
       type: 'authorGender',
       label: 'Genre auteur',
-      value: genderLabels[localFilters.value.authorGender] || localFilters.value.authorGender,
-      count: 1
+      value: selectedLabels.join(', '),
+      count: localFilters.value.authorGender.length
     })
   }
   
@@ -279,13 +280,24 @@ function setIncludeUnscored(include) {
 }
 
 function setAuthorGender(gender) {
-  // Si on clique sur le même genre, le désélectionner (permet de décocher)
-  if (localFilters.value.authorGender === gender) {
-    localFilters.value.authorGender = ''
+  // Si on passe une valeur vide, on réinitialise complètement le filtre de genre
+  if (!gender) {
+    localFilters.value.authorGender = []
   } else {
-    localFilters.value.authorGender = gender
+    if (!Array.isArray(localFilters.value.authorGender)) {
+      localFilters.value.authorGender = []
+    }
+
+    const index = localFilters.value.authorGender.indexOf(gender)
+    if (index > -1) {
+      // Décocher
+      localFilters.value.authorGender.splice(index, 1)
+    } else {
+      // Cocher
+      localFilters.value.authorGender.push(gender)
+    }
   }
-  
+
   // Réinitialiser la sélection d'auteur si nécessaire
   if (localFilters.value.authorName) {
     // Vérifier si l'auteur est toujours dans la liste filtrée
@@ -328,7 +340,7 @@ function toggleShowWithoutAuthors() {
 
   // Si on active "sans auteurs", désactiver les autres filtres d'auteurs
   if (localFilters.value.showWithoutAuthors) {
-    localFilters.value.authorGender = ''
+    localFilters.value.authorGender = []
     localFilters.value.authorCharacteristics = []
     localFilters.value.authorName = ''
   }
@@ -352,7 +364,7 @@ function clearFilter(filterType) {
       localFilters.value.gameTypesLogic = 'OU'
       break
     case 'authorGender':
-      localFilters.value.authorGender = ''
+      localFilters.value.authorGender = []
       break
     case 'authorCharacteristics':
       localFilters.value.authorCharacteristics = []
@@ -388,7 +400,7 @@ function clearAllFilters() {
     platforms: [],
     gameTypes: [],
     gameTypesLogic: 'OU',
-    authorGender: '',
+    authorGender: [],
     authorCharacteristics: [],
     authorName: '',
     showWithoutAuthors: false,
@@ -517,16 +529,15 @@ const filteredAuthors = computed(() => {
     
     authorsToFilter = Array.from(minoritesSet).sort()
   } else {
-    // Filtrer par genre (sélection unique)
-    if (localFilters.value.authorGender) {
+    // Filtrer par genre (sélection multiple possible)
+    if (Array.isArray(localFilters.value.authorGender) && localFilters.value.authorGender.length > 0) {
       const authorsSet = new Set()
-      
+
       // Si masculin est sélectionné
-      if (localFilters.value.authorGender === 'masculin') {
+      if (localFilters.value.authorGender.includes('masculin')) {
         const male = props.facets.authors?.male || []
         male.forEach(author => {
           if (author && author !== '0') {
-            // Convertir en chaîne avant de split
             const authorStr = String(author || '')
             const authors = authorStr.split(/[,;]+/).map(a => a.trim()).filter(a => {
               return a && a !== '0' && !/^\d+$/.test(a)
@@ -535,13 +546,12 @@ const filteredAuthors = computed(() => {
           }
         })
       }
-      
+
       // Si féminin est sélectionné
-      if (localFilters.value.authorGender === 'féminin') {
+      if (localFilters.value.authorGender.includes('féminin')) {
         const female = props.facets.authors?.female || []
         female.forEach(author => {
           if (author && author !== '0') {
-            // Convertir en chaîne avant de split
             const authorStr = String(author || '')
             const authors = authorStr.split(/[,;]+/).map(a => a.trim()).filter(a => {
               return a && a !== '0' && !/^\d+$/.test(a)
@@ -550,14 +560,13 @@ const filteredAuthors = computed(() => {
           }
         })
       }
-      
+
       // Si ambigu est sélectionné
-      if (localFilters.value.authorGender === 'ambigu') {
+      if (localFilters.value.authorGender.includes('ambigu')) {
         const other = props.facets.authors?.other || []
         other.forEach(author => {
           if (author && author !== '0') {
             // Les auteurs ambigu sont déjà des pseudonymes individuels depuis la colonne CY
-            // Pas besoin de split, juste ajouter directement
             const authorStr = String(author || '').trim()
             if (authorStr && authorStr !== '0' && !/^\d+$/.test(authorStr)) {
               authorsSet.add(authorStr)
@@ -565,7 +574,7 @@ const filteredAuthors = computed(() => {
           }
         })
       }
-      
+
       authorsToFilter = Array.from(authorsSet).sort()
     } else {
       // Afficher tous les auteurs si aucun genre sélectionné
@@ -867,20 +876,16 @@ watch(() => props.facets, (newFacets) => {
               <label class="radio-option">
                 <input
                   type="radio"
-                  name="gameTypesLogic"
-                  value="OU"
                   :checked="localFilters.gameTypesLogic === 'OU'"
-                  @change="localFilters.gameTypesLogic = 'OU'; applyFilters()"
+                  @change="localFilters.gameTypesLogic = 'OU'; emitFilters()"
                 />
                 <span>OU</span>
               </label>
               <label class="radio-option">
                 <input
                   type="radio"
-                  name="gameTypesLogic"
-                  value="ET"
                   :checked="localFilters.gameTypesLogic === 'ET'"
-                  @change="localFilters.gameTypesLogic = 'ET'; applyFilters()"
+                  @change="localFilters.gameTypesLogic = 'ET'; emitFilters()"
                 />
                 <span>ET</span>
               </label>
@@ -921,33 +926,30 @@ watch(() => props.facets, (newFacets) => {
         <div v-if="expandedCards.authors" class="card-content">
           <div class="author-gender-filter" v-if="!localFilters.showWithoutAuthors && !localFilters.authorCharacteristics.includes('anonyme')">
             <label class="filter-group-label">Genre :</label>
-            <div class="radio-group">
-              <label class="radio-option">
+            <div class="checkbox-group">
+              <label class="checkbox-option">
                 <input
-                  type="radio"
-                  name="authorGender"
+                  type="checkbox"
                   value="masculin"
-                  :checked="localFilters.authorGender === 'masculin'"
+                  :checked="localFilters.authorGender && localFilters.authorGender.includes('masculin')"
                   @change="setAuthorGender('masculin')"
                 />
                 <span>Masculin</span>
               </label>
-              <label class="radio-option">
+              <label class="checkbox-option">
                 <input
-                  type="radio"
-                  name="authorGender"
+                  type="checkbox"
                   value="féminin"
-                  :checked="localFilters.authorGender === 'féminin'"
+                  :checked="localFilters.authorGender && localFilters.authorGender.includes('féminin')"
                   @change="setAuthorGender('féminin')"
                 />
                 <span>Féminin</span>
               </label>
-              <label class="radio-option">
+              <label class="checkbox-option">
                 <input
-                  type="radio"
-                  name="authorGender"
+                  type="checkbox"
                   value="ambigu"
-                  :checked="localFilters.authorGender === 'ambigu'"
+                  :checked="localFilters.authorGender && localFilters.authorGender.includes('ambigu')"
                   @change="setAuthorGender('ambigu')"
                 />
                 <span>Ambigu</span>
