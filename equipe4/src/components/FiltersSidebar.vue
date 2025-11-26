@@ -280,17 +280,22 @@ function setIncludeUnscored(include) {
 }
 
 function setAuthorGender(gender) {
-  if (!Array.isArray(localFilters.value.authorGender)) {
+  // Si on passe une valeur vide, on réinitialise complètement le filtre de genre
+  if (!gender) {
     localFilters.value.authorGender = []
-  }
-
-  const index = localFilters.value.authorGender.indexOf(gender)
-  if (index > -1) {
-    // Décocher
-    localFilters.value.authorGender.splice(index, 1)
   } else {
-    // Cocher
-    localFilters.value.authorGender.push(gender)
+    if (!Array.isArray(localFilters.value.authorGender)) {
+      localFilters.value.authorGender = []
+    }
+
+    const index = localFilters.value.authorGender.indexOf(gender)
+    if (index > -1) {
+      // Décocher
+      localFilters.value.authorGender.splice(index, 1)
+    } else {
+      // Cocher
+      localFilters.value.authorGender.push(gender)
+    }
   }
 
   // Réinitialiser la sélection d'auteur si nécessaire

@@ -450,15 +450,15 @@ describe('FiltersSidebar - Tests des filtres', () => {
 
       component.setAuthorGender('masculin')
       await wrapper.vm.$nextTick()
-      expect(component.localFilters.authorGender).toBe('masculin')
+      expect(component.localFilters.authorGender).toEqual(['masculin'])
 
       component.setAuthorGender('féminin')
       await wrapper.vm.$nextTick()
-      expect(component.localFilters.authorGender).toBe('féminin')
+      expect(component.localFilters.authorGender).toEqual(['masculin', 'féminin'])
 
       component.setAuthorGender('')
       await wrapper.vm.$nextTick()
-      expect(component.localFilters.authorGender).toBe('')
+      expect(component.localFilters.authorGender).toEqual([])
     })
 
     it('devrait mettre à jour le nom d\'auteur', async () => {
