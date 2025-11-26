@@ -542,7 +542,7 @@ const sidebarFilters = ref({
   platforms: [],
   gameTypes: [],
   imageTypes: [],
-  authorGender: '',
+  authorGender: [],
   authorCharacteristics: [],
   authorName: '',
   showWithoutAuthors: false,
@@ -1004,8 +1004,8 @@ const filteredByFilters = computed(() => {
       }
     }
 
-    // Filtre par genre d'auteur (sélection unique)
-    if (f.authorGender && headers.value.length > 0) {
+    // Filtre par genre d'auteur (sélection multiple)
+    if (Array.isArray(f.authorGender) && f.authorGender.length > 0 && headers.value.length > 0) {
       const maleAuthorIndex = headers.value.indexOf('Nom des auteurs masculins')
       const femaleAuthorIndex = headers.value.indexOf('Nom des autrices féminin')
       // Chercher la colonne CY "Nom des auteurs.rices ambigus.ës"
@@ -1038,24 +1038,14 @@ const filteredByFilters = computed(() => {
         const row = rows.value[originalRowIndex]
         let matchesGender = false
 
-        // Vérifier selon le genre sélectionné
-        if (f.authorGender === 'masculin' && maleAuthorIndex !== -1) {
-          const maleAuthor = row[maleAuthorIndex]
-          if (maleAuthor && maleAuthor !== '' && maleAuthor !== '0') {
-            matchesGender = true
-          }
-        } else if (f.authorGender === 'féminin' && femaleAuthorIndex !== -1) {
-          const femaleAuthor = row[femaleAuthorIndex]
-          if (femaleAuthor && femaleAuthor !== '' && femaleAuthor !== '0') {
-            matchesGender = true
-          }
-        } else if (f.authorGender === 'ambigu' && ambiguousAuthorIndex !== -1) {
-          // Si la colonne CY n'est pas vide, c'est un auteur ambigu
-          const ambiguousAuthor = row[ambiguousAuthorIndex]
-          if (ambiguousAuthor && ambiguousAuthor !== '' && ambiguousAuthor !== '0') {
-            matchesGender = true
-          }
-        }
+        // Vérifier selon les genres sélectionnés (logique OR)
+        const hasMale = maleAuthorIndex !== -1 && row[maleAuthorIndex] && row[maleAuthorIndex] !== '' && row[maleAuthorIndex] !== '0'
+        const hasFemale = femaleAuthorIndex !== -1 && row[femaleAuthorIndex] && row[femaleAuthorIndex] !== '' && row[femaleAuthorIndex] !== '0'
+        const hasAmbiguous = ambiguousAuthorIndex !== -1 && row[ambiguousAuthorIndex] && row[ambiguousAuthorIndex] !== '' && row[ambiguousAuthorIndex] !== '0'
+
+        if (hasMale && f.authorGender.includes('masculin')) matchesGender = true
+        if (hasFemale && f.authorGender.includes('féminin')) matchesGender = true
+        if (hasAmbiguous && f.authorGender.includes('ambigu')) matchesGender = true
 
         if (!matchesGender) return false
       }
