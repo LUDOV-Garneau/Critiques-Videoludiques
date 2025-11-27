@@ -871,7 +871,7 @@ watch(() => props.facets, (newFacets) => {
                   name="gameTypesLogic"
                   value="OU"
                   :checked="localFilters.gameTypesLogic === 'OU'"
-                  @change="localFilters.gameTypesLogic = 'OU'; applyFilters()"
+                  @change="localFilters.gameTypesLogic = 'OU'; emitFilters()"
                 />
                 <span class="logic-toggle-text">OU</span>
                 <span class="logic-toggle-description">Au moins un genre</span>
@@ -882,7 +882,7 @@ watch(() => props.facets, (newFacets) => {
                   name="gameTypesLogic"
                   value="ET"
                   :checked="localFilters.gameTypesLogic === 'ET'"
-                  @change="localFilters.gameTypesLogic = 'ET'; applyFilters()"
+                  @change="localFilters.gameTypesLogic = 'ET'; emitFilters()"
                 />
                 <span class="logic-toggle-text">ET</span>
                 <span class="logic-toggle-description">Tous les genres</span>
