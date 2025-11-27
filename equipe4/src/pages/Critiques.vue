@@ -234,7 +234,8 @@ function initMapping() {
   mapping.value.Plateforme = findExact(['plateforme', 'platform'])
   mapping.value.Modele = find(['modèle', 'modele', 'model'])
   mapping.value.TypePlateforme = find(['type de plateforme', 'platform type'])
-  mapping.value.Genre = findExact(['genre'])  // Colonne EQ "Genre LUDOV"
+  // Colonne EQ "Genre LUDOV" - Forcer l'index 146 pour éviter les conflits avec d'autres colonnes "Genre"
+  mapping.value.Genre = headers.value[146] || findExact(['genre'])
   mapping.value.TypeJeu = find(['titre des étiquettes génériques de genre', 'type de jeu', 'game genre'])
   mapping.value.Note = find(['score', 'rating', 'note'])
   mapping.value.Année = find(['year', 'release year', 'annee', 'année', 'date'])
@@ -724,12 +725,12 @@ const facets = computed(() => {
     }
   }
 
-  // Récupérer les genres depuis les données brutes (colonne EQ "Genre")
+  // Récupérer les genres depuis les données brutes (colonne EQ "Genre LUDOV")
   const genres = new Set()
   let hasUnspecifiedGenres = false
 
-  if (headers.value.length > 0) {
-    const genreIndex = headers.value.indexOf('Genre')
+  if (headers.value.length > 0 && mapping.value.Genre) {
+    const genreIndex = headers.value.indexOf(mapping.value.Genre)
     if (genreIndex !== -1) {
       rows.value.forEach(row => {
         const genreValue = row[genreIndex]
@@ -849,8 +850,8 @@ const filteredByFilters = computed(() => {
 
     // Filtre par genres (colonne EQ "Genre LUDOV")
     if (f.gameTypes && f.gameTypes.length > 0) {
-      if (headers.value.length > 0 && index < rows.value.length) {
-        const genreIndex = headers.value.indexOf('Genre')
+      if (headers.value.length > 0 && index < rows.value.length && mapping.value.Genre) {
+        const genreIndex = headers.value.indexOf(mapping.value.Genre)
         if (genreIndex !== -1) {
           const genreValue = rows.value[index][genreIndex]
 
