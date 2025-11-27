@@ -877,12 +877,15 @@ const filteredByFilters = computed(() => {
 
           // Appliquer la logique ET ou OU
           if (f.gameTypesLogic === 'ET') {
-            // Logique "ET" inclusive : la critique ne doit contenir QUE des genres parmi ceux sélectionnés
-            // Tous les genres de la critique doivent être dans la liste des genres sélectionnés
-            const allGenresAreSelected = cleanedGenres.every(genre =>
-              selectedGenres.includes(genre)
+            // Logique "ET" strict : la critique doit avoir EXACTEMENT les genres sélectionnés (ni plus, ni moins)
+            // Vérifier que les deux ensembles sont identiques
+            if (cleanedGenres.length !== selectedGenres.length) return false
+
+            // Vérifier que tous les genres sélectionnés sont présents
+            const hasAllSelectedGenres = selectedGenres.every(genre =>
+              cleanedGenres.includes(genre)
             )
-            if (!allGenresAreSelected) return false
+            if (!hasAllSelectedGenres) return false
           } else {
             // Logique "OU" (par défaut) : au moins un genre doit correspondre
             const hasSelectedGenre = selectedGenres.some(selectedGenre =>
