@@ -633,7 +633,6 @@ function updateChartSpecific(newChart) {
       if (!SeriesOriginalArray.value.includes(checkedOutSeries.value)) {
         checkedOutSeries.value = 'Pays';
       }
-
       SeriesParameterArray.value = [...SeriesOriginalArray.value];
       break;
 
@@ -814,11 +813,11 @@ function customClick(e, chart, opts) {
   if (checkedTypeCharts.value === "pie") {
      clickNameOptions.value = opts.w.config.labels[clickIndexOptions.value];
   } else {
-    clickNameOptions.value = chartOptionsFinal.value.xaxis.categories[clickIndexOptions.value]
+    clickNameOptions.value = chartOptionsFinal.value.xaxis.categories[clickIndexOptions.value];
     clickNameSeries.value = opts.w.config.series[clickIndexSeries.value].name;
   }
-
 }
+
 
 </script>
 
