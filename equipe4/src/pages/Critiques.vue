@@ -1145,6 +1145,31 @@ function updateFilters(newFilters) {
   sidebarFilters.value = { ...newFilters }
   page.value = 1 // Reset pagination
 }
+
+// Fonction pour compter le nombre de critères évalués pour un item
+function countEvaluatedCriteria(item) {
+  if (!item) return 0
+
+  const criteria = [
+    item.NoteGenerale,
+    item.NoteVisuelle,
+    item.NoteSonore,
+    item.NoteContenu,
+    item.NoteJouabilite,
+    item.NoteTempsJeu,
+    item.NoteDifficulte,
+    item.NotePrix,
+    item.NoteAutre
+  ]
+
+  return criteria.filter(note =>
+    note !== undefined &&
+    note !== null &&
+    note !== '-' &&
+    note !== '' &&
+    note !== 0
+  ).length
+}
 // Initialiser les filtres avec les bonnes valeurs par défaut
 watch(facets, (newFacets) => {
   if (newFacets.minYear && newFacets.maxYear) {
@@ -1450,14 +1475,10 @@ function buildImportantColumns(allHeaders) {
                   <h4 class="section-title">Notations</h4>
                   <div class="modal-grid">
                     <div class="modal-field modal-field-full">
-                      <div class="label">Note générale</div>
+                      <div class="label">Nombre de critères évalués</div>
                       <div class="value score-value">
-                        <template v-if="modalItem?.Note !== undefined && modalItem?.Note !== null && modalItem?.Note !== '-'">
-                          <span class="score-number">{{ modalItem.Note }}</span>
-                        </template>
-                        <template v-else>
-                          <span class="score-not-available">Non notée</span>
-                        </template>
+                        <span class="score-number">{{ countEvaluatedCriteria(modalItem) }}</span>
+                        <span class="score-label"> / 9 critères</span>
                       </div>
                     </div>
                     <div class="modal-field">
