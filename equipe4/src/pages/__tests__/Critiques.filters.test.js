@@ -586,8 +586,9 @@ describe('Logique de filtrage des critiques', () => {
         const types = String(gameType).split(/[\/,;]+/).map(t => t.trim()).filter(t => t)
 
         if (logic === 'ET') {
-          // Logique ET : tous les genres sélectionnés doivent être présents
-          return gameTypes.every(selectedType => types.includes(selectedType))
+          // Logique ET inclusive : la critique ne doit contenir QUE des genres parmi ceux sélectionnés
+          // Tous les genres de la critique doivent être dans la liste des genres sélectionnés
+          return types.every(type => gameTypes.includes(type))
         } else {
           // Logique OU (par défaut) : au moins un genre doit correspondre
           return gameTypes.some(selectedType => types.includes(selectedType))
@@ -625,55 +626,70 @@ describe('Logique de filtrage des critiques', () => {
       })
     })
 
-    describe('Logique ET', () => {
-      it('devrait retourner uniquement les jeux ayant TOUS les genres sélectionnés', () => {
-        const result = filterByGameTypesWithLogic(mockRows, ['Action', 'Aventure'], 'ET')
+    describe('Logique ET (inclusive)', () => {
+      it('devrait retourner uniquement les jeux dont TOUS les genres sont dans la sélection', () => {
+        const result = filterByGameTypesWithLogic(mockRows, ['Action', 'Aventure', 'Infiltration'], 'ET')
 
-        // Seul Jeu E a à la fois Action ET Aventure (Action/Aventure/Infiltration)
-        expect(result).toHaveLength(1)
-        expect(result[0][0]).toBe('Jeu E')
+        // Jeu A (Action) ✅ - "Action" est dans la sélection
+        // Jeu E (Action/Aventure/Infiltration) ✅ - tous ses genres sont dans la sélection
+        expect(result).toHaveLength(2)
+        expect(result.map(r => r[0])).toContain('Jeu A')
+        expect(result.map(r => r[0])).toContain('Jeu E')
       })
 
-      it('devrait exclure les jeux n\'ayant qu\'un seul des genres en mode ET', () => {
-        const result = filterByGameTypesWithLogic(mockRows, ['Action', 'RPG'], 'ET')
-
-        // Aucun jeu n'a à la fois Action ET RPG
-        // Jeu A a Action mais pas RPG
-        // Jeu B a RPG mais pas Action
-        // Jeu E a Action mais pas RPG
-        expect(result).toHaveLength(0)
-      })
-
-      it('devrait retourner un jeu avec exactement les genres demandés en mode ET', () => {
+      it('devrait retourner un jeu avec exactement les genres sélectionnés en mode ET', () => {
         const result = filterByGameTypesWithLogic(mockRows, ['RPG', 'Aventure'], 'ET')
 
-        // Jeu B a RPG/Aventure
+        // Jeu B a RPG/Aventure - tous ses genres sont dans la sélection
         expect(result).toHaveLength(1)
         expect(result[0][0]).toBe('Jeu B')
+      })
+
+      it('devrait exclure les jeux ayant des genres non sélectionnés en mode ET', () => {
+        const result = filterByGameTypesWithLogic(mockRows, ['Action', 'Aventure'], 'ET')
+
+        // Jeu A (Action) ✅ - "Action" est dans la sélection
+        // Jeu E (Action/Aventure/Infiltration) ❌ - "Infiltration" n'est pas dans la sélection
+        expect(result).toHaveLength(1)
+        expect(result[0][0]).toBe('Jeu A')
       })
 
       it('devrait fonctionner avec un seul genre en mode ET', () => {
         const result = filterByGameTypesWithLogic(mockRows, ['Action'], 'ET')
 
-        // Même comportement qu'en mode OU avec un seul genre
-        expect(result).toHaveLength(2) // Jeu A et Jeu E
+        // Seul Jeu A a uniquement "Action" (pas d'autres genres)
+        // Jeu E a Action/Aventure/Infiltration donc est exclu
+        expect(result).toHaveLength(1)
+        expect(result[0][0]).toBe('Jeu A')
+      })
+
+      it('devrait retourner plusieurs jeux si leurs genres sont tous dans la sélection', () => {
+        const result = filterByGameTypesWithLogic(mockRows, ['Action', 'RPG', 'Aventure', 'Infiltration'], 'ET')
+
+        // Jeu A (Action) ✅
+        // Jeu B (RPG/Aventure) ✅
+        // Jeu E (Action/Aventure/Infiltration) ✅
+        expect(result).toHaveLength(3)
         expect(result.map(r => r[0])).toContain('Jeu A')
+        expect(result.map(r => r[0])).toContain('Jeu B')
         expect(result.map(r => r[0])).toContain('Jeu E')
       })
 
-      it('devrait retourner un jeu avec tous les genres demandés et plus en mode ET', () => {
-        const result = filterByGameTypesWithLogic(mockRows, ['Action', 'Aventure', 'Infiltration'], 'ET')
+      it('devrait retourner un tableau vide si un jeu a un genre non sélectionné', () => {
+        const result = filterByGameTypesWithLogic(mockRows, ['Action'], 'ET')
 
-        // Jeu E a Action/Aventure/Infiltration
+        // Jeu A (Action) ✅
+        // Jeu E (Action/Aventure/Infiltration) ❌ car a "Aventure" et "Infiltration" non sélectionnés
         expect(result).toHaveLength(1)
-        expect(result[0][0]).toBe('Jeu E')
+        expect(result[0][0]).toBe('Jeu A')
       })
 
-      it('devrait retourner un tableau vide si aucun jeu n\'a tous les genres en mode ET', () => {
-        const result = filterByGameTypesWithLogic(mockRows, ['Action', 'Simulation'], 'ET')
+      it('devrait exclure les jeux avec des genres supplémentaires non sélectionnés', () => {
+        const result = filterByGameTypesWithLogic(mockRows, ['Simulation'], 'ET')
 
-        // Aucun jeu n'a à la fois Action ET Simulation
-        expect(result).toHaveLength(0)
+        // Jeu D (Simulation) ✅
+        expect(result).toHaveLength(1)
+        expect(result[0][0]).toBe('Jeu D')
       })
     })
 
