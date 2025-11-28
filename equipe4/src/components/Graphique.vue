@@ -810,11 +810,20 @@ function coloredTooltip(itemsPerColumn = 5, sort = false) {
 function customClick(e, chart, opts) {
   clickIndexOptions.value = opts.dataPointIndex
   clickIndexSeries.value = opts.seriesIndex
-  if (checkedTypeCharts.value === "pie") {
-     clickNameOptions.value = opts.w.config.labels[clickIndexOptions.value];
-  } else {
-    clickNameOptions.value = chartOptionsFinal.value.xaxis.categories[clickIndexOptions.value];
-    clickNameSeries.value = opts.w.config.series[clickIndexSeries.value].name;
+
+  switch(checkedTypeCharts.value) {
+    case 'line':
+        clickNameOptions.value = opts.w.globals.categoryLabels[clickIndexOptions.value];
+        clickNameSeries.value = opts.w.config.series[clickIndexSeries.value].name;
+      break;
+    case 'bar':
+    case 'heatmap':
+        clickNameOptions.value = chartOptionsFinal.value.xaxis.categories[clickIndexOptions.value];
+        clickNameSeries.value = opts.w.config.series[clickIndexSeries.value].name;
+      break;
+    case 'pie':
+      clickNameOptions.value = opts.w.config.labels[clickIndexOptions.value];
+      break;
   }
 }
 
