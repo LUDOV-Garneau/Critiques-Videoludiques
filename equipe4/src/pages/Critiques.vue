@@ -5,6 +5,16 @@ import { extractGenres } from '../utils/genreCleaner.js'
 import { applyDataCorrections, normalizeScore } from '../utils/dataCorrections.js'
 import ChartsGraphique from '../components/Graphique.vue'
 
+// Clique sur le Graphs 
+const graphClickData = ref(null)
+
+function handleGraphClick(payload) {
+  console.log("Received graph click:", payload)
+  graphClickData.value = payload
+}
+
+
+
 const isLoading = ref(false)
 const error = ref('')
 const headers = ref([])
@@ -1258,8 +1268,9 @@ function buildImportantColumns(allHeaders) {
         <div v-else-if="error" class="error">Erreur: {{ error }}</div>
         <template v-else>
           <div style="max-width:1080px;margin:0 auto;">
-            <ChartsGraphique :items="filteredAndSorted" :filtre-actifs="sidebarFilters" />
+            <ChartsGraphique :items="filteredAndSorted" :filtre-actifs="sidebarFilters" @chart-click="handleGraphClick" />
           </div>
+          <div> {{ graphClickData }}</div>
           <div class="toolbar">
             <input class="input" type="search" v-model="query" placeholder="Rechercher… (titre, plateforme, etc.)" />
             <div class="sort">

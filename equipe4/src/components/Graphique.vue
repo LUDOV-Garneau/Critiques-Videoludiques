@@ -6,6 +6,8 @@ let checkedTypeCharts = ref('line')
 let checkedOutData = ref('combine')
 let checkedOutOptions = ref('Année')
 let checkedOutSeries = ref('Pays')
+const emit = defineEmits(['chart-click'])
+
 
 let isValideGraphsX = ref(false)
 let isValideGraphsY = ref(false)
@@ -737,6 +739,12 @@ watch(
     clickIndexSeries.value = -1
     clickNameOptions.value = ""
     clickNameSeries.value = ""
+    emit('chart-click', {
+      indexX: clickIndexOptions.value,
+      indexY: clickIndexSeries.value,
+      nameX: clickNameOptions.value,
+      nameY: clickNameSeries.value
+  })
   }
 );
 
@@ -825,6 +833,14 @@ function customClick(e, chart, opts) {
       clickNameOptions.value = opts.w.config.labels[clickIndexOptions.value];
       break;
   }
+
+  emit('chart-click', {
+    indexX: clickIndexOptions.value,
+    indexY: clickIndexSeries.value,
+    nameX: clickNameOptions.value,
+    nameY: clickNameSeries.value
+  })
+
 }
 
 
@@ -880,3 +896,4 @@ function customClick(e, chart, opts) {
 
   </div>
 </template>
+
