@@ -7,13 +7,11 @@ import ChartsGraphique from '../components/Graphique.vue'
 
 // Clique sur le Graphs 
 const graphClickData = ref(null)
-
+let TestArray = ref([])
 function handleGraphClick(payload) {
   console.log("Received graph click:", payload)
   graphClickData.value = payload
 }
-
-
 
 const isLoading = ref(false)
 const error = ref('')
@@ -162,7 +160,7 @@ const filteredAndSorted = computed(() => {
     const q = query.value.toLowerCase()
     items = items.filter(it => Object.values(it).some(v => String(v ?? '').toLowerCase().includes(q)))
   }
-  
+
   // Appliquer le tri
   if (sortKey.value) {
     items = items.slice().sort((a, b) => {
@@ -176,8 +174,9 @@ const filteredAndSorted = computed(() => {
   }
   return items
 })
-const totalPages = computed(() => Math.max(1, Math.ceil((filteredAndSorted.value.length || 0) / pageSize)))
-const pageSlice = computed(() => filteredAndSorted.value.slice((page.value - 1) * pageSize, page.value * pageSize))
+
+  let totalPages = computed(() => Math.max(1, Math.ceil((filteredAndSorted.value.length || 0) / pageSize)))
+  let pageSlice = computed(() => filteredAndSorted.value.slice((page.value - 1) * pageSize, page.value * pageSize))
 
 // Mapping entre les noms de colonnes affichés et les propriétés des objets
 const columnPropertyMap = {
@@ -383,27 +382,27 @@ const mappedObjects = computed(() => {
     return idx
   }
   const ambiguousAuthorIndex = findAmbiguousAuthorIndex()
- const mapped = rows.value.map(r => {
-  // Déterminer le genre de l'auteur (pour le pie chart)
-  let genreAuteur = '-'
-  const hasMale = maleAuthorIndex !== -1 && r[maleAuthorIndex] && r[maleAuthorIndex] !== '0' && String(r[maleAuthorIndex]).trim() !== ''
-  const hasFemale = femaleAuthorIndex !== -1 && r[femaleAuthorIndex] && r[femaleAuthorIndex] !== '0' && String(r[femaleAuthorIndex]).trim() !== ''
-  const hasAmbiguous = ambiguousAuthorIndex !== -1 && r[ambiguousAuthorIndex] && r[ambiguousAuthorIndex] !== '0' && String(r[ambiguousAuthorIndex]).trim() !== ''
-  
-  const genreCount = [hasMale, hasFemale, hasAmbiguous].filter(Boolean).length
-  
-  if (genreCount === 0) {
-    genreAuteur = 'Non spécifié'
-  } else if (hasMale) {
-    genreAuteur = 'Masculin'
-  } else if (hasFemale) {
-    genreAuteur = 'Féminin'
-  } else if (hasAmbiguous) {
-    genreAuteur = 'Ambigu'
-  }
-  
-  // Combiner les noms d'auteurs masculins, féminins et ambigu
-  let authorNames = []
+  const mapped = rows.value.map(r => {
+    // Déterminer le genre de l'auteur (pour le pie chart)
+    let genreAuteur = '-'
+    const hasMale = maleAuthorIndex !== -1 && r[maleAuthorIndex] && r[maleAuthorIndex] !== '0' && String(r[maleAuthorIndex]).trim() !== ''
+    const hasFemale = femaleAuthorIndex !== -1 && r[femaleAuthorIndex] && r[femaleAuthorIndex] !== '0' && String(r[femaleAuthorIndex]).trim() !== ''
+    const hasAmbiguous = ambiguousAuthorIndex !== -1 && r[ambiguousAuthorIndex] && r[ambiguousAuthorIndex] !== '0' && String(r[ambiguousAuthorIndex]).trim() !== ''
+
+    const genreCount = [hasMale, hasFemale, hasAmbiguous].filter(Boolean).length
+
+    if (genreCount === 0) {
+      genreAuteur = 'Non spécifié'
+    } else if (hasMale) {
+      genreAuteur = 'Masculin'
+    } else if (hasFemale) {
+      genreAuteur = 'Féminin'
+    } else if (hasAmbiguous) {
+      genreAuteur = 'Ambigu'
+    }
+
+    // Combiner les noms d'auteurs masculins, féminins et ambigu
+    let authorNames = []
 
     if (maleAuthorIndex !== -1 && r[maleAuthorIndex] && r[maleAuthorIndex] !== '0') {
       // Séparer les auteurs multiples s'ils sont dans la même cellule
@@ -438,7 +437,7 @@ const mappedObjects = computed(() => {
       const yearValue = Number(String(r[idx.Année]).slice(0, 4))
       annee = !isNaN(yearValue) && yearValue > 0 ? yearValue : '-'
     }
-    
+
     // Fonction helper pour formater le mois (ex: "1 (janvier)")
     const formatMois = (moisValue) => {
       if (!moisValue || moisValue === '' || moisValue === '0') return '-'
@@ -447,7 +446,7 @@ const mappedObjects = computed(() => {
       const moisNoms = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
       return `${moisNum} (${moisNoms[moisNum - 1]})`
     }
-    
+
     // Fonction helper pour parser les notes (utilise la normalisation)
     const parseScore = (value) => {
       return normalizeScore(value)
@@ -803,7 +802,7 @@ const filteredByFilters = computed(() => {
       if (year < f.yearRange[0] || year > f.yearRange[1]) return false
     }
     // Si pas d'année valide, on garde la critique (ne pas filtrer)
-    
+
     // Filtre par mois (utiliser les données brutes)
     if (f.monthRange[0] !== 1 || f.monthRange[1] !== 12) {
       if (headers.value.length > 0 && index < rows.value.length) {
@@ -1247,6 +1246,26 @@ function buildImportantColumns(allHeaders) {
   return selected
 }
 
+watch(graphClickData, () => {
+
+  const graphValue = graphClickData.value
+  if (graphValue !== null) {
+    if (!graphValue.isClick) {
+      TestArray.value = filteredAndSorted.value
+    } else if (graphValue.nameY === "Critiques") {
+      TestArray.value = filteredAndSorted.value.filter(item => item[graphValue.critereTrieX] === graphValue.nameX)
+    } else {
+      TestArray.value = filteredAndSorted.value.filter(item => item[graphValue.critereTrieX] === graphValue.nameX && item[graphValue.critereTrieY] === graphValue.nameY)
+    }
+    totalPages = Math.max(1, Math.ceil((TestArray.value.length || 0) / pageSize))
+    pageSlice = TestArray.value.slice((page.value - 1) * pageSize, page.value * pageSize)
+  } else {
+    totalPages = computed(() => Math.max(1, Math.ceil((filteredAndSorted.value.length || 0) / pageSize)))
+    pageSlice = computed(() => filteredAndSorted.value.slice((page.value - 1) * pageSize, page.value * pageSize))
+  }
+});
+
+
 </script>
 
 <template>
@@ -1268,7 +1287,8 @@ function buildImportantColumns(allHeaders) {
         <div v-else-if="error" class="error">Erreur: {{ error }}</div>
         <template v-else>
           <div style="max-width:1080px;margin:0 auto;">
-            <ChartsGraphique :items="filteredAndSorted" :filtre-actifs="sidebarFilters" @chart-click="handleGraphClick" />
+            <ChartsGraphique :items="filteredAndSorted" :filtre-actifs="sidebarFilters"
+              @chart-click="handleGraphClick" />
           </div>
           <div> {{ graphClickData }}</div>
           <div class="toolbar">
@@ -1462,7 +1482,8 @@ function buildImportantColumns(allHeaders) {
                     <div class="modal-field modal-field-full">
                       <div class="label">Note générale</div>
                       <div class="value score-value">
-                        <template v-if="modalItem?.Note !== undefined && modalItem?.Note !== null && modalItem?.Note !== '-'">
+                        <template
+                          v-if="modalItem?.Note !== undefined && modalItem?.Note !== null && modalItem?.Note !== '-'">
                           <span class="score-number">{{ modalItem.Note }}</span>
                         </template>
                         <template v-else>
@@ -1473,9 +1494,11 @@ function buildImportantColumns(allHeaders) {
                     <div class="modal-field">
                       <div class="label">Critères généraux</div>
                       <div class="value score-value score-with-label">
-                        <template v-if="modalItem?.NoteGenerale !== undefined && modalItem?.NoteGenerale !== null && modalItem?.NoteGenerale !== '-'">
+                        <template
+                          v-if="modalItem?.NoteGenerale !== undefined && modalItem?.NoteGenerale !== null && modalItem?.NoteGenerale !== '-'">
                           <span class="score-number">{{ modalItem.NoteGenerale }}</span>
-                          <span v-if="modalItem?.EtiquetteGenerale" class="score-label">{{ modalItem.EtiquetteGenerale }}</span>
+                          <span v-if="modalItem?.EtiquetteGenerale" class="score-label">{{ modalItem.EtiquetteGenerale
+                            }}</span>
                           <span v-else class="score-label-missing">Aucune étiquette</span>
                         </template>
                         <template v-else>
@@ -1486,9 +1509,11 @@ function buildImportantColumns(allHeaders) {
                     <div class="modal-field">
                       <div class="label">Critères visuels</div>
                       <div class="value score-value score-with-label">
-                        <template v-if="modalItem?.NoteVisuelle !== undefined && modalItem?.NoteVisuelle !== null && modalItem?.NoteVisuelle !== '-'">
+                        <template
+                          v-if="modalItem?.NoteVisuelle !== undefined && modalItem?.NoteVisuelle !== null && modalItem?.NoteVisuelle !== '-'">
                           <span class="score-number">{{ modalItem.NoteVisuelle }}</span>
-                          <span v-if="modalItem?.EtiquetteVisuelle" class="score-label">{{ modalItem.EtiquetteVisuelle }}</span>
+                          <span v-if="modalItem?.EtiquetteVisuelle" class="score-label">{{ modalItem.EtiquetteVisuelle
+                            }}</span>
                           <span v-else class="score-label-missing">Aucune étiquette</span>
                         </template>
                         <template v-else>
@@ -1499,9 +1524,11 @@ function buildImportantColumns(allHeaders) {
                     <div class="modal-field">
                       <div class="label">Critères sonores</div>
                       <div class="value score-value score-with-label">
-                        <template v-if="modalItem?.NoteSonore !== undefined && modalItem?.NoteSonore !== null && modalItem?.NoteSonore !== '-'">
+                        <template
+                          v-if="modalItem?.NoteSonore !== undefined && modalItem?.NoteSonore !== null && modalItem?.NoteSonore !== '-'">
                           <span class="score-number">{{ modalItem.NoteSonore }}</span>
-                          <span v-if="modalItem?.EtiquetteSonore" class="score-label">{{ modalItem.EtiquetteSonore }}</span>
+                          <span v-if="modalItem?.EtiquetteSonore" class="score-label">{{ modalItem.EtiquetteSonore
+                            }}</span>
                           <span v-else class="score-label-missing">Aucune étiquette</span>
                         </template>
                         <template v-else>
@@ -1512,9 +1539,11 @@ function buildImportantColumns(allHeaders) {
                     <div class="modal-field">
                       <div class="label">Critères de contenu</div>
                       <div class="value score-value score-with-label">
-                        <template v-if="modalItem?.NoteContenu !== undefined && modalItem?.NoteContenu !== null && modalItem?.NoteContenu !== '-'">
+                        <template
+                          v-if="modalItem?.NoteContenu !== undefined && modalItem?.NoteContenu !== null && modalItem?.NoteContenu !== '-'">
                           <span class="score-number">{{ modalItem.NoteContenu }}</span>
-                          <span v-if="modalItem?.EtiquetteContenu" class="score-label">{{ modalItem.EtiquetteContenu }}</span>
+                          <span v-if="modalItem?.EtiquetteContenu" class="score-label">{{ modalItem.EtiquetteContenu
+                            }}</span>
                           <span v-else class="score-label-missing">Aucune étiquette</span>
                         </template>
                         <template v-else>
@@ -1525,9 +1554,11 @@ function buildImportantColumns(allHeaders) {
                     <div class="modal-field">
                       <div class="label">Critères de jouabilité</div>
                       <div class="value score-value score-with-label">
-                        <template v-if="modalItem?.NoteJouabilite !== undefined && modalItem?.NoteJouabilite !== null && modalItem?.NoteJouabilite !== '-'">
+                        <template
+                          v-if="modalItem?.NoteJouabilite !== undefined && modalItem?.NoteJouabilite !== null && modalItem?.NoteJouabilite !== '-'">
                           <span class="score-number">{{ modalItem.NoteJouabilite }}</span>
-                          <span v-if="modalItem?.EtiquetteJouabilite" class="score-label">{{ modalItem.EtiquetteJouabilite }}</span>
+                          <span v-if="modalItem?.EtiquetteJouabilite" class="score-label">{{
+                            modalItem.EtiquetteJouabilite }}</span>
                           <span v-else class="score-label-missing">Aucune étiquette</span>
                         </template>
                         <template v-else>
@@ -1538,9 +1569,11 @@ function buildImportantColumns(allHeaders) {
                     <div class="modal-field">
                       <div class="label">Critères sur le temps de jeu</div>
                       <div class="value score-value score-with-label">
-                        <template v-if="modalItem?.NoteTempsJeu !== undefined && modalItem?.NoteTempsJeu !== null && modalItem?.NoteTempsJeu !== '-'">
+                        <template
+                          v-if="modalItem?.NoteTempsJeu !== undefined && modalItem?.NoteTempsJeu !== null && modalItem?.NoteTempsJeu !== '-'">
                           <span class="score-number">{{ modalItem.NoteTempsJeu }}</span>
-                          <span v-if="modalItem?.EtiquetteTempsJeu" class="score-label">{{ modalItem.EtiquetteTempsJeu }}</span>
+                          <span v-if="modalItem?.EtiquetteTempsJeu" class="score-label">{{ modalItem.EtiquetteTempsJeu
+                            }}</span>
                           <span v-else class="score-label-missing">Aucune étiquette</span>
                         </template>
                         <template v-else>
@@ -1551,9 +1584,11 @@ function buildImportantColumns(allHeaders) {
                     <div class="modal-field">
                       <div class="label">Critères sur la difficulté</div>
                       <div class="value score-value score-with-label">
-                        <template v-if="modalItem?.NoteDifficulte !== undefined && modalItem?.NoteDifficulte !== null && modalItem?.NoteDifficulte !== '-'">
+                        <template
+                          v-if="modalItem?.NoteDifficulte !== undefined && modalItem?.NoteDifficulte !== null && modalItem?.NoteDifficulte !== '-'">
                           <span class="score-number">{{ modalItem.NoteDifficulte }}</span>
-                          <span v-if="modalItem?.EtiquetteDifficulte" class="score-label">{{ modalItem.EtiquetteDifficulte }}</span>
+                          <span v-if="modalItem?.EtiquetteDifficulte" class="score-label">{{
+                            modalItem.EtiquetteDifficulte }}</span>
                           <span v-else class="score-label-missing">Aucune étiquette</span>
                         </template>
                         <template v-else>
@@ -1564,7 +1599,8 @@ function buildImportantColumns(allHeaders) {
                     <div class="modal-field">
                       <div class="label">Critères sur le prix</div>
                       <div class="value score-value score-with-label">
-                        <template v-if="modalItem?.NotePrix !== undefined && modalItem?.NotePrix !== null && modalItem?.NotePrix !== '-'">
+                        <template
+                          v-if="modalItem?.NotePrix !== undefined && modalItem?.NotePrix !== null && modalItem?.NotePrix !== '-'">
                           <span class="score-number">{{ modalItem.NotePrix }}</span>
                           <span v-if="modalItem?.EtiquettePrix" class="score-label">{{ modalItem.EtiquettePrix }}</span>
                           <span v-else class="score-label-missing">Aucune étiquette</span>
@@ -1577,9 +1613,11 @@ function buildImportantColumns(allHeaders) {
                     <div class="modal-field">
                       <div class="label">Autres critères</div>
                       <div class="value score-value score-with-label">
-                        <template v-if="modalItem?.NoteAutre !== undefined && modalItem?.NoteAutre !== null && modalItem?.NoteAutre !== '-'">
+                        <template
+                          v-if="modalItem?.NoteAutre !== undefined && modalItem?.NoteAutre !== null && modalItem?.NoteAutre !== '-'">
                           <span class="score-number">{{ modalItem.NoteAutre }}</span>
-                          <span v-if="modalItem?.EtiquetteAutre" class="score-label">{{ modalItem.EtiquetteAutre }}</span>
+                          <span v-if="modalItem?.EtiquetteAutre" class="score-label">{{ modalItem.EtiquetteAutre
+                            }}</span>
                           <span v-else class="score-label-missing">Aucune étiquette</span>
                         </template>
                         <template v-else>

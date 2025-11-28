@@ -833,12 +833,16 @@ function customClick(e, chart, opts) {
       clickNameOptions.value = opts.w.config.labels[clickIndexOptions.value];
       break;
   }
-
+  let isClicked = false
+  if (clickIndexOptions !== -1 && clickIndexSeries !== -1) {
+    isClicked = true
+  }
   emit('chart-click', {
-    indexX: clickIndexOptions.value,
-    indexY: clickIndexSeries.value,
+    isClick: isClicked,
     nameX: clickNameOptions.value,
-    nameY: clickNameSeries.value
+    nameY: clickNameSeries.value,
+    critereTrieX: checkedOutOptions.value,
+    critereTrieY: checkedOutSeries.value
   })
 
 }
