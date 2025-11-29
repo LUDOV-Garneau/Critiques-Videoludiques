@@ -387,7 +387,7 @@ describe('FiltersSidebar - Tests des filtres', () => {
       const gameTypesFilter = activeFilters.find(f => f.type === 'gameTypes')
 
       expect(gameTypesFilter).toBeDefined()
-      expect(gameTypesFilter.label).toBe('Types de jeux')
+      expect(gameTypesFilter.label).toBe('Genres LUDOV')
       expect(gameTypesFilter.count).toBe(2)
       expect(gameTypesFilter.value).toContain('Action')
       expect(gameTypesFilter.value).toContain('RPG')
@@ -646,6 +646,69 @@ describe('FiltersSidebar - Tests des filtres', () => {
       expect(lastEmit.gameTypes).toHaveLength(1)
       expect(lastEmit.gameTypes).toContain('Aventure')
       expect(lastEmit.gameTypesLogic).toBe('ET') // La logique reste ET
+    })
+  })
+
+  describe('Compteur de résultats', () => {
+    it('devrait afficher les props totalCount et filteredCount', async () => {
+      const wrapperWithCounts = mount(FiltersSidebar, {
+        props: {
+          facets: defaultFacets,
+          activeFilters: {},
+          totalCount: 1500,
+          filteredCount: 245
+        }
+      })
+
+      // Vérifier que les props sont correctement reçues
+      expect(wrapperWithCounts.props('totalCount')).toBe(1500)
+      expect(wrapperWithCounts.props('filteredCount')).toBe(245)
+    })
+
+    it('devrait avoir des valeurs par défaut à 0 pour les compteurs', () => {
+      // Le wrapper par défaut n'a pas les props de compteur
+      expect(wrapper.props('totalCount')).toBe(0)
+      expect(wrapper.props('filteredCount')).toBe(0)
+    })
+
+    it('devrait afficher le compteur dans le DOM', async () => {
+      const wrapperWithCounts = mount(FiltersSidebar, {
+        props: {
+          facets: defaultFacets,
+          activeFilters: {},
+          totalCount: 1000,
+          filteredCount: 500
+        }
+      })
+
+      // Vérifier que le compteur est rendu
+      const counter = wrapperWithCounts.find('.results-counter')
+      expect(counter.exists()).toBe(true)
+
+      // Vérifier les valeurs affichées
+      expect(counter.find('.results-count').text()).toBe('500')
+      expect(counter.find('.results-total').text()).toBe('1000')
+      expect(counter.find('.results-label').text()).toBe('résultats')
+    })
+
+    it('devrait mettre à jour dynamiquement quand les props changent', async () => {
+      const wrapperWithCounts = mount(FiltersSidebar, {
+        props: {
+          facets: defaultFacets,
+          activeFilters: {},
+          totalCount: 1000,
+          filteredCount: 1000
+        }
+      })
+
+      // Vérifier les valeurs initiales
+      expect(wrapperWithCounts.find('.results-count').text()).toBe('1000')
+
+      // Mettre à jour les props
+      await wrapperWithCounts.setProps({ filteredCount: 250 })
+
+      // Vérifier que la valeur a changé
+      expect(wrapperWithCounts.find('.results-count').text()).toBe('250')
     })
   })
 })

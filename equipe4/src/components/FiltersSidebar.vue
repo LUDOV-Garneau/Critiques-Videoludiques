@@ -18,6 +18,14 @@ const props = defineProps({
   activeFilters: {
     type: Object,
     default: () => ({})
+  },
+  totalCount: {
+    type: Number,
+    default: 0
+  },
+  filteredCount: {
+    type: Number,
+    default: 0
   }
 })
 
@@ -97,7 +105,7 @@ const activeFiltersList = computed(() => {
   if (localFilters.value.gameTypes.length > 0) {
     filters.push({
       type: 'gameTypes',
-      label: 'Types de jeux',
+      label: 'Genres LUDOV',
       value: localFilters.value.gameTypes.join(', '),
       count: localFilters.value.gameTypes.length
     })
@@ -687,18 +695,18 @@ watch(() => props.facets, (newFacets) => {
     <div class="active-filters-section">
       <div class="section-header">
         <h3>Filtres actifs</h3>
-        <button 
-          v-if="activeFiltersList.length > 0" 
+        <button
+          v-if="activeFiltersList.length > 0"
           @click="clearAllFilters"
           class="clear-all-btn"
         >
           Tout effacer
         </button>
       </div>
-      
+
       <div class="active-filters-list">
-        <div 
-          v-for="filter in activeFiltersList" 
+        <div
+          v-for="filter in activeFiltersList"
           :key="filter.type"
           class="active-filter-item"
         >
@@ -706,7 +714,7 @@ watch(() => props.facets, (newFacets) => {
             <span class="filter-label">{{ filter.label }}</span>
             <span class="filter-value">{{ filter.value }}</span>
           </div>
-          <button 
+          <button
             @click="clearFilter(filter.type)"
             class="remove-filter-btn"
             :title="`Supprimer le filtre ${filter.label}`"
@@ -714,10 +722,18 @@ watch(() => props.facets, (newFacets) => {
             ×
           </button>
         </div>
-        
+
         <div v-if="activeFiltersList.length === 0" class="no-active-filters">
           Aucun filtre actif
         </div>
+      </div>
+
+      <!-- Compteur de résultats (en bas des filtres actifs) -->
+      <div class="results-counter">
+        <span class="results-count">{{ filteredCount }}</span>
+        <span class="results-separator">/</span>
+        <span class="results-total">{{ totalCount }}</span>
+        <span class="results-label">résultats</span>
       </div>
     </div>
 
@@ -849,14 +865,14 @@ watch(() => props.facets, (newFacets) => {
         </div>
       </div>
 
-      <!-- Filtre par Types de jeux -->
+      <!-- Filtre par Genres LUDOV -->
       <div class="filter-card">
         <button
           @click="toggleCard('gameTypes')"
           class="card-header"
           :class="{ expanded: expandedCards.gameTypes }"
         >
-          <span>Types de jeux</span>
+          <span>Genres LUDOV</span>
           <span class="expand-icon">{{ expandedCards.gameTypes ? '−' : '+' }}</span>
         </button>
 
@@ -891,7 +907,7 @@ watch(() => props.facets, (newFacets) => {
           </div>
 
           <div class="filter-group">
-            <label class="filter-group-label">Sélectionner les types de jeux</label>
+            <label class="filter-group-label">Sélectionner les genres</label>
             <div class="filter-options">
               <label
                 v-for="gameType in (props.facets.gameTypes || [])"
@@ -1281,6 +1297,45 @@ watch(() => props.facets, (newFacets) => {
 
 .clear-all-btn:hover {
   background: #dc2626;
+}
+
+/* Compteur de résultats */
+.results-counter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 50%, #0891b2 100%);
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-top: 12px;
+  box-shadow: 0 2px 4px rgba(6, 182, 212, 0.3);
+}
+
+.results-count {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.results-separator {
+  font-size: 18px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 2px;
+}
+
+.results-total {
+  font-size: 18px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.results-label {
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.8);
+  margin-left: 6px;
 }
 
 .active-filters-list {
