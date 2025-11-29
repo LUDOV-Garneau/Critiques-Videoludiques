@@ -7,7 +7,7 @@ import ChartsGraphique from '../components/Graphique.vue'
 
 // Clique sur le Graphs 
 const graphClickData = ref(null)
-let TestArray = ref([])
+let TestArray = ref()
 function handleGraphClick(payload) {
   console.log("Received graph click:", payload)
   graphClickData.value = payload
@@ -1247,21 +1247,19 @@ function buildImportantColumns(allHeaders) {
 }
 
 watch(graphClickData, () => {
-
   const graphValue = graphClickData.value
   if (graphValue !== null) {
     if (!graphValue.isClick) {
       TestArray.value = filteredAndSorted.value
     } else if (graphValue.nameY === "Critiques") {
-      TestArray.value = filteredAndSorted.value.filter(item => item[graphValue.critereTrieX] === graphValue.nameX)
+      TestArray.value = filteredAndSorted.value.filter(item => item[graphValue.critereTrieX] == graphValue.nameX.toString())
+    } else if (!graphValue.nameY) {
+      TestArray.value = filteredAndSorted.value.filter(item => item[graphValue.critereTrieY] == graphValue.nameX.toString())
     } else {
-      TestArray.value = filteredAndSorted.value.filter(item => item[graphValue.critereTrieX] === graphValue.nameX && item[graphValue.critereTrieY] === graphValue.nameY)
+      TestArray.value = filteredAndSorted.value.filter(item => item[graphValue.critereTrieX] == graphValue.nameX.toString() && item[graphValue.critereTrieY] == graphValue.nameY.toString())
     }
     totalPages = Math.max(1, Math.ceil((TestArray.value.length || 0) / pageSize))
     pageSlice = TestArray.value.slice((page.value - 1) * pageSize, page.value * pageSize)
-  } else {
-    totalPages = computed(() => Math.max(1, Math.ceil((filteredAndSorted.value.length || 0) / pageSize)))
-    pageSlice = computed(() => filteredAndSorted.value.slice((page.value - 1) * pageSize, page.value * pageSize))
   }
 });
 
