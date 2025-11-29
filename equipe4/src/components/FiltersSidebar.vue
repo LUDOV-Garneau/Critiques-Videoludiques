@@ -105,7 +105,7 @@ const activeFiltersList = computed(() => {
   if (localFilters.value.gameTypes.length > 0) {
     filters.push({
       type: 'gameTypes',
-      label: 'Types de jeux',
+      label: 'Genres LUDOV',
       value: localFilters.value.gameTypes.join(', '),
       count: localFilters.value.gameTypes.length
     })
@@ -865,14 +865,14 @@ watch(() => props.facets, (newFacets) => {
         </div>
       </div>
 
-      <!-- Filtre par Types de jeux -->
+      <!-- Filtre par Genres LUDOV -->
       <div class="filter-card">
         <button
           @click="toggleCard('gameTypes')"
           class="card-header"
           :class="{ expanded: expandedCards.gameTypes }"
         >
-          <span>Types de jeux</span>
+          <span>Genres LUDOV</span>
           <span class="expand-icon">{{ expandedCards.gameTypes ? '−' : '+' }}</span>
         </button>
 
@@ -907,7 +907,7 @@ watch(() => props.facets, (newFacets) => {
           </div>
 
           <div class="filter-group">
-            <label class="filter-group-label">Sélectionner les types de jeux</label>
+            <label class="filter-group-label">Sélectionner les genres</label>
             <div class="filter-options">
               <label
                 v-for="gameType in (props.facets.gameTypes || [])"
