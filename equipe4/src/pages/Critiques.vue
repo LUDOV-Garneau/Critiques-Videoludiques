@@ -1273,7 +1273,13 @@ function buildImportantColumns(allHeaders) {
 <template>
   <div class="page-layout">
     <!-- Sidebar des filtres -->
-    <FiltersSidebar :facets="facets" :active-filters="sidebarFilters" @update:filters="updateFilters" />
+    <FiltersSidebar
+      :facets="facets"
+      :active-filters="sidebarFilters"
+      :total-count="mappedObjects.length"
+      :filtered-count="filteredAndSorted.length"
+      @update:filters="updateFilters"
+    />
     <!-- Contenu principal -->
     <div class="main-content">
       <div class="container">
