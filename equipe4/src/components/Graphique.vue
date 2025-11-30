@@ -403,6 +403,45 @@ function ChartGeneration(arrayX01, arrayY01, type) {
       };
       break;
 
+    case 'histogram':
+      isValideGraphsX = true
+      isValideGraphsY = true
+      chartSeriesFinal.value = arrayY01;
+      chartOptionsFinal.value = {
+        chart: { 
+          type: 'bar', 
+          height: 300, 
+          stacked: false // Histogramme non-empilé
+        },
+        plotOptions: {
+          bar: {
+            horizontal: false,
+            columnWidth: '95%', // Barres plus larges pour effet histogramme
+            borderRadius: 2
+          },
+        },
+        dataLabels: {
+          enabled: false
+        },
+        title: { text: 'Histogramme de distribution', align: 'left' },
+        xaxis: { 
+          categories: arrayX01,
+          tickPlacement: 'on'
+        },
+        legend: { position: 'right', horizontalAlign: 'center' },
+        noData: {
+          text: 'Donnée indisponible',
+          align: 'center',
+          style: { fontSize: '16px', color: '#999' }
+        },
+        tooltip: {
+          shared: false, // Affichage individuel pour l'histogramme
+          intersect: true,
+          enabled: true
+        }
+      };
+      break;
+
     case 'pie':
       isValideGraphsX = false
       isValideGraphsY = true
@@ -519,7 +558,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
           text: `Distribution par ${keySeriesTree}`,
           align: 'left'
         },
-        // Palette de couleurs sympa pour les treemaps
+        // Palette de couleurs pour les treemaps
         colors: [
           '#3B93A5', '#F7B844', '#ADD8C7', '#EC3C65', '#CDD7B6', '#C1F666', '#D43F97', '#1E5D8C', '#421243', '#7F94B0', '#EF6537', '#C0ADDB'
         ],
@@ -530,7 +569,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
           }
         },
         legend: {
-          show: false // On cache souvent la légende en treemap car le texte est dans les boites
+          show: false // On cache la légende car le texte est dans les boites
         },
         noData: {
           text: 'Donnée indisponible',
@@ -689,6 +728,35 @@ function updateChartSpecific(newChart) {
 
       if (!OptionsOriginalArray.value.includes(checkedOutOptions.value)) {
         checkedOutOptions.value = 'ImageType';
+      }
+
+      SeriesParameterArray.value = SeriesOriginalArray.value.filter(
+        item => item !== checkedOutOptions.value
+      );
+      OptionsParameterArray.value = OptionsOriginalArray.value.filter(
+        item => item !== checkedOutSeries.value
+      );
+      break;
+
+    case 'histogram':
+      // Logique similaire aux barres, mais par défaut sur Année pour distribution temporelle
+      SeriesOriginalArray.value = [
+        typeArray[4],
+        typeArray[6],
+        typeArray[8],
+        typeArray[12],
+        typeArray[13],
+        typeArray[17]
+      ].sort();
+
+      if (!SeriesOriginalArray.value.includes(checkedOutSeries.value)) {
+        checkedOutSeries.value = 'Pays';
+      }
+
+      OptionsOriginalArray.value = [...SeriesOriginalArray.value, typeArray[5]]; // + Année
+
+      if (!OptionsOriginalArray.value.includes(checkedOutOptions.value)) {
+        checkedOutOptions.value = 'Année';
       }
 
       SeriesParameterArray.value = SeriesOriginalArray.value.filter(
@@ -878,6 +946,9 @@ function coloredTooltip(itemsPerColumn = 5, sort = false) {
 
       <input type="radio" id="treemap" name="charts" value="treemap" v-model="checkedTypeCharts" />
       <label for="treemap">Treemap</label>
+
+      <input type="radio" id="histogram" name="charts" value="histogram" v-model="checkedTypeCharts" />
+      <label for="histogram">Histogramme</label>
     </div>
 
     <div v-if="isValideGraphsY">Ligne Y
