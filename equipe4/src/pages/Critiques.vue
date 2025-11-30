@@ -7,7 +7,6 @@ import ChartsGraphique from '../components/Graphique.vue'
 
 // Clique sur le Graphs 
 const graphClickData = ref(null)
-let TestArray = ref()
 function handleGraphClick(payload) {
   console.log("Received graph click:", payload)
   graphClickData.value = payload
@@ -151,6 +150,29 @@ if (typeof window !== 'undefined') {
     if (e.key === 'Escape') closeModal()
   })
 }
+
+const filteredByClickGraph = computed(() => {
+  const graphValue = graphClickData.value
+  let items = filteredAndSorted.value
+  if (graphValue !== null) {
+    if (!graphValue.isClick) {
+      items = filteredAndSorted.value
+    } else if (graphValue.nameY === "Critiques") {
+      items = filteredAndSorted.value.filter(item => item[graphValue.critereTrieX] == graphValue.nameX.toString())
+    } else if (!graphValue.nameY) {
+      items = filteredAndSorted.value.filter(item => item[graphValue.critereTrieY] == graphValue.nameX.toString())
+    } else {
+      items = filteredAndSorted.value.filter(item => item[graphValue.critereTrieX] == graphValue.nameX.toString() && item[graphValue.critereTrieY] == graphValue.nameY.toString())
+    }
+
+  }
+  return items
+})
+
+
+
+
+
 const filteredAndSorted = computed(() => {
   // Utiliser directement les objets complets de filteredByFilters
   let items = filteredByFilters.value
@@ -175,8 +197,10 @@ const filteredAndSorted = computed(() => {
   return items
 })
 
-  let totalPages = computed(() => Math.max(1, Math.ceil((filteredAndSorted.value.length || 0) / pageSize)))
-  let pageSlice = computed(() => filteredAndSorted.value.slice((page.value - 1) * pageSize, page.value * pageSize))
+const totalPages = computed(() => Math.max(1, Math.ceil((filteredByClickGraph.value.length || 0) / pageSize)))
+const pageSlice = computed(() => filteredByClickGraph.value.slice((page.value - 1) * pageSize, page.value * pageSize))
+
+
 
 // Mapping entre les noms de colonnes affichés et les propriétés des objets
 const columnPropertyMap = {
@@ -1247,20 +1271,7 @@ function buildImportantColumns(allHeaders) {
 }
 
 watch(graphClickData, () => {
-  const graphValue = graphClickData.value
-  if (graphValue !== null) {
-    if (!graphValue.isClick) {
-      TestArray.value = filteredAndSorted.value
-    } else if (graphValue.nameY === "Critiques") {
-      TestArray.value = filteredAndSorted.value.filter(item => item[graphValue.critereTrieX] == graphValue.nameX.toString())
-    } else if (!graphValue.nameY) {
-      TestArray.value = filteredAndSorted.value.filter(item => item[graphValue.critereTrieY] == graphValue.nameX.toString())
-    } else {
-      TestArray.value = filteredAndSorted.value.filter(item => item[graphValue.critereTrieX] == graphValue.nameX.toString() && item[graphValue.critereTrieY] == graphValue.nameY.toString())
-    }
-    totalPages = Math.max(1, Math.ceil((TestArray.value.length || 0) / pageSize))
-    pageSlice = TestArray.value.slice((page.value - 1) * pageSize, page.value * pageSize)
-  }
+  page.value = 1 // Reset pagination
 });
 
 
@@ -1288,7 +1299,6 @@ watch(graphClickData, () => {
             <ChartsGraphique :items="filteredAndSorted" :filtre-actifs="sidebarFilters"
               @chart-click="handleGraphClick" />
           </div>
-          <div> {{ graphClickData }}</div>
           <div class="toolbar">
             <input class="input" type="search" v-model="query" placeholder="Rechercher… (titre, plateforme, etc.)" />
             <div class="sort">

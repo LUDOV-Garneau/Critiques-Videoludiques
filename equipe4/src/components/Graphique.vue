@@ -855,8 +855,7 @@ function customClick(e, chart, opts) {
       <!-- <div v-for="(item, index) in filteredAndSorted" :key="index">
         {{ item }}
       </div> -->
-      <div>{{ clickIndexOptions }}, {{ clickIndexSeries }}</div>
-      <div>{{ clickNameOptions }}, {{ clickNameSeries }}</div>
+
       <div>Type de graphique</div>
       <input type="radio" id="line" name="charts" value="line" v-model="checkedTypeCharts" checked />
       <label for="line">Ligne du Temps</label>
@@ -896,7 +895,9 @@ function customClick(e, chart, opts) {
         </option>
       </select>
     </div>
-
+          <div v-if="clickIndexOptions !== -1 && clickIndexSeries !== -1">
+        <p>Sélection : {{ clickNameOptions }}<span v-if="clickNameSeries !== 'Critiques' && checkedTypeCharts !== 'pie'">, {{ clickNameSeries }}</span></p>
+    </div>
   </div>
 </template>
 
