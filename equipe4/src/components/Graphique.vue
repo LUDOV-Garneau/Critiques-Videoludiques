@@ -425,8 +425,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
           intersect: false,
           enabled: true,
           custom: coloredTooltip(5, true)
-        },
-        markers: { size: 5 }
+        }
       };
       break;
 
