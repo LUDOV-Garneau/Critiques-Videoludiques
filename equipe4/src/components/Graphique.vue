@@ -68,7 +68,6 @@ const months = [
   "12 (décembre)"
 ];
 
-
 const props = defineProps({
   items: {
     type: Array,
@@ -88,7 +87,6 @@ const filteredAndSorted = computed(() => {
   let sortedItems = [...props.items];
 
   if (checkedOutOptions.value) {
-  
     sortedItems = sortedItems.sort((b, a) => {
       const va = a[checkedOutOptions.value];
       const vb = b[checkedOutOptions.value];
@@ -169,8 +167,8 @@ const updateData = (type, mode, select) => {
     return;
   }
 
-  // Vérification 2: Si toutes les années sont indisponibles (sauf pour pie chart)
-  if (type !== 'pie') {
+  // Vérification 2: Si toutes les années sont indisponibles (sauf pour pie et treemap)
+  if (type !== 'pie' && type !== 'treemap') {
     const hasValidYear = filteredAndSorted.value.some(item =>
       item.Année && item.Année !== '-'
     );
@@ -314,14 +312,14 @@ function generateHeatmapData() {
   const valeursX = [...new Set(
     items.flatMap(i => splitMultipleValues(i[keyX]))
   )].sort(naturalSort);
-  
+
   const valeursY = [...new Set(
     items.flatMap(i => splitMultipleValues(i[keySeries]))
   )].sort(naturalSort);
 
   // Créer une map pour compter les occurrences
   const map = {};
-  
+
   for (const item of items) {
     const itemValeursX = splitMultipleValues(item[keyX]);
     const itemValeursY = splitMultipleValues(item[keySeries]);
@@ -473,11 +471,80 @@ function ChartGeneration(arrayX01, arrayY01, type) {
       };
       break;
 
-      case 'heatmap':
+    case 'treemap':
+      isValideGraphsX = false
+      isValideGraphsY = true
+
+      // 1. Réutiliser la logique de comptage (similaire à Pie)
+      const keySeriesTree = checkedOutSeries.value;
+      const itemsTree = filteredAndSorted.value;
+
+      const splitValuesTree = (value) => {
+        if (!value || value === '-') return [];
+        return String(value).split(/\s*;\s*/).map(v => v.trim()).filter(v => v);
+      };
+
+      const mapTree = {};
+      for (const item of itemsTree) {
+        const values = splitValuesTree(item[keySeriesTree]);
+        for (const value of values) {
+          if (value) {
+            // Diviser le poids si plusieurs valeurs (ex: 2 pays = 0.5 chacun)
+            mapTree[value] = (mapTree[value] || 0) + (1 / values.length);
+          }
+        }
+      }
+
+      // 2. Formater pour le Treemap: [{ x: 'Nom', y: Valeur }]
+      // On trie par valeur décroissante pour l'affichage Treemap
+      const treemapData = Object.entries(mapTree)
+        .map(([key, value]) => ({
+          x: key,
+          y: Math.round(value)
+        }))
+        .sort((a, b) => b.y - a.y);
+
+      chartSeriesFinal.value = [
+        {
+          data: treemapData
+        }
+      ];
+
+      chartOptionsFinal.value = {
+        chart: {
+          type: 'treemap',
+          height: 350
+        },
+        title: {
+          text: `Distribution par ${keySeriesTree}`,
+          align: 'left'
+        },
+        // Palette de couleurs sympa pour les treemaps
+        colors: [
+          '#3B93A5', '#F7B844', '#ADD8C7', '#EC3C65', '#CDD7B6', '#C1F666', '#D43F97', '#1E5D8C', '#421243', '#7F94B0', '#EF6537', '#C0ADDB'
+        ],
+        plotOptions: {
+          treemap: {
+            distributed: true,
+            enableShades: false
+          }
+        },
+        legend: {
+          show: false // On cache souvent la légende en treemap car le texte est dans les boites
+        },
+        noData: {
+          text: 'Donnée indisponible',
+          align: 'center',
+          style: { fontSize: '16px', color: '#999' }
+        }
+      };
+      break;
+
+    case 'heatmap':
       isValideGraphsX = true
       isValideGraphsY = true
       const { series: heatmapSeries, categories: heatmapCategories } = generateHeatmapData();
-      
+
       chartSeriesFinal.value = heatmapSeries;
       chartOptionsFinal.value = {
         chart: {
@@ -565,7 +632,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
         }
       };
       break;
-      
+
     default:
       chartSeriesFinal.value = arrayY01;
       chartOptionsFinal.value = {
@@ -645,6 +712,23 @@ function updateChartSpecific(newChart) {
 
       if (!SeriesParameterArray.value.includes(checkedOutSeries.value)) {
         checkedOutSeries.value = 'GenreAuteur';
+      }
+      break;
+
+    case 'treemap':
+      // Configuration similaire au Pie chart
+      SeriesParameterArray.value = [
+        typeArray[2], // Plateforme
+        typeArray[4], // TypePlateforme
+        typeArray[6], // Magazine
+        typeArray[8], // Pays
+        typeArray[12], // ImageType
+        typeArray[13], // Mois
+        typeArray[17]  // GenreAuteur
+      ].sort();
+
+      if (!SeriesParameterArray.value.includes(checkedOutSeries.value)) {
+        checkedOutSeries.value = 'Pays';
       }
       break;
 
@@ -791,8 +875,11 @@ function coloredTooltip(itemsPerColumn = 5, sort = false) {
 
       <input type="radio" id="heatmap" name="charts" value="heatmap" v-model="checkedTypeCharts" />
       <label for="heatmap">Heatmap</label>
+
+      <input type="radio" id="treemap" name="charts" value="treemap" v-model="checkedTypeCharts" />
+      <label for="treemap">Treemap</label>
     </div>
-    
+
     <div v-if="isValideGraphsY">Ligne Y
       <select v-model="checkedOutSeries">
         <option v-for="type in SeriesParameterArray" :key="type" :value="type">
@@ -810,7 +897,7 @@ function coloredTooltip(itemsPerColumn = 5, sort = false) {
       <apexchart :key="checkedTypeCharts" width="100%" height="300" :options="chartOptionsFinal"
         :series="chartSeriesFinal" />
     </div>
-    
+
     <div v-if="isValideGraphsX">Ligne X
       <select v-model="checkedOutOptions">
         <option v-for="type in OptionsParameterArray" :key="type" :value="type">
