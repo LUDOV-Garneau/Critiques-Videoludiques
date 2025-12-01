@@ -572,5 +572,164 @@ describe('Logique de filtrage des critiques', () => {
       expect(magazineFiltered.map(r => r[0])).toContain('Jeu E')
     })
   })
+
+  describe('Filtrage par types de jeux avec logique ET/OU', () => {
+    // Fonction de filtrage avec logique ET/OU
+    function filterByGameTypesWithLogic(rows, gameTypes, logic = 'OU') {
+      if (!gameTypes || gameTypes.length === 0) return rows
+
+      return rows.filter(row => {
+        const gameType = row[143] // Colonne 143: "Titre des étiquettes génériques de genre"
+        if (!gameType || gameType === '' || gameType === '0') return false
+
+        // Séparer les types multiples
+        const types = String(gameType).split(/[\/,;]+/).map(t => t.trim()).filter(t => t)
+
+        if (logic === 'ET') {
+          // Logique ET strict : la critique doit avoir EXACTEMENT les genres sélectionnés (ni plus, ni moins)
+          if (types.length !== gameTypes.length) return false
+          return gameTypes.every(selectedType => types.includes(selectedType))
+        } else {
+          // Logique OU (par défaut) : au moins un genre doit correspondre
+          return gameTypes.some(selectedType => types.includes(selectedType))
+        }
+      })
+    }
+
+    describe('Logique OU (par défaut)', () => {
+      it('devrait retourner les jeux ayant AU MOINS UN des genres sélectionnés', () => {
+        const result = filterByGameTypesWithLogic(mockRows, ['Action', 'RPG'], 'OU')
+
+        // Jeu A (Action), Jeu B (RPG/Aventure), Jeu E (Action/Aventure/Infiltration)
+        expect(result).toHaveLength(3)
+        expect(result.map(r => r[0])).toContain('Jeu A')
+        expect(result.map(r => r[0])).toContain('Jeu B')
+        expect(result.map(r => r[0])).toContain('Jeu E')
+      })
+
+      it('devrait inclure un jeu avec un seul genre correspondant en mode OU', () => {
+        const result = filterByGameTypesWithLogic(mockRows, ['Action', 'Simulation'], 'OU')
+
+        // Jeu A (Action), Jeu D (Simulation), Jeu E (Action/Aventure/Infiltration)
+        expect(result).toHaveLength(3)
+        expect(result.map(r => r[0])).toContain('Jeu A')
+        expect(result.map(r => r[0])).toContain('Jeu D')
+        expect(result.map(r => r[0])).toContain('Jeu E')
+      })
+
+      it('devrait fonctionner avec un seul genre en mode OU', () => {
+        const result = filterByGameTypesWithLogic(mockRows, ['Action'], 'OU')
+
+        expect(result).toHaveLength(2) // Jeu A et Jeu E
+        expect(result.map(r => r[0])).toContain('Jeu A')
+        expect(result.map(r => r[0])).toContain('Jeu E')
+      })
+    })
+
+    describe('Logique ET (strict - égalité exacte)', () => {
+      it('devrait retourner uniquement les jeux ayant EXACTEMENT les genres sélectionnés', () => {
+        const result = filterByGameTypesWithLogic(mockRows, ['Action', 'Aventure', 'Infiltration'], 'ET')
+
+        // Jeu E (Action/Aventure/Infiltration) ✅ - exactement les 3 genres
+        expect(result).toHaveLength(1)
+        expect(result[0][0]).toBe('Jeu E')
+      })
+
+      it('devrait retourner un jeu avec exactement les genres sélectionnés en mode ET', () => {
+        const result = filterByGameTypesWithLogic(mockRows, ['RPG', 'Aventure'], 'ET')
+
+        // Jeu B a RPG/Aventure - exactement les 2 genres
+        expect(result).toHaveLength(1)
+        expect(result[0][0]).toBe('Jeu B')
+      })
+
+      it('devrait exclure les jeux ayant moins de genres que la sélection', () => {
+        const result = filterByGameTypesWithLogic(mockRows, ['Action', 'Aventure'], 'ET')
+
+        // Jeu A (Action) ❌ - manque "Aventure"
+        // Jeu E (Action/Aventure/Infiltration) ❌ - a un genre supplémentaire
+        expect(result).toHaveLength(0)
+      })
+
+      it('devrait fonctionner avec un seul genre en mode ET', () => {
+        const result = filterByGameTypesWithLogic(mockRows, ['Action'], 'ET')
+
+        // Seul Jeu A a uniquement "Action" (pas d'autres genres)
+        // Jeu E a Action/Aventure/Infiltration donc est exclu
+        expect(result).toHaveLength(1)
+        expect(result[0][0]).toBe('Jeu A')
+      })
+
+      it('devrait exclure les jeux avec plus de genres que la sélection', () => {
+        const result = filterByGameTypesWithLogic(mockRows, ['Action', 'Aventure'], 'ET')
+
+        // Jeu E (Action/Aventure/Infiltration) ❌ - a 3 genres au lieu de 2
+        expect(result).toHaveLength(0)
+      })
+
+      it('devrait retourner un jeu avec exactement un genre', () => {
+        const result = filterByGameTypesWithLogic(mockRows, ['Simulation'], 'ET')
+
+        // Jeu D (Simulation) ✅ - exactement 1 genre
+        expect(result).toHaveLength(1)
+        expect(result[0][0]).toBe('Jeu D')
+      })
+
+      it('devrait retourner un tableau vide si aucun jeu n\'a exactement les genres sélectionnés', () => {
+        const result = filterByGameTypesWithLogic(mockRows, ['Action', 'Simulation'], 'ET')
+
+        // Aucun jeu n'a exactement Action ET Simulation
+        expect(result).toHaveLength(0)
+      })
+    })
+
+    describe('Comparaison ET vs OU', () => {
+      it('devrait retourner plus de résultats en mode OU qu\'en mode ET', () => {
+        const genres = ['RPG', 'Aventure']
+        const resultOU = filterByGameTypesWithLogic(mockRows, genres, 'OU')
+        const resultET = filterByGameTypesWithLogic(mockRows, genres, 'ET')
+
+        // Mode OU : Jeu B (RPG/Aventure) + Jeu E (Action/Aventure/Infiltration)
+        expect(resultOU).toHaveLength(2)
+
+        // Mode ET strict : Jeu B (RPG/Aventure) - exactement les 2 genres
+        expect(resultET).toHaveLength(1)
+
+        // Mode OU retourne plus de résultats que mode ET
+        expect(resultOU.length).toBeGreaterThan(resultET.length)
+      })
+
+      it('devrait avoir les mêmes résultats ET et OU avec un seul genre', () => {
+        const genres = ['Simulation']
+        const resultOU = filterByGameTypesWithLogic(mockRows, genres, 'OU')
+        const resultET = filterByGameTypesWithLogic(mockRows, genres, 'ET')
+
+        expect(resultOU).toHaveLength(resultET.length)
+        expect(resultOU.map(r => r[0])).toEqual(resultET.map(r => r[0]))
+      })
+    })
+
+    describe('Cas limites', () => {
+      it('devrait retourner tous les jeux si aucun filtre en mode OU', () => {
+        const result = filterByGameTypesWithLogic(mockRows, [], 'OU')
+        expect(result).toHaveLength(mockRows.length)
+      })
+
+      it('devrait retourner tous les jeux si aucun filtre en mode ET', () => {
+        const result = filterByGameTypesWithLogic(mockRows, [], 'ET')
+        expect(result).toHaveLength(mockRows.length)
+      })
+
+      it('devrait gérer les genres inexistants en mode OU', () => {
+        const result = filterByGameTypesWithLogic(mockRows, ['Sport', 'Course'], 'OU')
+        expect(result).toHaveLength(0)
+      })
+
+      it('devrait gérer les genres inexistants en mode ET', () => {
+        const result = filterByGameTypesWithLogic(mockRows, ['Sport', 'Course'], 'ET')
+        expect(result).toHaveLength(0)
+      })
+    })
+  })
 })
 

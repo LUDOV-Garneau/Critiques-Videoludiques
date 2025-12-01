@@ -267,7 +267,8 @@ function initMapping() {
   mapping.value.Plateforme = findExact(['plateforme', 'platform'])
   mapping.value.Modele = find(['modèle', 'modele', 'model'])
   mapping.value.TypePlateforme = find(['type de plateforme', 'platform type'])
-  mapping.value.Genre = findExact(['genre'])  // Colonne EQ "Genre LUDOV"
+  // Colonne EQ "Genre LUDOV" - Forcer l'index 146 pour éviter les conflits avec d'autres colonnes "Genre"
+  mapping.value.Genre = headers.value[146] || findExact(['genre'])
   mapping.value.TypeJeu = find(['titre des étiquettes génériques de genre', 'type de jeu', 'game genre'])
   mapping.value.Note = find(['score', 'rating', 'note'])
   mapping.value.Année = find(['year', 'release year', 'annee', 'année', 'date'])
@@ -574,6 +575,7 @@ const sidebarFilters = ref({
   platformTypes: [],
   platforms: [],
   gameTypes: [],
+  gameTypesLogic: 'OU', // Ajout de la logique ET/OU pour les types de jeux
   imageTypes: [],
   authorGender: '',
   authorCharacteristics: [],
@@ -756,12 +758,12 @@ const facets = computed(() => {
     }
   }
 
-  // Récupérer les genres depuis les données brutes (colonne EQ "Genre")
+  // Récupérer les genres depuis les données brutes (colonne EQ "Genre LUDOV")
   const genres = new Set()
   let hasUnspecifiedGenres = false
 
-  if (headers.value.length > 0) {
-    const genreIndex = headers.value.indexOf('Genre')
+  if (headers.value.length > 0 && mapping.value.Genre) {
+    const genreIndex = headers.value.indexOf(mapping.value.Genre)
     if (genreIndex !== -1) {
       rows.value.forEach(row => {
         const genreValue = row[genreIndex]
@@ -881,8 +883,8 @@ const filteredByFilters = computed(() => {
 
     // Filtre par genres (colonne EQ "Genre LUDOV")
     if (f.gameTypes && f.gameTypes.length > 0) {
-      if (headers.value.length > 0 && index < rows.value.length) {
-        const genreIndex = headers.value.indexOf('Genre')
+      if (headers.value.length > 0 && index < rows.value.length && mapping.value.Genre) {
+        const genreIndex = headers.value.indexOf(mapping.value.Genre)
         if (genreIndex !== -1) {
           const genreValue = rows.value[index][genreIndex]
 
@@ -908,11 +910,15 @@ const filteredByFilters = computed(() => {
 
           // Appliquer la logique ET ou OU
           if (f.gameTypesLogic === 'ET') {
-            // Logique "ET" : tous les genres sélectionnés doivent être présents
-            const hasAllGenres = selectedGenres.every(selectedGenre =>
-              cleanedGenres.includes(selectedGenre)
+            // Logique "ET" strict : la critique doit avoir EXACTEMENT les genres sélectionnés (ni plus, ni moins)
+            // Vérifier que les deux ensembles sont identiques
+            if (cleanedGenres.length !== selectedGenres.length) return false
+
+            // Vérifier que tous les genres sélectionnés sont présents
+            const hasAllSelectedGenres = selectedGenres.every(genre =>
+              cleanedGenres.includes(genre)
             )
-            if (!hasAllGenres) return false
+            if (!hasAllSelectedGenres) return false
           } else {
             // Logique "OU" (par défaut) : au moins un genre doit correspondre
             const hasSelectedGenre = selectedGenres.some(selectedGenre =>
@@ -1177,6 +1183,31 @@ function updateFilters(newFilters) {
   sidebarFilters.value = { ...newFilters }
   page.value = 1 // Reset pagination
 }
+
+// Fonction pour compter le nombre de critères évalués pour un item
+function countEvaluatedCriteria(item) {
+  if (!item) return 0
+
+  const criteria = [
+    item.NoteGenerale,
+    item.NoteVisuelle,
+    item.NoteSonore,
+    item.NoteContenu,
+    item.NoteJouabilite,
+    item.NoteTempsJeu,
+    item.NoteDifficulte,
+    item.NotePrix,
+    item.NoteAutre
+  ]
+
+  return criteria.filter(note =>
+    note !== undefined &&
+    note !== null &&
+    note !== '-' &&
+    note !== '' &&
+    note !== 0
+  ).length
+}
 // Initialiser les filtres avec les bonnes valeurs par défaut
 watch(facets, (newFacets) => {
   if (newFacets.minYear && newFacets.maxYear) {
@@ -1280,7 +1311,13 @@ watch(graphClickData, () => {
 <template>
   <div class="page-layout">
     <!-- Sidebar des filtres -->
-    <FiltersSidebar :facets="facets" :active-filters="sidebarFilters" @update:filters="updateFilters" />
+    <FiltersSidebar
+      :facets="facets"
+      :active-filters="sidebarFilters"
+      :total-count="mappedObjects.length"
+      :filtered-count="filteredAndSorted.length"
+      @update:filters="updateFilters"
+    />
     <!-- Contenu principal -->
     <div class="main-content">
       <div class="container">
@@ -1488,15 +1525,10 @@ watch(graphClickData, () => {
                   <h4 class="section-title">Notations</h4>
                   <div class="modal-grid">
                     <div class="modal-field modal-field-full">
-                      <div class="label">Note générale</div>
+                      <div class="label">Nombre de critères évalués</div>
                       <div class="value score-value">
-                        <template
-                          v-if="modalItem?.Note !== undefined && modalItem?.Note !== null && modalItem?.Note !== '-'">
-                          <span class="score-number">{{ modalItem.Note }}</span>
-                        </template>
-                        <template v-else>
-                          <span class="score-not-available">Non notée</span>
-                        </template>
+                        <span class="score-number">{{ countEvaluatedCriteria(modalItem) }}</span>
+                        <span class="score-label"> / 9 critères</span>
                       </div>
                     </div>
                     <div class="modal-field">
