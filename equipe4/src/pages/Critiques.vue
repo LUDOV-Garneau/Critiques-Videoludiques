@@ -1,10 +1,12 @@
+e>
+
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import FiltersSidebar from '../components/FiltersSidebar.vue'
 import { extractGenres } from '../utils/genreCleaner.js'
 import { applyDataCorrections, normalizeScore } from '../utils/dataCorrections.js'
 import ChartsGraphique from '../components/Graphique.vue'
-
+    
 // Clique sur le Graphs 
 const graphClickData = ref(null)
 function handleGraphClick(payload) {
@@ -154,21 +156,50 @@ if (typeof window !== 'undefined') {
 const filteredByClickGraph = computed(() => {
   const graphValue = graphClickData.value
   let items = filteredAndSorted.value
+  
   if (graphValue !== null) {
+    
+    let isRange = false;
+    let minYear = 0;
+    let maxYear = 0;
+
+    if (graphValue.critereTrieX === 'Année' && 
+        typeof graphValue.nameX === 'string' && 
+        graphValue.nameX.includes('-')) {
+          const parts = graphValue.nameX.split('-');
+          const p1 = parseInt(parts[0]);
+          const p2 = parseInt(parts[1]);
+          if (!isNaN(p1) && !isNaN(p2)) {
+            isRange = true;
+            minYear = p1;
+            maxYear = p2;
+          }
+    }
+
+    const checkItemMatchX = (item) => {
+      if (isRange) {
+        const itemYear = parseInt(item.Année);
+        return !isNaN(itemYear) && itemYear >= minYear && itemYear <= maxYear;
+      }
+      return item[graphValue.critereTrieX] == graphValue.nameX.toString();
+    }
+
     if (!graphValue.isClick) {
       items = filteredAndSorted.value
-    } else if (graphValue.nameY === "Critiques") {
-      items = filteredAndSorted.value.filter(item => item[graphValue.critereTrieX] == graphValue.nameX.toString())
-    } else if (!graphValue.nameY) {
-      items = filteredAndSorted.value.filter(item => item[graphValue.critereTrieY] == graphValue.nameX.toString())
-    } else {
-      items = filteredAndSorted.value.filter(item => item[graphValue.critereTrieX] == graphValue.nameX.toString() && item[graphValue.critereTrieY] == graphValue.nameY.toString())
+    } 
+    else if (["Critiques", "Fréquence", "Total"].includes(graphValue.nameY) || !graphValue.nameY) {
+      items = filteredAndSorted.value.filter(item => checkItemMatchX(item))
+    } 
+    else {
+      items = filteredAndSorted.value.filter(item => 
+        checkItemMatchX(item) && 
+        item[graphValue.critereTrieY] == graphValue.nameY.toString()
+      )
     }
 
   }
   return items
 })
-
 
 
 
