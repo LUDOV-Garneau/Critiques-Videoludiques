@@ -6,6 +6,8 @@ let checkedTypeCharts = ref('line')
 let checkedOutData = ref('combine')
 let checkedOutOptions = ref('Année')
 let checkedOutSeries = ref('Pays')
+const emit = defineEmits(['chart-click'])
+
 
 let isValideGraphsX = ref(false)
 let isValideGraphsY = ref(false)
@@ -83,12 +85,17 @@ const props = defineProps({
 let isMultipleFilter = false
 const sortDir = ref('desc')
 
+let clickIndexOptions = ref(-1)
+let clickIndexSeries = ref(-1)
+let clickNameOptions = ref("")
+let clickNameSeries = ref("")
+
 const filteredAndSorted = computed(() => {
   console.log("filteredAndSorted recalculated");
   let sortedItems = [...props.items];
 
   if (checkedOutOptions.value) {
-  
+
     sortedItems = sortedItems.sort((b, a) => {
       const va = a[checkedOutOptions.value];
       const vb = b[checkedOutOptions.value];
@@ -314,14 +321,14 @@ function generateHeatmapData() {
   const valeursX = [...new Set(
     items.flatMap(i => splitMultipleValues(i[keyX]))
   )].sort(naturalSort);
-  
+
   const valeursY = [...new Set(
     items.flatMap(i => splitMultipleValues(i[keySeries]))
   )].sort(naturalSort);
 
   // Créer une map pour compter les occurrences
   const map = {};
-  
+
   for (const item of items) {
     const itemValeursX = splitMultipleValues(item[keyX]);
     const itemValeursY = splitMultipleValues(item[keySeries]);
@@ -366,7 +373,15 @@ function ChartGeneration(arrayX01, arrayY01, type) {
       isValideGraphsY = true
       chartSeriesFinal.value = arrayY01;
       chartOptionsFinal.value = {
-        chart: { type: 'line', height: 300 },
+        chart: {
+          type: 'line',
+          height: 300,
+          events: {
+            dataPointSelection: (e, chart, opts) => {
+              customClick(e, chart, opts)
+            }
+          }
+        },
         title: { text: 'Nombre Critique selon Année', align: 'left' },
         xaxis: { categories: arrayX01 },
         legend: { position: 'right', horizontalAlign: 'center' },
@@ -376,18 +391,27 @@ function ChartGeneration(arrayX01, arrayY01, type) {
           style: { fontSize: '16px', color: '#999' }
         },
         tooltip: {
+          shared: false, intersect: true,
           enabled: true,
           custom: coloredTooltip(5, false)
-        }
+        },
+        markers: { size: 5 }
       };
       break;
 
     case 'bar':
       isValideGraphsX = true
       isValideGraphsY = true
-      chartSeriesFinal.value = arrayY01;
+      chartSeriesFinal.value = arrayY01
       chartOptionsFinal.value = {
-        chart: { type: 'bar', height: 300, stacked: true },
+        chart: {
+          type: 'bar', height: 300, stacked: true,
+          events: {
+            dataPointSelection: (e, chart, opts) => {
+              customClick(e, chart, opts)
+            }
+          }
+        },
         title: { text: 'Nombre de critiques par année', align: 'left' },
         xaxis: { categories: arrayX01 },
         legend: { position: 'right', horizontalAlign: 'center' },
@@ -446,7 +470,12 @@ function ChartGeneration(arrayX01, arrayY01, type) {
       chartOptionsFinal.value = {
         chart: {
           type: 'pie',
-          height: 300
+          height: 300,
+          events: {
+            dataPointSelection: (e, chart, opts) => {
+              customClick(e, chart, opts)
+            }
+          }
         },
         title: {
           text: `Distribution des critiques par ${keySeries}`,
@@ -473,11 +502,11 @@ function ChartGeneration(arrayX01, arrayY01, type) {
       };
       break;
 
-      case 'heatmap':
+    case 'heatmap':
       isValideGraphsX = true
       isValideGraphsY = true
       const { series: heatmapSeries, categories: heatmapCategories } = generateHeatmapData();
-      
+
       chartSeriesFinal.value = heatmapSeries;
       chartOptionsFinal.value = {
         chart: {
@@ -485,6 +514,11 @@ function ChartGeneration(arrayX01, arrayY01, type) {
           height: 450,
           toolbar: {
             show: true
+          },
+          events: {
+            dataPointSelection: (e, chart, opts) => {
+              customClick(e, chart, opts)
+            }
           }
         },
         title: {
@@ -549,7 +583,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
         },
         tooltip: {
           y: {
-            formatter: function(value) {
+            formatter: function (value) {
               return value + ' critiques';
             }
           }
@@ -565,7 +599,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
         }
       };
       break;
-      
+
     default:
       chartSeriesFinal.value = arrayY01;
       chartOptionsFinal.value = {
@@ -600,7 +634,6 @@ function updateChartSpecific(newChart) {
       if (!SeriesOriginalArray.value.includes(checkedOutSeries.value)) {
         checkedOutSeries.value = 'Pays';
       }
-
       SeriesParameterArray.value = [...SeriesOriginalArray.value];
       break;
 
@@ -701,6 +734,16 @@ watch(
       checkedOutData.value,
       checkedOutSeries.value
     );
+    clickIndexOptions.value = -1
+    clickIndexSeries.value = -1
+    clickNameOptions.value = ""
+    clickNameSeries.value = ""
+    emit('chart-click', {
+      indexX: clickIndexOptions.value,
+      indexY: clickIndexSeries.value,
+      nameX: clickNameOptions.value,
+      nameY: clickNameSeries.value
+  })
   }
 );
 
@@ -771,6 +814,39 @@ function coloredTooltip(itemsPerColumn = 5, sort = false) {
   }
 }
 
+function customClick(e, chart, opts) {
+  clickIndexOptions.value = opts.dataPointIndex
+  clickIndexSeries.value = opts.seriesIndex
+
+  switch(checkedTypeCharts.value) {
+    case 'line':
+        clickNameOptions.value = opts.w.globals.categoryLabels[clickIndexOptions.value];
+        clickNameSeries.value = opts.w.config.series[clickIndexSeries.value].name;
+      break;
+    case 'bar':
+    case 'heatmap':
+        clickNameOptions.value = chartOptionsFinal.value.xaxis.categories[clickIndexOptions.value];
+        clickNameSeries.value = opts.w.config.series[clickIndexSeries.value].name;
+      break;
+    case 'pie':
+      clickNameOptions.value = opts.w.config.labels[clickIndexOptions.value];
+      break;
+  }
+  let isClicked = false
+  if (clickIndexOptions !== -1 && clickIndexSeries !== -1) {
+    isClicked = true
+  }
+  emit('chart-click', {
+    isClick: isClicked,
+    nameX: clickNameOptions.value,
+    nameY: clickNameSeries.value,
+    critereTrieX: checkedOutOptions.value,
+    critereTrieY: checkedOutSeries.value
+  })
+
+}
+
+
 </script>
 
 <template>
@@ -779,6 +855,7 @@ function coloredTooltip(itemsPerColumn = 5, sort = false) {
       <!-- <div v-for="(item, index) in filteredAndSorted" :key="index">
         {{ item }}
       </div> -->
+
       <div>Type de graphique</div>
       <input type="radio" id="line" name="charts" value="line" v-model="checkedTypeCharts" checked />
       <label for="line">Ligne du Temps</label>
@@ -792,7 +869,7 @@ function coloredTooltip(itemsPerColumn = 5, sort = false) {
       <input type="radio" id="heatmap" name="charts" value="heatmap" v-model="checkedTypeCharts" />
       <label for="heatmap">Heatmap</label>
     </div>
-    
+
     <div v-if="isValideGraphsY">Ligne Y
       <select v-model="checkedOutSeries">
         <option v-for="type in SeriesParameterArray" :key="type" :value="type">
@@ -810,7 +887,7 @@ function coloredTooltip(itemsPerColumn = 5, sort = false) {
       <apexchart :key="checkedTypeCharts" width="100%" height="300" :options="chartOptionsFinal"
         :series="chartSeriesFinal" />
     </div>
-    
+
     <div v-if="isValideGraphsX">Ligne X
       <select v-model="checkedOutOptions">
         <option v-for="type in OptionsParameterArray" :key="type" :value="type">
@@ -818,6 +895,9 @@ function coloredTooltip(itemsPerColumn = 5, sort = false) {
         </option>
       </select>
     </div>
-
+          <div v-if="clickIndexOptions !== -1 && clickIndexSeries !== -1">
+        <p>Sélection : {{ clickNameOptions }}<span v-if="clickNameSeries !== 'Critiques' && checkedTypeCharts !== 'pie'">, {{ clickNameSeries }}</span></p>
+    </div>
   </div>
 </template>
+
