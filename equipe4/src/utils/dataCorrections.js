@@ -23,10 +23,53 @@ export function normalizeScore(value) {
 export function correctPlatformType(platformType, platform) {
   if (!platformType) return platformType
   
-  const type = String(platformType).toLowerCase().trim()
+  const type = String(platformType).trim()
   const platformName = String(platform || '').toLowerCase().trim()
   
-  if (type === 'autre') {
+  // Gérer les valeurs multiples séparées par " ; "
+  if (type.includes(' ; ')) {
+    const types = type.split(/\s*;\s*/).map(t => {
+      const trimmed = t.trim()
+      const trimmedLower = trimmed.toLowerCase()
+      
+      // Normaliser "Microordinateur" en "Micro-ordinateur"
+      if (trimmedLower === 'microordinateur') {
+        return 'Micro-ordinateur'
+      }
+      
+      // Gérer le cas "autre" pour chaque type individuel
+      if (trimmedLower === 'autre') {
+        if (platformName.includes('/')) {
+          return 'Autre'
+        }
+        if (platformName.includes('pc') ||
+            platformName.includes('windows') ||
+            platformName.includes('dos') ||
+            platformName.includes('ordinateur') ||
+            platformName.includes('computer')) {
+          return 'Micro-ordinateur'
+        }
+        if (platformName.includes('arcade') ||
+            platformName.includes('borne')) {
+          return 'Arcade'
+        }
+        return 'Autre'
+      }
+      
+      return trimmed
+    })
+    return types.join(' ; ')
+  }
+  
+  // Gérer les valeurs simples
+  const typeLower = type.toLowerCase()
+  
+  // Normaliser "Microordinateur" en "Micro-ordinateur" (avec tiret)
+  if (typeLower === 'microordinateur') {
+    return 'Micro-ordinateur'
+  }
+  
+  if (typeLower === 'autre') {
     if (platformName.includes('/')) {
       return 'Autre'
     }
@@ -36,7 +79,7 @@ export function correctPlatformType(platformType, platform) {
         platformName.includes('dos') ||
         platformName.includes('ordinateur') ||
         platformName.includes('computer')) {
-      return 'Microordinateur'
+      return 'Micro-ordinateur'
     }
 
     if (platformName.includes('arcade') ||

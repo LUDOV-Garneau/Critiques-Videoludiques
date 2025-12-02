@@ -767,7 +767,11 @@ const facets = computed(() => {
         if (type && type !== '' && type !== '0') {
           // Séparer les types multiples (séparés par " ; ")
           const typeList = String(type).split(/\s*;\s*/).map(t => t.trim()).filter(t => t)
-          typeList.forEach(t => platformTypes.add(t))
+          typeList.forEach(t => {
+            // Normaliser "Microordinateur" en "Micro-ordinateur"
+            const normalized = t.toLowerCase() === 'microordinateur' ? 'Micro-ordinateur' : t
+            platformTypes.add(normalized)
+          })
         }
       })
     }
@@ -879,9 +883,16 @@ const filteredByFilters = computed(() => {
           const platformType = rows.value[index][platformTypeIndex]
           if (platformType && platformType !== '' && platformType !== '0') {
             // Séparer les types multiples (séparés par " ; ")
-            const typeList = String(platformType).split(/\s*;\s*/).map(t => t.trim()).filter(t => t)
-            // Vérifier si au moins un des types correspond au filtre
-            const hasMatch = typeList.some(t => f.platformTypes.includes(t))
+            const typeList = String(platformType).split(/\s*;\s*/).map(t => {
+              const trimmed = t.trim()
+              // Normaliser "Microordinateur" en "Micro-ordinateur" pour la comparaison
+              return trimmed.toLowerCase() === 'microordinateur' ? 'Micro-ordinateur' : trimmed
+            }).filter(t => t)
+            // Vérifier si au moins un des types correspond au filtre (normaliser aussi les filtres)
+            const normalizedFilters = f.platformTypes.map(ft => {
+              return ft.toLowerCase() === 'microordinateur' ? 'Micro-ordinateur' : ft
+            })
+            const hasMatch = typeList.some(t => normalizedFilters.includes(t))
             if (!hasMatch) return false
           } else {
             return false

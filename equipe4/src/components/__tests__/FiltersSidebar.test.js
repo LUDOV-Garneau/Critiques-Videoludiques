@@ -215,12 +215,12 @@ describe('FiltersSidebar - Tests des filtres', () => {
       const component = wrapper.vm
       
       component.toggleArrayFilter('platformTypes', 'Console')
-      component.toggleArrayFilter('platformTypes', 'Microordinateur')
+      component.toggleArrayFilter('platformTypes', 'Micro-ordinateur')
       component.toggleArrayFilter('platformTypes', 'Portable')
       
       expect(component.localFilters.platformTypes).toHaveLength(3)
       expect(component.localFilters.platformTypes).toContain('Console')
-      expect(component.localFilters.platformTypes).toContain('Microordinateur')
+      expect(component.localFilters.platformTypes).toContain('Micro-ordinateur')
       expect(component.localFilters.platformTypes).toContain('Portable')
     })
 
