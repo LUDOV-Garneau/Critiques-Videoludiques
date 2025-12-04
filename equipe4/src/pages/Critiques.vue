@@ -1375,7 +1375,7 @@ watch(graphClickData, () => {
         <div v-else-if="error" class="error">Erreur: {{ error }}</div>
         <template v-else>
           <div style="max-width:1080px;margin:0 auto;">
-            <ChartsGraphique :items="filteredAndSorted" :filtre-actifs="sidebarFilters"
+            <ChartsGraphique :items="filteredAndSorted" :filtreActifs="sidebarFilters"
               @chart-click="handleGraphClick" />
           </div>
           <div class="toolbar">
