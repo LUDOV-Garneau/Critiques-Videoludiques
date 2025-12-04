@@ -58,9 +58,9 @@ describe('Logique de filtrage des critiques', () => {
       143: 'Action' // Type de jeu
     }),
 
-    // Critique 2: Jeu avec critères visuels, Microordinateur, RPG/Aventure
+    // Critique 2: Jeu avec critères visuels, Micro-ordinateur, RPG/Aventure
     createRow({
-      0: 'Jeu B', 1: 'Magazine B', 2: 'France', 3: 'PC', 4: 'Microordinateur',
+      0: 'Jeu B', 1: 'Magazine B', 2: 'France', 3: 'PC', 4: 'Micro-ordinateur',
       5: 'Auteur 2', 6: 'féminin', 7: 2015, 8: 8, 9: 90,
       39: 80, // Critères visuels
       143: 'RPG/Aventure' // Type de jeu composé
@@ -84,7 +84,7 @@ describe('Logique de filtrage des critiques', () => {
 
     // Critique 5: Jeu avec type composé Action/Aventure/Infiltration
     createRow({
-      0: 'Jeu E', 1: 'Magazine A', 2: 'Canada', 3: 'PC', 4: 'Microordinateur',
+      0: 'Jeu E', 1: 'Magazine A', 2: 'Canada', 3: 'PC', 4: 'Micro-ordinateur',
       5: 'Auteur 4', 6: 'féminin', 7: 2018, 8: 6, 9: 88,
       35: 85, // Critères généraux
       143: 'Action/Aventure/Infiltration' // Type de jeu très composé
@@ -206,9 +206,9 @@ describe('Logique de filtrage des critiques', () => {
       expect(result.map(r => r[0])).toContain('Jeu F')
     })
 
-    it('devrait filtrer par type Microordinateur', () => {
+    it('devrait filtrer par type Micro-ordinateur', () => {
       const filters = {
-        platformTypes: ['Microordinateur']
+        platformTypes: ['Micro-ordinateur']
       }
 
       const result = mockRows.filter((row) => {
@@ -216,7 +216,7 @@ describe('Logique de filtrage des critiques', () => {
         return filters.platformTypes.includes(platformType)
       })
 
-      expect(result).toHaveLength(2) // Jeu B et Jeu E (tous Microordinateur)
+      expect(result).toHaveLength(2) // Jeu B et Jeu E (tous Micro-ordinateur)
       expect(result.map(r => r[0])).toContain('Jeu B')
       expect(result.map(r => r[0])).toContain('Jeu E')
     })

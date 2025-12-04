@@ -36,11 +36,11 @@ describe('dataCorrections', () => {
   })
 
   describe('correctPlatformType', () => {
-    it('should correct "Autre" to "Microordinateur" for PC platforms', () => {
-      expect(correctPlatformType('Autre', 'PC')).toBe('Microordinateur')
-      expect(correctPlatformType('Autre', 'Windows')).toBe('Microordinateur')
-      expect(correctPlatformType('Autre', 'DOS')).toBe('Microordinateur')
-      expect(correctPlatformType('Autre', 'Ordinateur')).toBe('Microordinateur')
+    it('should correct "Autre" to "Micro-ordinateur" for PC platforms', () => {
+      expect(correctPlatformType('Autre', 'PC')).toBe('Micro-ordinateur')
+      expect(correctPlatformType('Autre', 'Windows')).toBe('Micro-ordinateur')
+      expect(correctPlatformType('Autre', 'DOS')).toBe('Micro-ordinateur')
+      expect(correctPlatformType('Autre', 'Ordinateur')).toBe('Micro-ordinateur')
     })
 
     it('should correct "Autre" to "Arcade" for arcade platforms', () => {
@@ -120,7 +120,7 @@ describe('dataCorrections', () => {
 
       expect(corrected.Note).toBe(86) // Rounded
       expect(corrected.NoteGenerale).toBeUndefined() // Filtered out
-      expect(corrected.TypePlateforme).toBe('Microordinateur') // Corrected
+      expect(corrected.TypePlateforme).toBe('Micro-ordinateur') // Corrected
       expect(corrected.Pays).toBe('France') // Corrected
     })
 
