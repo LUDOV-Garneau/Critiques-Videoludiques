@@ -240,6 +240,7 @@ const columnPropertyMap = {
   'Année': 'Année',
   'Pays': 'Pays',
   'Genre LUDOV': 'Genre',
+  'Étiquette de genre': 'EtiquetteGenre',
   'Auteurs': 'Auteurs',
   'Identité du pseudo': 'PseudonymeIdentity',
   'Développeur': 'Développeur',
@@ -259,6 +260,7 @@ const mapping = ref({
   Modele: '',
   TypePlateforme: '',
   TypeJeu: '',
+  EtiquetteGenre: '',
   Note: '',
   Année: '',
   Magazine: '',
@@ -301,6 +303,8 @@ function initMapping() {
   // Colonne EQ "Genre LUDOV" - Forcer l'index 146 pour éviter les conflits avec d'autres colonnes "Genre"
   mapping.value.Genre = headers.value[146] || findExact(['genre'])
   mapping.value.TypeJeu = find(['titre des étiquettes génériques de genre', 'type de jeu', 'game genre'])
+  // Colonne EP "Étiquette de genre" - Index 145
+  mapping.value.EtiquetteGenre = headers.value[145] || find(['étiquette de genre', 'etiquette de genre', 'titre des étiquettes génériques de genre'])
   mapping.value.Note = find(['score', 'rating', 'note'])
   mapping.value.Année = find(['year', 'release year', 'annee', 'année', 'date'])
   mapping.value.Magazine = find(['magazine', 'revue', 'journal', 'publication'])
@@ -527,6 +531,17 @@ const mappedObjects = computed(() => {
       }
     }
 
+    // Formater l'étiquette de genre (colonne EP - index 145)
+    const etiquetteGenreIndex = 145
+    let etiquetteGenreDisplay = '-'
+
+    if (r[etiquetteGenreIndex]) {
+      const etiquetteValue = r[etiquetteGenreIndex]
+      if (etiquetteValue && etiquetteValue !== '0' && etiquetteValue !== '') {
+        etiquetteGenreDisplay = String(etiquetteValue).trim()
+      }
+    }
+
     // Récupérer la colonne DC "identité du pseudo" si l'auteur est un pseudonyme
     const pseudonymeIdentityIndex = headers.value.findIndex(h => {
       const lower = String(h || '').toLowerCase()
@@ -555,6 +570,7 @@ const mappedObjects = computed(() => {
       Modele: idx.Modele >= 0 ? r[idx.Modele] : undefined,
       TypePlateforme: idx.TypePlateforme >= 0 ? r[idx.TypePlateforme] : undefined,
       TypeJeu: idx.TypeJeu >= 0 ? r[idx.TypeJeu] : undefined,
+      EtiquetteGenre: etiquetteGenreDisplay,
       Genre: genreDisplay,
       Note: parseScore(idx.Note >= 0 ? r[idx.Note] : undefined),
       Année: annee,
@@ -1273,6 +1289,7 @@ const filteredRowsObjects = computed(() => {
         case 'Année': return item.Année
         case 'Pays': return item.Pays
         case 'Genre LUDOV': return item.Genre
+        case 'Étiquette de genre': return item.EtiquetteGenre || '-'
         case 'Auteurs': return item.Auteurs
         case 'Identité du pseudo': return item.PseudonymeIdentity || '' // Afficher seulement si présent
         case 'Développeur': return item.Développeur
@@ -1326,6 +1343,7 @@ function buildImportantColumns(allHeaders) {
     { key: 'year', labels: ['year', 'release year', 'annee', 'année', 'date'], display: 'Année' },
     { key: 'country', labels: ['country', 'pays', 'region'], display: 'Pays' },
     { key: 'genre', labels: ['genre'], display: 'Genre LUDOV', forceIndex: 146 }, // Forcer l'index 146 pour la colonne EQ
+    { key: 'etiquetteGenre', labels: ['étiquette de genre', 'etiquette de genre'], display: 'Étiquette de genre', forceIndex: 145 }, // Colonne EP
     { key: 'author', labels: ['author', 'auteur', 'autrice', 'writer'], display: 'Auteurs' },
     { key: 'pseudonymeIdentity', labels: ['identité du pseudo', 'identite du pseudo', 'dc'], display: 'Identité du pseudo' },
     { key: 'developer', labels: ['developer', 'dev', 'studio'], display: 'Développeur' },
@@ -1535,7 +1553,7 @@ watch(graphClickData, () => {
                       </div>
                     </div>
                     <div class="modal-field">
-                      <div class="label">Plateforme spécifique</div>
+                      <div class="label">Plateforme</div>
                       <div class="value">
                         <template v-if="modalItem?.Plateforme && modalItem.Plateforme.includes(' ; ')">
                           <div v-for="(item, idx) in modalItem.Plateforme.split(' ; ')" :key="idx" class="list-item">
