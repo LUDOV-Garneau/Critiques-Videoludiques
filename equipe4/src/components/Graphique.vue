@@ -14,26 +14,61 @@ const emit = defineEmits(['chart-click'])
 let isValideGraphsX = ref(false)
 let isValideGraphsY = ref(false)
 
+// const typeArray = [
+//   "Titre", // 0
+//   "TitreJeu", // 1
+//   "Plateforme", // 2
+//   "Modele", //3
+//   "TypePlateforme", //4
+//   "Année", //5
+//   "Magazine", //6
+//   "Auteurs", //7
+//   "Pays", //8
+//   "CritiqueTitre", //9
+//   "PDF", //10
+//   "Consoles", //11
+//   "ImageType",//12
+//   "Mois", //13
+//   "Volume", //14
+//   "Numéro", //15
+//   "Pages", //16
+//   "GenreAuteur" //17
+// ];
+
 const typeArray = [
-  "Titre", // 0
-  "TitreJeu", // 1
-  "Plateforme", // 2
-  "Modele", //3
-  "TypePlateforme", //4
-  "Année", //5
-  "Magazine", //6
-  "Auteurs", //7
-  "Pays", //8
-  "CritiqueTitre", //9
-  "PDF", //10
-  "Consoles", //11
-  "ImageType",//12
-  "Mois", //13
-  "Volume", //14
-  "Numéro", //15
-  "Pages", //16
-  "GenreAuteur" //17
+  "ImageType",          // 0
+  "TitreJeu",           // 1
+  "Plateforme",         // 2
+  "Modele",             // 3
+  "TypePlateforme",     // 4
+  "Genre",              // 5
+  "Note",               // 6
+  "Année",              // 7
+  "Magazine",           // 8
+  "Auteurs",            // 9
+  "GenreAuteur",        // 10
+  "Pays",               // 11
+  "CritiqueTitre",      // 12
+  "PDF",                // 13
+  "NoteGenerale",       // 14
+  "NoteVisuelle",       // 15
+  "NoteSonore",         // 16
+  "NoteContenu",        // 17
+  "NoteJouabilite",     // 18
+  "NoteTempsJeu",       // 19
+  "NoteDifficulte",     // 20
+  "NotePrix",           // 21
+  "NoteAutre",          // 22
+  "Mois",               // 23
+  "Volume",             // 24
+  "Numéro",             // 25
+  "Page",               // 26
+  "NombrePages"         // 27
+
 ];
+
+
+
 let OptionsOriginalArray = []
 let OptionsParameterArray = ref([])
 let SeriesOriginalArray = []
@@ -235,14 +270,21 @@ const naturalSort = (a, b) => {
   return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
 };
 
-  // Fonction helper pour séparer les valeurs multiples
-  const splitMultipleValues = (value) => {
-    if (!value || value === '-') return [];
-    return String(value)
-      .split(/\s*;\s*/)  // Séparer par " ; "
-      .map(v => v.trim())
-      .filter(v => v);
-  };
+// Fonction helper pour séparer les valeurs multiples
+const splitMultipleValues = (value) => {
+  if (!value || value === '-') return [];
+  return String(value)
+    .split(/\s*;\s*/)  // Séparer par " ; "
+    .map(v => v.trim())
+    .filter(v => v);
+};
+const splitMultipleValuesGenre = (value) => {
+  if (!value || value === '-') return [];
+  return String(value)
+    .split(/\s*,\s*/)  // Séparer par " , "
+    .map(v => v.trim())
+    .filter(v => v);
+};
 
 function dividedY(mode) {
   const keyX = checkedOutOptions.value;
@@ -261,7 +303,14 @@ function dividedY(mode) {
 
   for (const item of items) {
     const valeursX = splitMultipleValues(item[keyX]);
-    const valeursY = splitMultipleValues(item[keySeries]);
+
+    let valeursY = []
+    if (checkedOutSeries.value === "Genre") {
+    valeursY = splitMultipleValuesGenre(item[keySeries]);
+    } else {
+    valeursY = splitMultipleValues(item[keySeries]);
+    }
+
 
     // Si pas de valeurs valides, skip
     if (valeursX.length === 0 || valeursY.length === 0) continue;
@@ -282,7 +331,7 @@ function dividedY(mode) {
   const arrayX01 = ValeurUniqueOptions.map(v => v.toString());
   const arrayY01 = [];
 
-  if (ValeurUniqueSeries.length === 1 || mode === "combine") {
+  if (mode === "combine") {
     // Combiner
     const data = ValeurUniqueOptions.map(valX => {
       const row = map[valX];
@@ -312,42 +361,75 @@ function dividedY(mode) {
   return [arrayX01, arrayY01];
 }
 
-function limiteGraphs(items, parameter) {
-  const ValeurUniques = []
+function sameValuesIgnoringOrder(a, b) {
+  const setA = new Set(a);
+  const setB = new Set(b);
 
-  const ValeursTrier = [...new Set(
-    items.flatMap(i => splitMultipleValues(i[parameter]))
-  )].sort(naturalSort);
+  if (setA.size !== setB.size) return false;
+
+  for (const val of setA) {
+    if (!setB.has(val)) return false;
+  }
+  return true;
+}
+
+// Cas si plusieures parametres sont possible (ex. Plateforme)
+function limiteGraphs(items, parameter) {
+  let ValeursUniques = []
+  let ValeursTrier = []
 
   const test = props.filtreActifs
-  const test2 = test.countries
+  let critereSelectionner = []
+
   switch (parameter) {
-    case "Plateforme":
-      if (ValeursTrier)
+    case "Plateforme": //
+      critereSelectionner = test.platforms
       break;
-    case "Modele":
+    case "TypePlateforme": //
+      critereSelectionner = test.platformTypes
       break;
-    case "TypePlateforme":
+    case "TypeImageUtilise": //
+      critereSelectionner = test.imageTypes
       break;
-    case "Année":
+    case "Genre": //
+      critereSelectionner = test.gameTypes
       break;
-    case "Pays":
-      break;
-    case "Consoles":
-      break;
-    case "ImageType":
-      break;
-    case "Mois":
-      break;
-    case "GenreAuteur":
+    case "GenreAuteur": // Probleme avec le La lettre majuscule
+      function capitalizeFirstLetter(str) {
+        if (!str) return "";
+        str = str.toString().toLowerCase();
+        return str.charAt(0).toUpperCase() + str.slice(1);
+      }
+      if (test.authorGender === "") {
+        critereSelectionner = []
+      } else {
+        critereSelectionner.push(capitalizeFirstLetter(test.authorGender));
+      } 
+
+
       break;
     default:
+      critereSelectionner = []
       break;
-
-
   }
 
-  return ValeursTrier
+ if (parameter === "Genre") {
+  ValeursTrier = [...new Set(
+    items.flatMap(i => splitMultipleValuesGenre(i[parameter]))
+  )].sort(naturalSort);
+ } else {
+  ValeursTrier = [...new Set(
+    items.flatMap(i => splitMultipleValues(i[parameter]))
+  )].sort(naturalSort);
+ }
+
+  if (critereSelectionner.length > 0 ) {
+    ValeursUniques = critereSelectionner
+  } else {
+    ValeursUniques = ValeursTrier
+  }
+
+  return ValeursUniques
 }
 
 
@@ -874,14 +956,13 @@ function updateChartSpecific(newChart) {
     case 'line':
       checkedOutOptions.value = 'Année';
       SeriesOriginalArray.value = [
-        typeArray[2],
-        typeArray[3],
-        typeArray[4],
-        typeArray[6],
-        typeArray[8],
-        typeArray[12],
-        typeArray[13],
-        typeArray[17]
+        typeArray[0], // TypeImage
+        typeArray[2], // Plateforme
+        typeArray[4], // TypePlateforme
+        typeArray[5], // TypeJeu
+        typeArray[8], // Magazine
+        typeArray[10], // GenreAuteur
+        typeArray[11], // Pays 
       ].sort();
 
       if (!SeriesOriginalArray.value.includes(checkedOutSeries.value)) {
@@ -892,12 +973,14 @@ function updateChartSpecific(newChart) {
 
     case 'bar':
       SeriesOriginalArray.value = [
-        typeArray[4],
-        typeArray[6],
-        typeArray[8],
-        typeArray[12],
-        typeArray[13],
-        typeArray[17]
+        typeArray[0], // Type d'image
+        typeArray[2], // Plateforme 
+        typeArray[4], // TypePlateforme
+        typeArray[5], // TypeJeu
+        typeArray[8], // Magazine
+        typeArray[10], // GenreAuteur
+        typeArray[11], // Pays
+        typeArray[23] // Mois
       ].sort();
 
       if (!SeriesOriginalArray.value.includes(checkedOutSeries.value)) {
@@ -921,13 +1004,14 @@ function updateChartSpecific(newChart) {
     case 'pie':
     case 'treemap':
       SeriesParameterArray.value = [
-        typeArray[2],
-        typeArray[4],
-        typeArray[6],
-        typeArray[8],
-        typeArray[12],
-        typeArray[13],
-        typeArray[17]
+        typeArray[0], // Type Image
+        typeArray[2], // Plateforme
+        typeArray[4], // Type plateforme
+        typeArray[8], // Magazine
+        typeArray[10], // GenreAuteur
+        typeArray[11], // Pays
+        typeArray[23] // Mois
+
       ].sort();
 
       if (!SeriesParameterArray.value.includes(checkedOutSeries.value)) {
@@ -937,12 +1021,13 @@ function updateChartSpecific(newChart) {
 
     case 'heatmap':
       SeriesOriginalArray.value = [
-        typeArray[4],
-        typeArray[6],
-        typeArray[8],
-        typeArray[12],
-        typeArray[13],
-        typeArray[17]
+        typeArray[0], // Type Image
+        typeArray[4], // Type plateforme
+        typeArray[7], // Année
+        typeArray[8], // Magazine
+        typeArray[10], // GenreAuteur
+        typeArray[11], // Pays
+        typeArray[23] // Mois
       ].sort();
 
       if (!SeriesOriginalArray.value.includes(checkedOutSeries.value)) {
@@ -950,8 +1035,8 @@ function updateChartSpecific(newChart) {
       }
 
       OptionsOriginalArray.value = [
-        typeArray[5],
-        typeArray[13]
+        typeArray[7], // Année
+        typeArray[23] // Mois
       ].sort();
 
       if (!OptionsOriginalArray.value.includes(checkedOutOptions.value)) {
@@ -969,12 +1054,12 @@ function updateChartSpecific(newChart) {
     // Configuration Histogramme
     case 'histogram':
       SeriesOriginalArray.value = [
+        typeArray[0], // ImageType
         typeArray[4], // TypePlateforme
-        typeArray[6], // Magazine
-        typeArray[8], // Pays
-        typeArray[12], // ImageType
-        typeArray[13], // Mois
-        typeArray[17]  // GenreAuteur
+        typeArray[8], // Magazine
+        typeArray[10],  // GenreAuteur
+        typeArray[11], // Pays
+        typeArray[23] // Mois
       ].sort();
 
       if (!SeriesOriginalArray.value.includes(checkedOutSeries.value)) {
@@ -1139,9 +1224,7 @@ function customClick(e, chart, opts) {
 <template>
   <div>
     <div>
-      <div v-for="(item, index) in filteredAndSorted" :key="index">
-        {{ item }}
-      </div>
+
 
       <div>Type de graphique</div>
       <input type="radio" id="line" name="charts" value="line" v-model="checkedTypeCharts" checked />

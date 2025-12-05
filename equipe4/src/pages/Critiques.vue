@@ -1,5 +1,3 @@
-e>
-
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import FiltersSidebar from '../components/FiltersSidebar.vue'
