@@ -306,9 +306,9 @@ function dividedY(mode) {
 
     let valeursY = []
     if (checkedOutSeries.value === "Genre") {
-    valeursY = splitMultipleValuesGenre(item[keySeries]);
+      valeursY = splitMultipleValuesGenre(item[keySeries]);
     } else {
-    valeursY = splitMultipleValues(item[keySeries]);
+      valeursY = splitMultipleValues(item[keySeries]);
     }
 
 
@@ -404,7 +404,7 @@ function limiteGraphs(items, parameter) {
         critereSelectionner = []
       } else {
         critereSelectionner.push(capitalizeFirstLetter(test.authorGender));
-      } 
+      }
 
 
       break;
@@ -413,17 +413,17 @@ function limiteGraphs(items, parameter) {
       break;
   }
 
- if (parameter === "Genre") {
-  ValeursTrier = [...new Set(
-    items.flatMap(i => splitMultipleValuesGenre(i[parameter]))
-  )].sort(naturalSort);
- } else {
-  ValeursTrier = [...new Set(
-    items.flatMap(i => splitMultipleValues(i[parameter]))
-  )].sort(naturalSort);
- }
+  if (parameter === "Genre") {
+    ValeursTrier = [...new Set(
+      items.flatMap(i => splitMultipleValuesGenre(i[parameter]))
+    )].sort(naturalSort);
+  } else {
+    ValeursTrier = [...new Set(
+      items.flatMap(i => splitMultipleValues(i[parameter]))
+    )].sort(naturalSort);
+  }
 
-  if (critereSelectionner.length > 0 ) {
+  if (critereSelectionner.length > 0) {
     ValeursUniques = critereSelectionner
   } else {
     ValeursUniques = ValeursTrier
@@ -1096,6 +1096,9 @@ onMounted(() => {
 watch(
   [filteredAndSorted, checkedTypeCharts, checkedOutData, checkedOutOptions, checkedOutSeries, histogramBinSize],
   () => {
+    if (checkedTypeCharts.value === 'pie' || checkedTypeCharts.value === 'heatmap' || checkedTypeCharts.value === 'treemap') {
+      checkedOutData.value = 'combine'
+    }
     updateChartSpecific(checkedTypeCharts.value);
     updateData(
       checkedTypeCharts.value,
@@ -1274,25 +1277,32 @@ function customClick(e, chart, opts) {
       </select>
     </div>
 
-    <div v-if="isValideGraphsY">Ligne Y
-      <select v-model="checkedOutSeries">
-        <option v-for="type in SeriesParameterArray" :key="type" :value="type">
-          {{ type }}
-        </option>
-      </select>
-      <input type="radio" id="combine" name="Data" value="combine" v-model="checkedOutData" />
-      <label for="combine">Combiner</label>
+    <div v-if="isValideGraphsY" class="row">
+      <p>Ligne Y :</p>
+      <div>
+        <select v-model="checkedOutSeries">
+          <option v-for="type in SeriesParameterArray" :key="type" :value="type">
+            {{ type }}
+          </option>
+        </select>
+      </div>
 
-      <input type="radio" id="divided" name="Data" value="divided" v-model="checkedOutData" />
-      <label for="divided">Diviser</label>
+      <div v-if="checkedTypeCharts !== 'pie' && checkedTypeCharts !== 'heatmap' && checkedTypeCharts !== 'treemap'">
+        <input type="radio" id="combine" name="Data" value="combine" v-model="checkedOutData" />
+        <label for="combine">Combiner</label>
+        <input type="radio" id="divided" name="Data" value="divided" v-model="checkedOutData" />
+        <label for="divided">Diviser</label>
+      </div>
     </div>
+
 
     <div>
       <apexchart :key="checkedTypeCharts" width="100%" height="300" :options="chartOptionsFinal"
         :series="chartSeriesFinal" />
     </div>
 
-    <div v-if="isValideGraphsX">Ligne X
+    <div v-if="isValideGraphsX" class="row">
+      <p>Ligne X :</p>
       <select v-model="checkedOutOptions">
         <option v-for="type in OptionsParameterArray" :key="type" :value="type">
           {{ type }}
