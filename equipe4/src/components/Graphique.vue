@@ -993,6 +993,11 @@ function updateChartSpecific(newChart) {
         checkedOutOptions.value = 'ImageType';
       }
 
+      if (checkedOutOptions.value === checkedOutSeries.value) {
+        checkedOutOptions.value = 'ImageType'
+        checkedOutSeries.value = 'Pays'
+      }
+
       SeriesParameterArray.value = SeriesOriginalArray.value.filter(
         item => item !== checkedOutOptions.value
       );
