@@ -1195,6 +1195,7 @@ function customClick(e, chart, opts) {
       break;
     case 'pie':
       clickNameOptions.value = opts.w.config.labels[clickIndexOptions.value];
+      checkedOutOptions.value = checkedOutSeries.value
       break;
     case 'treemap':
       // Pour le treemap, le nom se trouve dans data[index].x
@@ -1202,6 +1203,7 @@ function customClick(e, chart, opts) {
       if (tmData && tmData[clickIndexOptions.value]) {
         clickNameOptions.value = tmData[clickIndexOptions.value].x;
       }
+      checkedOutOptions.value = checkedOutSeries.value
       break;
   }
   let isClicked = false
@@ -1224,7 +1226,6 @@ function customClick(e, chart, opts) {
 <template>
   <div>
     <div>
-
 
       <div>Type de graphique</div>
       <input type="radio" id="line" name="charts" value="line" v-model="checkedTypeCharts" checked />

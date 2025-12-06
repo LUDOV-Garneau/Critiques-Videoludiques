@@ -151,6 +151,7 @@ if (typeof window !== 'undefined') {
   })
 }
 
+// Bug Fixe-------------------------------------------------------------------------------
 const filteredByClickGraph = computed(() => {
   const graphValue = graphClickData.value
   let items = filteredAndSorted.value
