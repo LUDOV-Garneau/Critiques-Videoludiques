@@ -593,7 +593,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
             }
           }
         },
-        title: { text: 'Nombre Critique selon Année', align: 'left' },
+        title: { text: 'Nombre de critiques selon Année', align: 'left' },
         xaxis: { categories: arrayX01 },
         legend: { position: 'right', horizontalAlign: 'center' },
         noData: {
@@ -623,7 +623,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
             }
           }
         },
-        title: { text: 'Nombre de critiques par année', align: 'left' },
+        title: { text: `Nombre de critiques par ${checkedOutOptions.value}`, align: 'left' },
         xaxis: { categories: arrayX01 },
         legend: { position: 'right', horizontalAlign: 'center' },
         noData: {
@@ -869,9 +869,15 @@ function ChartGeneration(arrayX01, arrayY01, type) {
               ranges: [
                 {
                   from: 0,
+                  to: 0,
+                  color: '#799EB2',
+                  name: '0'
+                },
+                {
+                  from: 1,
                   to: 10,
                   color: '#008FFB',
-                  name: '0-10'
+                  name: '1-10'
                 },
                 {
                   from: 11,
