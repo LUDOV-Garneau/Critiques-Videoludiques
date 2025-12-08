@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import './style.css'
 import App from './App.vue'
 import Critiques from './pages/Critiques.vue'
+import Guide from './pages/Guide.vue'
 import faviconUrl from './assets/favicon.png'
 import VueApexCharts from "vue3-apexcharts";
 
@@ -10,8 +11,9 @@ import VueApexCharts from "vue3-apexcharts";
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', name: 'critiques', component: Critiques },
-    { path: '/critiques', redirect: '/' },
+    { path: '/', name: 'home', component: Home },
+    { path: '/critiques', name: 'critiques', component: Critiques },
+    { path: '/guide', name: 'guide', component: Guide },
   ],
   scrollBehavior() { return { top: 0 } },
 })
