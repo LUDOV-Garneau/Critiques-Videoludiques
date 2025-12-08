@@ -11,8 +11,8 @@ import VueApexCharts from "vue3-apexcharts";
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', name: 'home', component: Home },
-    { path: '/critiques', name: 'critiques', component: Critiques },
+    { path: '/', name: 'critiques', component: Critiques },
+    { path: '/critiques', redirect: '/' },
     { path: '/guide', name: 'guide', component: Guide },
   ],
   scrollBehavior() { return { top: 0 } },
