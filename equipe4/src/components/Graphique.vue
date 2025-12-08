@@ -6,7 +6,7 @@ let checkedTypeCharts = ref('line')
 let checkedOutData = ref('combine')
 let checkedOutOptions = ref('Année')
 let checkedOutSeries = ref('Pays')
-let histogramBinSize = ref(5) 
+let histogramBinSize = ref(5)
 
 const emit = defineEmits(['chart-click'])
 
@@ -213,10 +213,10 @@ const updateData = (type, mode, select) => {
   }
 
   // Génération du graphique avec logique combine/divided
-  if(type === 'histogram') {
-      const histoData = generateHistogramData();
-      ChartGeneration(histoData.categories, histoData.series, type);
-      return;
+  if (type === 'histogram') {
+    const histoData = generateHistogramData();
+    ChartGeneration(histoData.categories, histoData.series, type);
+    return;
   }
 
   const [ArrayX, ArrayY] = dividedY(mode, select)
@@ -373,82 +373,82 @@ function generateHeatmapData() {
 
 // logique du histogramme basée sur la taille d'intervalle (années)
 function generateHistogramData() {
-    const items = filteredAndSorted.value;
-    const minYear = 1981;
-    const maxYear = 2021;
-    
-    // On récupère la taille du saut (ex: 2 ans, 5 ans)
-    const step = parseInt(histogramBinSize.value) || 5;
-    
-    // Calcul dynamique du nombre de buckets nécessaires
-    const totalRange = maxYear - minYear;
-    const binCount = Math.ceil(totalRange / step) + 1; // +1 pour être sûr de couvrir le maxYear si pas diviseur exact
+  const items = filteredAndSorted.value;
+  const minYear = 1981;
+  const maxYear = 2021;
 
-    // Helper pour séparer les valeurs multiples
-    const splitMultipleValues = (value) => {
-        if (!value || value === '-') return [];
-        return String(value).split(/\s*;\s*/).map(v => v.trim()).filter(v => v);
-    };
+  // On récupère la taille du saut (ex: 2 ans, 5 ans)
+  const step = parseInt(histogramBinSize.value) || 5;
 
-    // Préparer les catégories (Labels des Bins)
-    let categories = [];
-    for (let i = 0; i < binCount; i++) {
-        let start = minYear + (i * step);
-        let end = start + step;
-        
-        // Si step = 1, on affiche juste l'année. Sinon "1981-1983"
-        let label = (step === 1) ? `${start}` : `${start}-${end-1}`;
-        categories.push(label);
-    }
+  // Calcul dynamique du nombre de buckets nécessaires
+  const totalRange = maxYear - minYear;
+  const binCount = Math.ceil(totalRange / step) + 1; // +1 pour être sûr de couvrir le maxYear si pas diviseur exact
 
-    // Si mode "Combiné" ou pas de série sélectionnée
-    if (checkedOutData.value === 'combine') {
-        let counts = new Array(binCount).fill(0);
-        for (const item of items) {
-            const valYear = parseInt(item.Année);
-            if (isNaN(valYear) || valYear < minYear || valYear > maxYear) continue;
-            
-            // Calcul index
-            let index = Math.floor((valYear - minYear) / step);
-            // Sécurité
-            if (index >= binCount) index = binCount - 1;
-            if (index < 0) index = 0;
-            
-            counts[index]++;
-        }
-        return { categories, series: [{ name: 'Fréquence', data: counts }] };
-    }
+  // Helper pour séparer les valeurs multiples
+  const splitMultipleValues = (value) => {
+    if (!value || value === '-') return [];
+    return String(value).split(/\s*;\s*/).map(v => v.trim()).filter(v => v);
+  };
 
-    // mode divisé : sépare par la valeur Y
-    const keySeries = checkedOutSeries.value; 
-    const seriesMap = {}; 
+  // Préparer les catégories (Labels des Bins)
+  let categories = [];
+  for (let i = 0; i < binCount; i++) {
+    let start = minYear + (i * step);
+    let end = start + step;
 
+    // Si step = 1, on affiche juste l'année. Sinon "1981-1983"
+    let label = (step === 1) ? `${start}` : `${start}-${end - 1}`;
+    categories.push(label);
+  }
+
+  // Si mode "Combiné" ou pas de série sélectionnée
+  if (checkedOutData.value === 'combine') {
+    let counts = new Array(binCount).fill(0);
     for (const item of items) {
-        const valYear = parseInt(item.Année);
-        if (isNaN(valYear) || valYear < minYear || valYear > maxYear) continue;
+      const valYear = parseInt(item.Année);
+      if (isNaN(valYear) || valYear < minYear || valYear > maxYear) continue;
 
-        let binIndex = Math.floor((valYear - minYear) / step);
-        if (binIndex >= binCount) binIndex = binCount - 1;
-        if (binIndex < 0) binIndex = 0;
+      // Calcul index
+      let index = Math.floor((valYear - minYear) / step);
+      // Sécurité
+      if (index >= binCount) index = binCount - 1;
+      if (index < 0) index = 0;
 
-        const seriesValues = splitMultipleValues(item[keySeries]);
-
-        if (seriesValues.length === 0) continue;
-
-        for (const valY of seriesValues) {
-            if (!seriesMap[valY]) {
-                seriesMap[valY] = new Array(binCount).fill(0);
-            }
-            seriesMap[valY][binIndex] += 1 / seriesValues.length;
-        }
+      counts[index]++;
     }
+    return { categories, series: [{ name: 'Fréquence', data: counts }] };
+  }
 
-    const finalSeries = Object.entries(seriesMap).map(([name, data]) => ({
-        name: name,
-        data: data.map(d => Math.round(d)) 
-    })).sort((a, b) => a.name.localeCompare(b.name));
+  // mode divisé : sépare par la valeur Y
+  const keySeries = checkedOutSeries.value;
+  const seriesMap = {};
 
-    return { categories, series: finalSeries };
+  for (const item of items) {
+    const valYear = parseInt(item.Année);
+    if (isNaN(valYear) || valYear < minYear || valYear > maxYear) continue;
+
+    let binIndex = Math.floor((valYear - minYear) / step);
+    if (binIndex >= binCount) binIndex = binCount - 1;
+    if (binIndex < 0) binIndex = 0;
+
+    const seriesValues = splitMultipleValues(item[keySeries]);
+
+    if (seriesValues.length === 0) continue;
+
+    for (const valY of seriesValues) {
+      if (!seriesMap[valY]) {
+        seriesMap[valY] = new Array(binCount).fill(0);
+      }
+      seriesMap[valY][binIndex] += 1 / seriesValues.length;
+    }
+  }
+
+  const finalSeries = Object.entries(seriesMap).map(([name, data]) => ({
+    name: name,
+    data: data.map(d => Math.round(d))
+  })).sort((a, b) => a.name.localeCompare(b.name));
+
+  return { categories, series: finalSeries };
 }
 
 function ChartGeneration(arrayX01, arrayY01, type) {
@@ -515,18 +515,18 @@ function ChartGeneration(arrayX01, arrayY01, type) {
         }
       };
       break;
-    
+
     case 'histogram':
-      isValideGraphsX = false 
-      isValideGraphsY = true  
-      
+      isValideGraphsX = false
+      isValideGraphsY = true
+
       chartSeriesFinal.value = arrayY01;
 
       chartOptionsFinal.value = {
         chart: {
-          type: 'bar', 
+          type: 'bar',
           height: 300,
-          stacked: true, 
+          stacked: true,
           events: {
             dataPointSelection: (e, chart, opts) => {
               customClick(e, chart, opts)
@@ -534,26 +534,26 @@ function ChartGeneration(arrayX01, arrayY01, type) {
           }
         },
         plotOptions: {
-            bar: {
-                horizontal: false,
-                columnWidth: '98%', 
-                borderRadius: 0
-            }
+          bar: {
+            horizontal: false,
+            columnWidth: '98%',
+            borderRadius: 0
+          }
         },
         dataLabels: {
-            enabled: false
+          enabled: false
         },
         title: { text: `Histogramme (Intervalle: ${histogramBinSize.value} ans) par ${checkedOutSeries.value}`, align: 'left' },
-        xaxis: { 
-            categories: arrayX01,
-            title: { text: 'Périodes (Années)' }
+        xaxis: {
+          categories: arrayX01,
+          title: { text: 'Périodes (Années)' }
         },
         yaxis: {
-            title: { text: 'Nombre' }
+          title: { text: 'Nombre' }
         },
-        legend: { 
-            show: true,
-            position: 'right' 
+        legend: {
+          show: true,
+          position: 'right'
         },
         noData: {
           text: 'Donnée indisponible',
@@ -561,9 +561,9 @@ function ChartGeneration(arrayX01, arrayY01, type) {
           style: { fontSize: '16px', color: '#999' }
         },
         tooltip: {
-          shared: true, 
+          shared: true,
           intersect: false,
-          custom: coloredTooltip(5, true) 
+          custom: coloredTooltip(5, true)
         }
       };
       break;
@@ -642,76 +642,93 @@ function ChartGeneration(arrayX01, arrayY01, type) {
       break;
 
     case 'treemap':
-      isValideGraphsX = false
-      isValideGraphsY = true
-      const keySeriesTM = checkedOutSeries.value;
-      const itemsTM = filteredAndSorted.value;
+  isValideGraphsX = false
+  isValideGraphsY = true
+  const keySeriesTM = checkedOutSeries.value;
+  const itemsTM = filteredAndSorted.value;
 
-      const splitValuesTM = (value) => {
-        if (!value || value === '-') return [];
-        return String(value).split(/\s*;\s*/).map(v => v.trim()).filter(v => v);
-      };
+  const splitValuesTM = (value) => {
+    if (!value || value === '-') return [];
+    return String(value).split(/\s*;\s*/).map(v => v.trim()).filter(v => v);
+  };
 
-      const countMapTM = {};
-      for (const item of itemsTM) {
-        const values = splitValuesTM(item[keySeriesTM]);
-        for (const value of values) {
-          if (value) {
-            countMapTM[value] = (countMapTM[value] || 0) + (1 / values.length);
-          }
+  const countMapTM = {};
+  for (const item of itemsTM) {
+    const values = splitValuesTM(item[keySeriesTM]);
+    for (const value of values) {
+      if (value) {
+        countMapTM[value] = (countMapTM[value] || 0) + (1 / values.length);
+      }
+    }
+  }
+
+  const tmData = Object.entries(countMapTM)
+    .map(([key, value]) => ({
+      x: key,
+      y: Math.round(value)
+    }))
+    .sort((a, b) => b.y - a.y);
+
+  // Calculer le total pour les pourcentages
+  const totalTM = tmData.reduce((sum, item) => sum + item.y, 0);
+
+  chartSeriesFinal.value = [{ data: tmData }];
+  chartOptionsFinal.value = {
+    chart: {
+      type: 'treemap',
+      height: 300,
+      events: {
+        dataPointSelection: (e, chart, opts) => {
+          customClick(e, chart, opts)
         }
       }
-
-      const tmData = Object.entries(countMapTM)
-        .map(([key, value]) => ({
-          x: key,
-          y: Math.round(value)
-        }))
-        .sort((a, b) => b.y - a.y);
-
-      chartSeriesFinal.value = [{ data: tmData }];
-      chartOptionsFinal.value = {
-        chart: {
-          type: 'treemap',
-          height: 300,
-          events: {
-            dataPointSelection: (e, chart, opts) => {
-              customClick(e, chart, opts)
-            }
-          }
-        },
-        title: {
-          text: `Treemap: ${keySeriesTM}`,
-          align: 'left'
-        },
-        legend: {
-          show: true
-        },
-        colors: [
-          '#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0',
-          '#3F51B5', '#546E7A', '#D4526E', '#8D5B4C', '#F86624'
-        ],
-        plotOptions: {
-          treemap: {
-            distributed: true,
-            enableShades: false
-          }
-        },
-        noData: {
-          text: 'Donnée indisponible',
-          align: 'center',
-          style: { fontSize: '16px', color: '#999' }
-        },
-        tooltip: {
-          enabled: true,
-          y: {
-            formatter: function (val) {
-              return val + ' critiques'
-            }
-          }
+    },
+    title: {
+      text: `Treemap: ${keySeriesTM}`,
+      align: 'left'
+    },
+    legend: {
+      show: true
+    },
+    colors: [
+      '#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0',
+      '#3F51B5', '#546E7A', '#D4526E', '#8D5B4C', '#F86624'
+    ],
+    plotOptions: {
+      treemap: {
+        distributed: true,
+        enableShades: false
+      }
+    },
+    dataLabels: {
+      enabled: true,
+      style: {
+        fontSize: '12px',
+        fontWeight: 'bold'
+      },
+      formatter: function(text, op) {
+        const value = op.value;
+        const percent = ((value / totalTM) * 100).toFixed(1);
+        return [text, `${value} (${percent}%)`];
+      },
+      offsetY: -2
+    },
+    noData: {
+      text: 'Donnée indisponible',
+      align: 'center',
+      style: { fontSize: '16px', color: '#999' }
+    },
+    tooltip: {
+      enabled: true,
+      y: {
+        formatter: function (val) {
+          const percent = ((val / totalTM) * 100).toFixed(1);
+          return `${val} critiques (${percent}%)`
         }
-      };
-      break;
+      }
+    }
+  };
+  break;
 
     case 'heatmap':
       isValideGraphsX = true
@@ -923,7 +940,7 @@ function updateChartSpecific(newChart) {
         item => item !== checkedOutSeries.value
       );
       break;
-    
+
     // Configuration Histogramme
     case 'histogram':
       SeriesOriginalArray.value = [
@@ -973,7 +990,7 @@ watch(
       indexY: clickIndexSeries.value,
       nameX: clickNameOptions.value,
       nameY: clickNameSeries.value
-  })
+    })
   }
 );
 
@@ -1048,33 +1065,37 @@ function customClick(e, chart, opts) {
   clickIndexOptions.value = opts.dataPointIndex
   clickIndexSeries.value = opts.seriesIndex
 
-  switch(checkedTypeCharts.value) {
+  switch (checkedTypeCharts.value) {
     case 'line':
-        clickNameOptions.value = opts.w.globals.categoryLabels[clickIndexOptions.value];
-        clickNameSeries.value = opts.w.config.series[clickIndexSeries.value].name;
+      clickNameOptions.value = opts.w.globals.categoryLabels[clickIndexOptions.value];
+      clickNameSeries.value = opts.w.config.series[clickIndexSeries.value].name;
       break;
     case 'bar':
     case 'heatmap':
-        clickNameOptions.value = chartOptionsFinal.value.xaxis.categories[clickIndexOptions.value];
-        clickNameSeries.value = opts.w.config.series[clickIndexSeries.value].name;
+      clickNameOptions.value = chartOptionsFinal.value.xaxis.categories[clickIndexOptions.value];
+      clickNameSeries.value = opts.w.config.series[clickIndexSeries.value].name;
       break;
     case 'histogram':
-        clickNameOptions.value = chartOptionsFinal.value.xaxis.categories[clickIndexOptions.value];
-        if(opts.w.config.series[clickIndexSeries.value]) {
-             clickNameSeries.value = opts.w.config.series[clickIndexSeries.value].name;
-        } else {
-             clickNameSeries.value = "Total";
-        }
+      clickNameOptions.value = chartOptionsFinal.value.xaxis.categories[clickIndexOptions.value];
+      if (opts.w.config.series[clickIndexSeries.value]) {
+        clickNameSeries.value = opts.w.config.series[clickIndexSeries.value].name;
+      } else {
+        clickNameSeries.value = "Total";
+      }
       break;
     case 'pie':
+      clickIndexSeries.value = 0;
       clickNameOptions.value = opts.w.config.labels[clickIndexOptions.value];
+      clickNameSeries.value = "Critiques";
       break;
     case 'treemap':
       // Pour le treemap, le nom se trouve dans data[index].x
+      clickIndexSeries.value = 0;
       const tmData = opts.w.config.series[0].data;
       if (tmData && tmData[clickIndexOptions.value]) {
         clickNameOptions.value = tmData[clickIndexOptions.value].x;
       }
+      clickNameSeries.value = "Critiques";
       break;
   }
   let isClicked = false
@@ -1085,7 +1106,9 @@ function customClick(e, chart, opts) {
     isClick: isClicked,
     nameX: clickNameOptions.value,
     nameY: clickNameSeries.value,
-    critereTrieX: checkedOutOptions.value,
+    critereTrieX: (checkedTypeCharts.value === 'pie' || checkedTypeCharts.value === 'treemap')
+      ? checkedOutSeries.value
+      : checkedOutOptions.value,
     critereTrieY: checkedOutSeries.value
   })
 
