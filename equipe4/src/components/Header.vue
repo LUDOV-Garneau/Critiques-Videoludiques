@@ -5,8 +5,6 @@
         <img src="/src/assets/ludovlogo.jpg" alt="Ludov" class="banner" />
       </router-link>
       <nav class="nav">
-        <router-link to="/" class="nav-link">Accueil</router-link>
-        <router-link to="/critiques" class="nav-link">Critiques</router-link>
       </nav>
     </div>
   </header>

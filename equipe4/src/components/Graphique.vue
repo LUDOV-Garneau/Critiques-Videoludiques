@@ -766,76 +766,93 @@ function ChartGeneration(arrayX01, arrayY01, type) {
       break;
 
     case 'treemap':
-      isValideGraphsX = false
-      isValideGraphsY = true
-      const keySeriesTM = checkedOutSeries.value;
-      const itemsTM = filteredAndSorted.value;
+  isValideGraphsX = false
+  isValideGraphsY = true
+  const keySeriesTM = checkedOutSeries.value;
+  const itemsTM = filteredAndSorted.value;
 
-      const splitValuesTM = (value) => {
-        if (!value || value === '-') return [];
-        return String(value).split(/\s*;\s*/).map(v => v.trim()).filter(v => v);
-      };
+  const splitValuesTM = (value) => {
+    if (!value || value === '-') return [];
+    return String(value).split(/\s*;\s*/).map(v => v.trim()).filter(v => v);
+  };
 
-      const countMapTM = {};
-      for (const item of itemsTM) {
-        const values = splitValuesTM(item[keySeriesTM]);
-        for (const value of values) {
-          if (value) {
-            countMapTM[value] = (countMapTM[value] || 0) + (1 / values.length);
-          }
+  const countMapTM = {};
+  for (const item of itemsTM) {
+    const values = splitValuesTM(item[keySeriesTM]);
+    for (const value of values) {
+      if (value) {
+        countMapTM[value] = (countMapTM[value] || 0) + (1 / values.length);
+      }
+    }
+  }
+
+  const tmData = Object.entries(countMapTM)
+    .map(([key, value]) => ({
+      x: key,
+      y: Math.round(value)
+    }))
+    .sort((a, b) => b.y - a.y);
+
+  // Calculer le total pour les pourcentages
+  const totalTM = tmData.reduce((sum, item) => sum + item.y, 0);
+
+  chartSeriesFinal.value = [{ data: tmData }];
+  chartOptionsFinal.value = {
+    chart: {
+      type: 'treemap',
+      height: 300,
+      events: {
+        dataPointSelection: (e, chart, opts) => {
+          customClick(e, chart, opts)
         }
       }
-
-      const tmData = Object.entries(countMapTM)
-        .map(([key, value]) => ({
-          x: key,
-          y: Math.round(value)
-        }))
-        .sort((a, b) => b.y - a.y);
-
-      chartSeriesFinal.value = [{ data: tmData }];
-      chartOptionsFinal.value = {
-        chart: {
-          type: 'treemap',
-          height: 300,
-          events: {
-            dataPointSelection: (e, chart, opts) => {
-              customClick(e, chart, opts)
-            }
-          }
-        },
-        title: {
-          text: `Treemap: ${keySeriesTM}`,
-          align: 'left'
-        },
-        legend: {
-          show: true
-        },
-        colors: [
-          '#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0',
-          '#3F51B5', '#546E7A', '#D4526E', '#8D5B4C', '#F86624'
-        ],
-        plotOptions: {
-          treemap: {
-            distributed: true,
-            enableShades: false
-          }
-        },
-        noData: {
-          text: 'Donnée indisponible',
-          align: 'center',
-          style: { fontSize: '16px', color: '#999' }
-        },
-        tooltip: {
-          enabled: true,
-          y: {
-            formatter: function (val) {
-              return val + ' critiques'
-            }
-          }
+    },
+    title: {
+      text: `Treemap: ${keySeriesTM}`,
+      align: 'left'
+    },
+    legend: {
+      show: true
+    },
+    colors: [
+      '#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0',
+      '#3F51B5', '#546E7A', '#D4526E', '#8D5B4C', '#F86624'
+    ],
+    plotOptions: {
+      treemap: {
+        distributed: true,
+        enableShades: false
+      }
+    },
+    dataLabels: {
+      enabled: true,
+      style: {
+        fontSize: '12px',
+        fontWeight: 'bold'
+      },
+      formatter: function(text, op) {
+        const value = op.value;
+        const percent = ((value / totalTM) * 100).toFixed(1);
+        return [text, `${value} (${percent}%)`];
+      },
+      offsetY: -2
+    },
+    noData: {
+      text: 'Donnée indisponible',
+      align: 'center',
+      style: { fontSize: '16px', color: '#999' }
+    },
+    tooltip: {
+      enabled: true,
+      y: {
+        formatter: function (val) {
+          const percent = ((val / totalTM) * 100).toFixed(1);
+          return `${val} critiques (${percent}%)`
         }
-      };
-      break;
+      }
+    }
+  };
+  break;
 
     case 'heatmap':
       isValideGraphsX = true
@@ -1208,16 +1225,22 @@ function customClick(e, chart, opts) {
       }
       break;
     case 'pie':
+      clickIndexSeries.value = 0;
       clickNameOptions.value = opts.w.config.labels[clickIndexOptions.value];
-      checkedOutOptions.value = checkedOutSeries.value
+      // MERGED: Keep both logic for drill-down (BugFixes) and Label display (Dev)
+      checkedOutOptions.value = checkedOutSeries.value;
+      clickNameSeries.value = "Critiques";
       break;
     case 'treemap':
       // Pour le treemap, le nom se trouve dans data[index].x
+      clickIndexSeries.value = 0;
       const tmData = opts.w.config.series[0].data;
       if (tmData && tmData[clickIndexOptions.value]) {
         clickNameOptions.value = tmData[clickIndexOptions.value].x;
       }
-      checkedOutOptions.value = checkedOutSeries.value
+      // MERGED: Keep both logic for drill-down (BugFixes) and Label display (Dev)
+      checkedOutOptions.value = checkedOutSeries.value;
+      clickNameSeries.value = "Critiques";
       break;
   }
   let isClicked = false
@@ -1228,7 +1251,9 @@ function customClick(e, chart, opts) {
     isClick: isClicked,
     nameX: clickNameOptions.value,
     nameY: clickNameSeries.value,
-    critereTrieX: checkedOutOptions.value,
+    critereTrieX: (checkedTypeCharts.value === 'pie' || checkedTypeCharts.value === 'treemap')
+      ? checkedOutSeries.value
+      : checkedOutOptions.value,
     critereTrieY: checkedOutSeries.value
   })
 
@@ -1238,32 +1263,46 @@ function customClick(e, chart, opts) {
 </script>
 
 <template>
-  <div>
-    <div>
+  <div class="chart-container">
+    <div class="control-section">
+      <h3 class="section-title">Type de graphique</h3>
+      <div class="radio-group">
+        <label class="radio-item" :class="{ active: checkedTypeCharts === 'line' }">
+          <input type="radio" id="line" name="charts" value="line" v-model="checkedTypeCharts" />
+          <span class="radio-label">Ligne</span>
+        </label>
 
-      <div>Type de graphique</div>
-      <input type="radio" id="line" name="charts" value="line" v-model="checkedTypeCharts" checked />
-      <label for="line">Ligne du Temps</label>
+        <label class="radio-item" :class="{ active: checkedTypeCharts === 'bar' }">
+          <input type="radio" id="bar" name="charts" value="bar" v-model="checkedTypeCharts" />
+          <span class="radio-label">Barres</span>
+        </label>
 
-      <input type="radio" id="bar" name="charts" value="bar" v-model="checkedTypeCharts" />
-      <label for="bar">Barres</label>
+        <label class="radio-item" :class="{ active: checkedTypeCharts === 'pie' }">
+          <input type="radio" id="pie" name="charts" value="pie" v-model="checkedTypeCharts" />
+          <span class="radio-label">Pie</span>
+        </label>
 
-      <input type="radio" id="pie" name="charts" value="pie" v-model="checkedTypeCharts" />
-      <label for="pie">Pie</label>
+        <label class="radio-item" :class="{ active: checkedTypeCharts === 'heatmap' }">
+          <input type="radio" id="heatmap" name="charts" value="heatmap" v-model="checkedTypeCharts" />
+          <span class="radio-label">Heatmap</span>
+        </label>
 
-      <input type="radio" id="heatmap" name="charts" value="heatmap" v-model="checkedTypeCharts" />
-      <label for="heatmap">Heatmap</label>
+        <label class="radio-item" :class="{ active: checkedTypeCharts === 'treemap' }">
+          <input type="radio" id="treemap" name="charts" value="treemap" v-model="checkedTypeCharts" />
+          <span class="radio-label">Treemap</span>
+        </label>
 
-      <input type="radio" id="treemap" name="charts" value="treemap" v-model="checkedTypeCharts" />
-      <label for="treemap">Treemap</label>
-
-      <input type="radio" id="histogram" name="charts" value="histogram" v-model="checkedTypeCharts" />
-      <label for="histogram">Histogramme</label>
+        <label class="radio-item" :class="{ active: checkedTypeCharts === 'histogram' }">
+          <input type="radio" id="histogram" name="charts" value="histogram" v-model="checkedTypeCharts" />
+          <span class="radio-label">Histogramme</span>
+        </label>
+      </div>
     </div>
 
-    <div v-if="checkedTypeCharts === 'histogram'" style="margin-top: 10px;">
-      <label for="histoSize">Intervalle (Années) : </label>
-      <select id="histoSize" v-model="histogramBinSize">
+    <!-- Section Histogramme -->
+    <div v-if="checkedTypeCharts === 'histogram'" class="control-section histogram-controls">
+      <label for="histoSize" class="select-label">Intervalle (Années)</label>
+      <select id="histoSize" v-model="histogramBinSize" class="custom-select">
         <option :value="1">1 an</option>
         <option :value="2">2 ans</option>
         <option :value="3">3 ans</option>
@@ -1277,42 +1316,276 @@ function customClick(e, chart, opts) {
       </select>
     </div>
 
-    <div v-if="isValideGraphsY" class="row">
-      <p>Ligne Y :</p>
-      <div>
-        <select v-model="checkedOutSeries">
+    <!-- Section Axe Y / Séries -->
+    <div v-if="isValideGraphsY" class="control-section axis-controls">
+      <div class="axis-row">
+        <label class="select-label">Axe Y (Séries)</label>
+        <select v-model="checkedOutSeries" class="custom-select">
           <option v-for="type in SeriesParameterArray" :key="type" :value="type">
             {{ type }}
           </option>
         </select>
       </div>
 
-      <div v-if="checkedTypeCharts !== 'pie' && checkedTypeCharts !== 'heatmap' && checkedTypeCharts !== 'treemap'">
-        <input type="radio" id="combine" name="Data" value="combine" v-model="checkedOutData" />
-        <label for="combine">Combiner</label>
-        <input type="radio" id="divided" name="Data" value="divided" v-model="checkedOutData" />
-        <label for="divided">Diviser</label>
+      <div class="mode-toggle" v-if="checkedTypeCharts !== 'pie' && checkedTypeCharts !== 'heatmap' && checkedTypeCharts !== 'treemap'">
+        <label class="toggle-item" :class="{ active: checkedOutData === 'combine' }">
+          <input type="radio" id="combine" name="Data" value="combine" v-model="checkedOutData" />
+          <span>Combiner</span>
+        </label>
+
+        <label class="toggle-item" :class="{ active: checkedOutData === 'divided' }">
+          <input type="radio" id="divided" name="Data" value="divided" v-model="checkedOutData" />
+          <span>Diviser</span>
+        </label>
       </div>
     </div>
 
-
-    <div>
-      <apexchart :key="checkedTypeCharts" width="100%" height="300" :options="chartOptionsFinal"
-        :series="chartSeriesFinal" />
+    <!-- Graphique -->
+    <div class="chart-wrapper">
+      <apexchart 
+        :key="checkedTypeCharts" 
+        width="100%" 
+        height="350" 
+        :options="chartOptionsFinal"
+        :series="chartSeriesFinal" 
+      />
     </div>
 
-    <div v-if="isValideGraphsX" class="row">
-      <p>Ligne X :</p>
-      <select v-model="checkedOutOptions">
-        <option v-for="type in OptionsParameterArray" :key="type" :value="type">
-          {{ type }}
-        </option>
-      </select>
+    <!-- Section Axe X -->
+    <div v-if="isValideGraphsX" class="control-section axis-controls">
+      <div class="axis-row">
+        <label class="select-label">Axe X (Catégories)</label>
+        <select v-model="checkedOutOptions" class="custom-select">
+          <option v-for="type in OptionsParameterArray" :key="type" :value="type">
+            {{ type }}
+          </option>
+        </select>
+      </div>
     </div>
-    <div v-if="clickIndexOptions !== -1 && clickIndexSeries !== -1">
-      <p>Sélection : {{ clickNameOptions }}<span
-          v-if="clickNameSeries !== 'Critiques' && checkedTypeCharts !== 'pie' && checkedTypeCharts !== 'treemap' && checkedTypeCharts !== 'histogram'">,
-          {{ clickNameSeries }}</span></p>
+
+    <!-- Sélection actuelle -->
+    <div v-if="clickIndexOptions !== -1 && clickIndexSeries !== -1" class="selection-info">
+      <span class="selection-text">
+        Sélection : <strong>{{ clickNameOptions }}</strong>
+        <span v-if="clickNameSeries !== 'Critiques' && checkedTypeCharts !== 'pie' && checkedTypeCharts !== 'treemap' && checkedTypeCharts !== 'histogram'">
+          , <strong>{{ clickNameSeries }}</strong>
+        </span>
+      </span>
     </div>
   </div>
 </template>
+
+<style scoped>
+.chart-container {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.control-section {
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Radio Group pour types de graphiques */
+.radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.radio-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+  background: #f3f4f6;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.radio-item:hover {
+  background: #e5e7eb;
+}
+
+.radio-item.active {
+  background: #dbeafe;
+  border-color: #3b82f6;
+}
+
+.radio-item input[type="radio"] {
+  display: none;
+}
+
+.radio-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.radio-item.active .radio-label {
+  color: #1d4ed8;
+}
+
+/* Histogramme Controls */
+.histogram-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #fef3c7;
+  border-radius: 8px;
+  border-left: 4px solid #f59e0b;
+}
+
+/* Axis Controls */
+.axis-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.axis-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.select-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.custom-select {
+  padding: 8px 32px 8px 12px;
+  font-size: 14px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+.custom-select:hover {
+  border-color: #9ca3af;
+}
+
+.custom-select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Mode Toggle (Combiner/Diviser) */
+.mode-toggle {
+  display: flex;
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.toggle-item {
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-item:hover {
+  color: #374151;
+}
+
+.toggle-item.active {
+  background: #ffffff;
+  color: #3b82f6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-item input[type="radio"] {
+  display: none;
+}
+
+/* Chart Wrapper */
+.chart-wrapper {
+  margin: 24px 0;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+/* Selection Info */
+.selection-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border-radius: 8px;
+  border-left: 4px solid #10b981;
+  margin-top: 16px;
+}
+
+.selection-icon {
+  font-size: 18px;
+}
+
+.selection-text {
+  font-size: 14px;
+  color: #065f46;
+}
+
+.selection-text strong {
+  color: #047857;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .chart-container {
+    padding: 16px;
+  }
+
+  .radio-group {
+    gap: 6px;
+  }
+
+  .radio-item {
+    padding: 6px 10px;
+  }
+
+  .radio-label {
+    font-size: 12px;
+  }
+
+  .axis-controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mode-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+}
+</style>
