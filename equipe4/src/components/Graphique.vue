@@ -14,47 +14,85 @@ const emit = defineEmits(['chart-click'])
 let isValideGraphsX = ref(false)
 let isValideGraphsY = ref(false)
 
+// const typeArray = [
+//   "Titre", // 0
+//   "TitreJeu", // 1
+//   "Plateforme", // 2
+//   "Modele", //3
+//   "TypePlateforme", //4
+//   "Année", //5
+//   "Magazine", //6
+//   "Auteurs", //7
+//   "Pays", //8
+//   "CritiqueTitre", //9
+//   "PDF", //10
+//   "Consoles", //11
+//   "ImageType",//12
+//   "Mois", //13
+//   "Volume", //14
+//   "Numéro", //15
+//   "Pages", //16
+//   "GenreAuteur" //17
+// ];
+
 const typeArray = [
-  "Titre", // 0
-  "TitreJeu", // 1
-  "Plateforme", // 2
-  "Modele", //3
-  "TypePlateforme", //4
-  "Année", //5
-  "Magazine", //6
-  "Auteurs", //7
-  "Pays", //8
-  "CritiqueTitre", //9
-  "PDF", //10
-  "Consoles", //11
-  "ImageType",//12
-  "Mois", //13
-  "Volume", //14
-  "Numéro", //15
-  "Pages", //16
-  "GenreAuteur" //17
+  "ImageType",          // 0
+  "TitreJeu",           // 1
+  "Plateforme",         // 2
+  "Modele",             // 3
+  "TypePlateforme",     // 4
+  "Genre",              // 5
+  "Note",               // 6
+  "Année",              // 7
+  "Magazine",           // 8
+  "Auteurs",            // 9
+  "GenreAuteur",        // 10
+  "Pays",               // 11
+  "CritiqueTitre",      // 12
+  "PDF",                // 13
+  "NoteGenerale",       // 14
+  "NoteVisuelle",       // 15
+  "NoteSonore",         // 16
+  "NoteContenu",        // 17
+  "NoteJouabilite",     // 18
+  "NoteTempsJeu",       // 19
+  "NoteDifficulte",     // 20
+  "NotePrix",           // 21
+  "NoteAutre",          // 22
+  "Mois",               // 23
+  "Volume",             // 24
+  "Numéro",             // 25
+  "Page",               // 26
+  "NombrePages"         // 27
+
 ];
+
+
+
 let OptionsOriginalArray = []
 let OptionsParameterArray = ref([])
 let SeriesOriginalArray = []
 let SeriesParameterArray = ref([])
 
-// FiltreActifs {
-// magazines: [],
-// countries: [],
-// platformTypes: [],
-// consoles: [],
-// gameTypes: [],
-// imageTypes: [],
-// authorGender: '',
-// authorName: '',
-// showWithoutAuthors: false,
-// yearRange: [1980, 2025],
-// monthRange: [1, 12],
-// scoreTypes: [],
-// scoreRange: [0, 100],
-// includeUnscored: true
-// }
+// const sidebarFilters = ref({
+//   magazines: [],
+//   countries: [],
+//   platformTypes: [],
+//   platforms: [],
+//   gameTypes: [],
+//   gameTypesLogic: 'OU', // Ajout de la logique ET/OU pour les types de jeux
+//   imageTypes: [],
+//   authorGender: '',
+//   authorCharacteristics: [],
+//   authorName: '',
+//   showWithoutAuthors: false,
+//   yearRange: [1980, 2025],
+//   monthRange: [1, 12],
+//   scoreTypes: [],
+//   scoreRange: [0, 100],
+//   includeUnscored: true
+// })
+
 
 const months = [
   "1 (janvier)",
@@ -78,7 +116,7 @@ const props = defineProps({
     required: true
   },
   filtreActifs: {
-    type: Object,
+    type: Array,
     required: false
   }
 })
@@ -232,34 +270,47 @@ const naturalSort = (a, b) => {
   return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
 };
 
+// Fonction helper pour séparer les valeurs multiples
+const splitMultipleValues = (value) => {
+  if (!value || value === '-') return [];
+  return String(value)
+    .split(/\s*;\s*/)  // Séparer par " ; "
+    .map(v => v.trim())
+    .filter(v => v);
+};
+const splitMultipleValuesGenre = (value) => {
+  if (!value || value === '-') return [];
+  return String(value)
+    .split(/\s*,\s*/)  // Séparer par " , "
+    .map(v => v.trim())
+    .filter(v => v);
+};
+
 function dividedY(mode) {
   const keyX = checkedOutOptions.value;
   const keySeries = checkedOutSeries.value;
   const items = filteredAndSorted.value;
 
-  // Fonction helper pour séparer les valeurs multiples
-  const splitMultipleValues = (value) => {
-    if (!value || value === '-') return [];
-    return String(value)
-      .split(/\s*;\s*/)  // Séparer par " ; "
-      .map(v => v.trim())
-      .filter(v => v);
-  };
+
 
   // Initialisation
-  const ValeurUniqueOptions = [...new Set(
-    items.flatMap(i => splitMultipleValues(i[keyX]))
-  )].sort(naturalSort);
+  const ValeurUniqueOptions = limiteGraphs(items, keyX)
 
-  const ValeurUniqueSeries = [...new Set(
-    items.flatMap(i => splitMultipleValues(i[keySeries]))
-  )].sort(naturalSort);
+  // BUG FIXES
+  const ValeurUniqueSeries = limiteGraphs(items, keySeries)
 
   const map = Object.create(null);
 
   for (const item of items) {
     const valeursX = splitMultipleValues(item[keyX]);
-    const valeursY = splitMultipleValues(item[keySeries]);
+
+    let valeursY = []
+    if (checkedOutSeries.value === "Genre") {
+      valeursY = splitMultipleValuesGenre(item[keySeries]);
+    } else {
+      valeursY = splitMultipleValues(item[keySeries]);
+    }
+
 
     // Si pas de valeurs valides, skip
     if (valeursX.length === 0 || valeursY.length === 0) continue;
@@ -280,7 +331,7 @@ function dividedY(mode) {
   const arrayX01 = ValeurUniqueOptions.map(v => v.toString());
   const arrayY01 = [];
 
-  if (ValeurUniqueSeries.length === 1 || mode === "combine") {
+  if (mode === "combine") {
     // Combiner
     const data = ValeurUniqueOptions.map(valX => {
       const row = map[valX];
@@ -309,6 +360,79 @@ function dividedY(mode) {
 
   return [arrayX01, arrayY01];
 }
+
+function sameValuesIgnoringOrder(a, b) {
+  const setA = new Set(a);
+  const setB = new Set(b);
+
+  if (setA.size !== setB.size) return false;
+
+  for (const val of setA) {
+    if (!setB.has(val)) return false;
+  }
+  return true;
+}
+
+// Cas si plusieures parametres sont possible (ex. Plateforme)
+function limiteGraphs(items, parameter) {
+  let ValeursUniques = []
+  let ValeursTrier = []
+
+  const test = props.filtreActifs
+  let critereSelectionner = []
+
+  switch (parameter) {
+    case "Plateforme": //
+      critereSelectionner = test.platforms
+      break;
+    case "TypePlateforme": //
+      critereSelectionner = test.platformTypes
+      break;
+    case "TypeImageUtilise": //
+      critereSelectionner = test.imageTypes
+      break;
+    case "Genre": //
+      critereSelectionner = test.gameTypes
+      break;
+    case "GenreAuteur": // Probleme avec le La lettre majuscule
+      function capitalizeFirstLetter(str) {
+        if (!str) return "";
+        str = str.toString().toLowerCase();
+        return str.charAt(0).toUpperCase() + str.slice(1);
+      }
+      if (test.authorGender === "") {
+        critereSelectionner = []
+      } else {
+        critereSelectionner.push(capitalizeFirstLetter(test.authorGender));
+      }
+
+
+      break;
+    default:
+      critereSelectionner = []
+      break;
+  }
+
+  if (parameter === "Genre") {
+    ValeursTrier = [...new Set(
+      items.flatMap(i => splitMultipleValuesGenre(i[parameter]))
+    )].sort(naturalSort);
+  } else {
+    ValeursTrier = [...new Set(
+      items.flatMap(i => splitMultipleValues(i[parameter]))
+    )].sort(naturalSort);
+  }
+
+  if (critereSelectionner.length > 0) {
+    ValeursUniques = critereSelectionner
+  } else {
+    ValeursUniques = ValeursTrier
+  }
+
+  return ValeursUniques
+}
+
+
 
 function generateHeatmapData() {
   const keyX = checkedOutOptions.value;  // Année
@@ -469,7 +593,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
             }
           }
         },
-        title: { text: 'Nombre Critique selon Année', align: 'left' },
+        title: { text: 'Nombre de critiques selon Année', align: 'left' },
         xaxis: { categories: arrayX01 },
         legend: { position: 'right', horizontalAlign: 'center' },
         noData: {
@@ -499,7 +623,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
             }
           }
         },
-        title: { text: 'Nombre de critiques par année', align: 'left' },
+        title: { text: `Nombre de critiques par ${checkedOutOptions.value}`, align: 'left' },
         xaxis: { categories: arrayX01 },
         legend: { position: 'right', horizontalAlign: 'center' },
         noData: {
@@ -762,9 +886,15 @@ function ChartGeneration(arrayX01, arrayY01, type) {
               ranges: [
                 {
                   from: 0,
+                  to: 0,
+                  color: '#799EB2',
+                  name: '0'
+                },
+                {
+                  from: 1,
                   to: 10,
                   color: '#008FFB',
-                  name: '0-10'
+                  name: '1-10'
                 },
                 {
                   from: 11,
@@ -849,14 +979,13 @@ function updateChartSpecific(newChart) {
     case 'line':
       checkedOutOptions.value = 'Année';
       SeriesOriginalArray.value = [
-        typeArray[2],
-        typeArray[3],
-        typeArray[4],
-        typeArray[6],
-        typeArray[8],
-        typeArray[12],
-        typeArray[13],
-        typeArray[17]
+        typeArray[0], // TypeImage
+        typeArray[2], // Plateforme
+        typeArray[4], // TypePlateforme
+        typeArray[5], // TypeJeu
+        typeArray[8], // Magazine
+        typeArray[10], // GenreAuteur
+        typeArray[11], // Pays 
       ].sort();
 
       if (!SeriesOriginalArray.value.includes(checkedOutSeries.value)) {
@@ -867,12 +996,14 @@ function updateChartSpecific(newChart) {
 
     case 'bar':
       SeriesOriginalArray.value = [
-        typeArray[4],
-        typeArray[6],
-        typeArray[8],
-        typeArray[12],
-        typeArray[13],
-        typeArray[17]
+        typeArray[0], // Type d'image
+        typeArray[2], // Plateforme 
+        typeArray[4], // TypePlateforme
+        typeArray[5], // TypeJeu
+        typeArray[8], // Magazine
+        typeArray[10], // GenreAuteur
+        typeArray[11], // Pays
+        typeArray[23] // Mois
       ].sort();
 
       if (!SeriesOriginalArray.value.includes(checkedOutSeries.value)) {
@@ -883,6 +1014,11 @@ function updateChartSpecific(newChart) {
 
       if (!OptionsOriginalArray.value.includes(checkedOutOptions.value)) {
         checkedOutOptions.value = 'ImageType';
+      }
+
+      if (checkedOutOptions.value === checkedOutSeries.value) {
+        checkedOutOptions.value = 'ImageType'
+        checkedOutSeries.value = 'Pays'
       }
 
       SeriesParameterArray.value = SeriesOriginalArray.value.filter(
@@ -896,13 +1032,14 @@ function updateChartSpecific(newChart) {
     case 'pie':
     case 'treemap':
       SeriesParameterArray.value = [
-        typeArray[2],
-        typeArray[4],
-        typeArray[6],
-        typeArray[8],
-        typeArray[12],
-        typeArray[13],
-        typeArray[17]
+        typeArray[0], // Type Image
+        typeArray[2], // Plateforme
+        typeArray[4], // Type plateforme
+        typeArray[8], // Magazine
+        typeArray[10], // GenreAuteur
+        typeArray[11], // Pays
+        typeArray[23] // Mois
+
       ].sort();
 
       if (!SeriesParameterArray.value.includes(checkedOutSeries.value)) {
@@ -912,12 +1049,13 @@ function updateChartSpecific(newChart) {
 
     case 'heatmap':
       SeriesOriginalArray.value = [
-        typeArray[4],
-        typeArray[6],
-        typeArray[8],
-        typeArray[12],
-        typeArray[13],
-        typeArray[17]
+        typeArray[0], // Type Image
+        typeArray[4], // Type plateforme
+        typeArray[7], // Année
+        typeArray[8], // Magazine
+        typeArray[10], // GenreAuteur
+        typeArray[11], // Pays
+        typeArray[23] // Mois
       ].sort();
 
       if (!SeriesOriginalArray.value.includes(checkedOutSeries.value)) {
@@ -925,8 +1063,8 @@ function updateChartSpecific(newChart) {
       }
 
       OptionsOriginalArray.value = [
-        typeArray[5],
-        typeArray[13]
+        typeArray[7], // Année
+        typeArray[23] // Mois
       ].sort();
 
       if (!OptionsOriginalArray.value.includes(checkedOutOptions.value)) {
@@ -944,12 +1082,12 @@ function updateChartSpecific(newChart) {
     // Configuration Histogramme
     case 'histogram':
       SeriesOriginalArray.value = [
+        typeArray[0], // ImageType
         typeArray[4], // TypePlateforme
-        typeArray[6], // Magazine
-        typeArray[8], // Pays
-        typeArray[12], // ImageType
-        typeArray[13], // Mois
-        typeArray[17]  // GenreAuteur
+        typeArray[8], // Magazine
+        typeArray[10],  // GenreAuteur
+        typeArray[11], // Pays
+        typeArray[23] // Mois
       ].sort();
 
       if (!SeriesOriginalArray.value.includes(checkedOutSeries.value)) {
@@ -975,6 +1113,9 @@ onMounted(() => {
 watch(
   [filteredAndSorted, checkedTypeCharts, checkedOutData, checkedOutOptions, checkedOutSeries, histogramBinSize],
   () => {
+    if (checkedTypeCharts.value === 'pie' || checkedTypeCharts.value === 'heatmap' || checkedTypeCharts.value === 'treemap') {
+      checkedOutData.value = 'combine'
+    }
     updateChartSpecific(checkedTypeCharts.value);
     updateData(
       checkedTypeCharts.value,
@@ -1086,6 +1227,8 @@ function customClick(e, chart, opts) {
     case 'pie':
       clickIndexSeries.value = 0;
       clickNameOptions.value = opts.w.config.labels[clickIndexOptions.value];
+      // MERGED: Keep both logic for drill-down (BugFixes) and Label display (Dev)
+      checkedOutOptions.value = checkedOutSeries.value;
       clickNameSeries.value = "Critiques";
       break;
     case 'treemap':
@@ -1095,6 +1238,8 @@ function customClick(e, chart, opts) {
       if (tmData && tmData[clickIndexOptions.value]) {
         clickNameOptions.value = tmData[clickIndexOptions.value].x;
       }
+      // MERGED: Keep both logic for drill-down (BugFixes) and Label display (Dev)
+      checkedOutOptions.value = checkedOutSeries.value;
       clickNameSeries.value = "Critiques";
       break;
   }
@@ -1119,7 +1264,6 @@ function customClick(e, chart, opts) {
 
 <template>
   <div class="chart-container">
-    <!-- Section Type de graphique -->
     <div class="control-section">
       <h3 class="section-title">Type de graphique</h3>
       <div class="radio-group">
@@ -1183,7 +1327,7 @@ function customClick(e, chart, opts) {
         </select>
       </div>
 
-      <div class="mode-toggle">
+      <div class="mode-toggle" v-if="checkedTypeCharts !== 'pie' && checkedTypeCharts !== 'heatmap' && checkedTypeCharts !== 'treemap'">
         <label class="toggle-item" :class="{ active: checkedOutData === 'combine' }">
           <input type="radio" id="combine" name="Data" value="combine" v-model="checkedOutData" />
           <span>Combiner</span>
