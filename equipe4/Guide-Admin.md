@@ -43,11 +43,13 @@ Ce guide est destiné aux développeurs qui souhaitent maintenir ou étendre l'a
 equipe4/
 ├── src/
 │   ├── pages/
-│   │   └── Critiques.vue        # Page principale (données, filtres, tableau)
+│   │   ├── Critiques.vue        # Page principale (données, filtres, tableau)
+│   │   ├── Guide.vue            # Page guide utilisateur
+│   │   └── NotFound.vue         # Page 404
 │   ├── components/
 │   │   ├── FiltersSidebar.vue   # Composant des filtres latéraux
-│   │   ├── Graphique.vue        # Composant des graphiques
-│   │   ├── Header.vue           # En-tête de l'application
+│   │   ├── Graphique.vue        # Composant des graphiques (dans carte déroulante)
+│   │   ├── Header.vue           # En-tête (responsive avec menu hamburger)
 │   │   └── Footer.vue           # Pied de page
 │   ├── utils/
 │   │   ├── dataCorrections.js   # Corrections automatiques des données
@@ -55,8 +57,11 @@ equipe4/
 │   └── workers/
 │       └── xlsxWorker.js        # Worker pour parser le fichier Excel
 ├── public/
-│   └── data/
-│       └── datareviews.xlsx     # Fichier de données Excel
+│   ├── data/
+│   │   └── datareviews.xlsx     # Fichier de données Excel
+│   └── img/                     # Images du guide utilisateur
+├── main.js                      # Configuration des routes
+└── style.css                    # Styles globaux (accessibilité, skip-link)
 ```
 
 ---
@@ -397,10 +402,169 @@ npm run lint
 
 ---
 
+## 📱 Responsive Design
+
+L'application s'adapte à toutes les tailles d'écran grâce aux media queries.
+
+### Breakpoints
+
+| Breakpoint | Cible |
+|------------|-------|
+| `1024px` | Tablette |
+| `768px` | Mobile |
+| `525px` | Petit mobile (graphiques) |
+| `480px` | Très petit mobile |
+
+### Composants adaptatifs
+
+**Header.vue** - Menu hamburger sur mobile
+```css
+@media (max-width: 768px) {
+  .menu-toggle { display: flex; }  /* Affiche le burger */
+  .nav { display: none; }          /* Cache la nav par défaut */
+  .nav-open { display: flex; }     /* Affiche quand ouvert */
+}
+```
+
+**Critiques.vue** - Cartes au lieu du tableau sur mobile
+```html
+<!-- Desktop : tableau -->
+<div class="table-wrap desktop-only">...</div>
+
+<!-- Mobile : cartes -->
+<div class="cards-wrap mobile-only">
+  <div class="critique-card" v-for="item in pageSlice">
+    <!-- Titre, Année, Type plateformes, Magazine, Auteurs, Genre, Étiquette -->
+  </div>
+</div>
+```
+
+> Les classes `.desktop-only` et `.mobile-only` basculent à 768px.
+
+**FiltersSidebar.vue** - Bouton flottant sur mobile
+- Un bouton "Filtres" apparaît en bas à gauche sur mobile
+- Affiche le nombre de filtres actifs (badge)
+- La sidebar s'ouvre en overlay
+
+**Graphique.vue** - Toolbar repositionnée sur petit écran
+```css
+@media (max-width: 525px) {
+  .apexcharts-toolbar { position: relative; }  /* Évite le chevauchement */
+}
+```
+
+### Carte déroulante du graphique
+
+Le graphique est dans une carte **accordéon** (fermée par défaut) :
+
+```javascript
+// État dans Critiques.vue
+const isGraphCardOpen = ref(false)  // Fermé par défaut
+
+function toggleGraphCard() {
+  isGraphCardOpen.value = !isGraphCardOpen.value
+}
+```
+
+```html
+<div class="collapsible-card graph-card">
+  <button class="collapsible-header" @click="toggleGraphCard">
+    📊 Graphiques et visualisations
+  </button>
+  <div class="collapsible-content" :class="{ 'open': isGraphCardOpen }">
+    <ChartsGraphique ... />
+  </div>
+</div>
+```
+
+---
+
+## ♿ Accessibilité
+
+L'application respecte les bonnes pratiques d'accessibilité web (WCAG).
+
+### Fonctionnalités implémentées
+
+| Fonctionnalité | Emplacement | Description |
+|----------------|-------------|-------------|
+| **Skip Link** | `App.vue` | Lien "Aller au contenu principal" visible au focus |
+| **Focus visible** | `style.css` | Outline coloré sur tous les éléments focusables |
+| **ARIA labels** | Partout | Labels pour lecteurs d'écran |
+| **Navigation clavier** | Tableau, cartes | Enter/Space pour ouvrir les modales |
+| **Reduced motion** | `style.css` | Respecte `prefers-reduced-motion` |
+
+### Skip Link (App.vue)
+
+```html
+<a href="#main-content" class="skip-link">
+  Aller au contenu principal
+</a>
+<main id="main-content" role="main">...</main>
+```
+
+### Focus visible (style.css)
+
+```css
+*:focus-visible {
+  outline: 3px solid #0891b2;
+  outline-offset: 2px;
+}
+
+.sr-only {
+  /* Classe pour contenu accessible mais invisible */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  clip: rect(0, 0, 0, 0);
+}
+```
+
+### Navigation clavier dans le tableau
+
+```html
+<tr
+  tabindex="0"
+  role="button"
+  @keydown.enter="openModal(item)"
+  @keydown.space.prevent="openModal(item)"
+  :aria-label="`Voir les détails de ${item.Titre}`"
+>
+```
+
+---
+
+## 🔗 Routes et Navigation
+
+### Configuration (main.js)
+
+```javascript
+const routes = [
+  { path: '/', component: Critiques, meta: { title: 'Critiques' } },
+  { path: '/guide', component: Guide, meta: { title: 'Guide' } },
+  { path: '/:pathMatch(.*)*', component: NotFound, meta: { title: 'Page non trouvée' } }
+]
+
+// Titre dynamique
+router.afterEach((to) => {
+  document.title = `LUDOV - ${to.meta.title || 'Critiques'}`
+})
+```
+
+### Page 404 (NotFound.vue)
+
+Page stylisée avec :
+- Message d'erreur clair
+- Bouton "Retour à l'accueil"
+- Bouton "Consulter le guide"
+
+---
+
 ## ⚠️ Points d'Attention
 
 1. **Index des colonnes Excel** : Utilisez toujours `forceIndex` pour les colonnes critiques
 2. **Noms de propriétés** : Utilisez le PascalCase (ex: `EtiquetteGenre`)
 3. **Valeurs vides** : Toujours gérer les cas `undefined`, `null`, `''`, `'0'`
 4. **Performances** : Les computed sont réactifs, évitez les calculs lourds
+5. **Responsive** : Testez sur mobile (< 768px) après chaque modification du tableau
+6. **Accessibilité** : Ajoutez des `aria-label` sur les éléments interactifs
 
