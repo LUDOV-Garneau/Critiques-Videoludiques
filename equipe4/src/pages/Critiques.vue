@@ -1417,7 +1417,7 @@ watch(graphClickData, () => {
               aria-controls="graph-content"
             >
               <span class="collapsible-icon" :class="{ 'rotated': isGraphCardOpen }">▶</span>
-              <span class="collapsible-title">📊 Graphiques et visualisations</span>
+              <span class="collapsible-title">Graphiques et visualisations</span>
               <span class="collapsible-hint">{{ isGraphCardOpen ? 'Cliquer pour réduire' : 'Cliquer pour afficher' }}</span>
             </button>
             <div
@@ -2464,11 +2464,10 @@ watch(graphClickData, () => {
 
   /* Affichage conditionnel desktop/mobile */
   .desktop-only { display: block; }
-  .mobile-only { display: none; }
+  .mobile-only { display: none !important; }
 
   /* Style des cartes mobile */
   .cards-wrap {
-    display: flex;
     flex-direction: column;
     gap: 12px;
     padding: 12px;
@@ -2582,7 +2581,7 @@ watch(graphClickData, () => {
   @media (max-width: 768px) {
     /* Basculer vers les cartes sur mobile */
     .desktop-only { display: none !important; }
-    .mobile-only { display: block !important; }
+    .mobile-only { display: flex !important; }
 
     .page-layout {
       flex-direction: column;
