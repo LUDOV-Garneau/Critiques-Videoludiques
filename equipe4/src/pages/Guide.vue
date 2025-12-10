@@ -55,7 +55,7 @@ async function downloadPDF() {
             Génération...
           </span>
           <span v-else>
-            📥 Télécharger en PDF
+            Télécharger en PDF
           </span>
         </button>
       </header>
