@@ -1,12 +1,66 @@
+<script setup>
+import { ref } from 'vue'
+import html2pdf from 'html2pdf.js'
+
+const guideContent = ref(null)
+const isGenerating = ref(false)
+
+async function downloadPDF() {
+  if (!guideContent.value || isGenerating.value) return
+
+  isGenerating.value = true
+
+  const options = {
+    margin: [10, 10, 10, 10],
+    filename: 'Guide-Utilisateur-LUDOV.pdf',
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      letterRendering: true
+    },
+    jsPDF: {
+      unit: 'mm',
+      format: 'a4',
+      orientation: 'portrait'
+    },
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+  }
+
+  try {
+    await html2pdf().set(options).from(guideContent.value).save()
+  } catch (error) {
+    console.error('Erreur lors de la génération du PDF:', error)
+    alert('Une erreur est survenue lors de la génération du PDF.')
+  } finally {
+    isGenerating.value = false
+  }
+}
+</script>
+
 <template>
   <div class="guide-page">
     <div class="container">
       <header class="guide-header">
         <h1>Guide d'utilisation</h1>
         <p class="subtitle">Site de Critiques Vidéoludiques Ludov</p>
+        <button
+          class="download-btn"
+          @click="downloadPDF"
+          :disabled="isGenerating"
+          aria-label="Télécharger le guide en PDF"
+        >
+          <span v-if="isGenerating" class="btn-loading">
+            <span class="spinner-small"></span>
+            Génération...
+          </span>
+          <span v-else>
+            📥 Télécharger en PDF
+          </span>
+        </button>
       </header>
 
-      <div class="guide-content">
+      <div class="guide-content" ref="guideContent">
         <section>
           <h2>Introduction</h2>
           <p>Ce site web est une plateforme d'analyse de critiques vidéoludiques. Il permet de consulter une base de données complète de critiques de jeux vidéo provenant de différents magazines et revues.</p>
@@ -133,12 +187,63 @@
 .subtitle {
   font-size: 18px;
   color: #6b7280;
-  margin: 0;
+  margin: 0 0 20px 0;
+}
+
+.download-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #02dcde 0%, #00b4b6 100%);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(2, 220, 222, 0.3);
+}
+
+.download-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(2, 220, 222, 0.4);
+}
+
+.download-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.download-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .guide-content {
   line-height: 1.7;
   color: #374151;
+  text-align: justify;
 }
 
 .guide-content section {
@@ -151,6 +256,7 @@
   color: #111827;
   margin: 0 0 16px 0;
   padding-top: 8px;
+  text-align: left;
 }
 
 .guide-content h3 {
@@ -158,6 +264,7 @@
   font-weight: 600;
   color: #1f2937;
   margin: 24px 0 12px 0;
+  text-align: left;
 }
 
 .guide-content h4 {
@@ -165,11 +272,13 @@
   font-weight: 600;
   color: #374151;
   margin: 20px 0 8px 0;
+  text-align: left;
 }
 
 .guide-content p {
   margin: 0 0 16px 0;
   font-size: 16px;
+  text-align: justify;
 }
 
 .guide-content ul,
@@ -234,6 +343,20 @@
   .container {
     padding: 0 16px;
   }
+
+  .download-btn {
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 14px;
+  }
 }
+
+/* Styles pour l'impression PDF - masquer le bouton */
+@media print {
+  .download-btn {
+    display: none !important;
+  }
+}
+
 </style>
 
