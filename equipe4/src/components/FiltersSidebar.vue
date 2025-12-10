@@ -1,6 +1,20 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 
+// État pour le menu mobile
+const isMobileOpen = ref(false)
+
+function toggleMobileSidebar() {
+  isMobileOpen.value = !isMobileOpen.value
+  // Empêcher le scroll du body quand ouvert
+  document.body.style.overflow = isMobileOpen.value ? 'hidden' : ''
+}
+
+function closeMobileSidebar() {
+  isMobileOpen.value = false
+  document.body.style.overflow = ''
+}
+
 const props = defineProps({
   facets: {
     type: Object,
@@ -18,6 +32,14 @@ const props = defineProps({
   activeFilters: {
     type: Object,
     default: () => ({})
+  },
+  totalCount: {
+    type: Number,
+    default: 0
+  },
+  filteredCount: {
+    type: Number,
+    default: 0
   }
 })
 
@@ -97,7 +119,7 @@ const activeFiltersList = computed(() => {
   if (localFilters.value.gameTypes.length > 0) {
     filters.push({
       type: 'gameTypes',
-      label: 'Types de jeux',
+      label: 'Genres LUDOV',
       value: localFilters.value.gameTypes.join(', '),
       count: localFilters.value.gameTypes.length
     })
@@ -691,23 +713,46 @@ watch(() => props.facets, (newFacets) => {
 </script>
 
 <template>
-  <aside class="filters-sidebar">
+  <!-- Bouton flottant pour ouvrir les filtres sur mobile -->
+  <button
+    class="mobile-filter-toggle"
+    @click="toggleMobileSidebar"
+    :aria-expanded="isMobileOpen"
+    aria-label="Ouvrir les filtres"
+  >
+    <span class="filter-icon">🔍</span>
+    <span class="filter-text">Filtres</span>
+    <span v-if="activeFiltersList.length > 0" class="filter-badge">{{ activeFiltersList.length }}</span>
+  </button>
+
+  <!-- Overlay mobile -->
+  <div
+    v-if="isMobileOpen"
+    class="sidebar-overlay"
+    @click="closeMobileSidebar"
+  ></div>
+
+  <aside class="filters-sidebar" :class="{ 'open': isMobileOpen }">
+    <!-- Bouton fermer sur mobile -->
+    <button class="mobile-close-btn" @click="closeMobileSidebar" aria-label="Fermer les filtres">
+      ✕
+    </button>
     <!-- Section des filtres actifs (1/3 supérieur) -->
     <div class="active-filters-section">
       <div class="section-header">
         <h3>Filtres actifs</h3>
-        <button 
-          v-if="activeFiltersList.length > 0" 
+        <button
+          v-if="activeFiltersList.length > 0"
           @click="clearAllFilters"
           class="clear-all-btn"
         >
           Tout effacer
         </button>
       </div>
-      
+
       <div class="active-filters-list">
-        <div 
-          v-for="filter in activeFiltersList" 
+        <div
+          v-for="filter in activeFiltersList"
           :key="filter.type"
           class="active-filter-item"
         >
@@ -715,7 +760,7 @@ watch(() => props.facets, (newFacets) => {
             <span class="filter-label">{{ filter.label }}</span>
             <span class="filter-value">{{ filter.value }}</span>
           </div>
-          <button 
+          <button
             @click="clearFilter(filter.type)"
             class="remove-filter-btn"
             :title="`Supprimer le filtre ${filter.label}`"
@@ -723,10 +768,18 @@ watch(() => props.facets, (newFacets) => {
             ×
           </button>
         </div>
-        
+
         <div v-if="activeFiltersList.length === 0" class="no-active-filters">
           Aucun filtre actif
         </div>
+      </div>
+
+      <!-- Compteur de résultats (en bas des filtres actifs) -->
+      <div class="results-counter">
+        <span class="results-count">{{ filteredCount }}</span>
+        <span class="results-separator">/</span>
+        <span class="results-total">{{ totalCount }}</span>
+        <span class="results-label">résultats</span>
       </div>
     </div>
 
@@ -858,42 +911,45 @@ watch(() => props.facets, (newFacets) => {
         </div>
       </div>
 
-      <!-- Filtre par Types de jeux -->
+      <!-- Filtre par Genres LUDOV -->
       <div class="filter-card">
         <button
           @click="toggleCard('gameTypes')"
           class="card-header"
           :class="{ expanded: expandedCards.gameTypes }"
         >
-          <span>Types de jeux</span>
+          <span>Genres LUDOV</span>
           <span class="expand-icon">{{ expandedCards.gameTypes ? '−' : '+' }}</span>
         </button>
 
         <div v-if="expandedCards.gameTypes" class="card-content">
           <!-- Boutons radio OU/ET -->
-          <div class="filter-group" style="margin-bottom: 15px;">
-            <div class="radio-group">
-              <label class="radio-option">
+          <div class="logic-selector-wrapper">
+            <label class="logic-selector-label">Mode de filtrage :</label>
+            <div class="logic-toggle-group">
+              <label class="logic-toggle-option" :class="{ active: localFilters.gameTypesLogic === 'OU' }">
                 <input
                   type="radio"
                   :checked="localFilters.gameTypesLogic === 'OU'"
                   @change="localFilters.gameTypesLogic = 'OU'; emitFilters()"
                 />
-                <span>OU</span>
+                <span class="logic-toggle-text">OU</span>
+                <span class="logic-toggle-description">Au moins un genre</span>
               </label>
-              <label class="radio-option">
+              <label class="logic-toggle-option" :class="{ active: localFilters.gameTypesLogic === 'ET' }">
                 <input
                   type="radio"
                   :checked="localFilters.gameTypesLogic === 'ET'"
                   @change="localFilters.gameTypesLogic = 'ET'; emitFilters()"
                 />
-                <span>ET</span>
+                <span class="logic-toggle-text">ET</span>
+                <span class="logic-toggle-description">Tous les genres</span>
               </label>
             </div>
           </div>
 
           <div class="filter-group">
-            <label class="filter-group-label">Sélectionner les types de jeux</label>
+            <label class="filter-group-label">Sélectionner les genres</label>
             <div class="filter-options">
               <label
                 v-for="gameType in (props.facets.gameTypes || [])"
@@ -1282,6 +1338,45 @@ watch(() => props.facets, (newFacets) => {
   background: #dc2626;
 }
 
+/* Compteur de résultats */
+.results-counter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 50%, #0891b2 100%);
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-top: 12px;
+  box-shadow: 0 2px 4px rgba(6, 182, 212, 0.3);
+}
+
+.results-count {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.results-separator {
+  font-size: 18px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 2px;
+}
+
+.results-total {
+  font-size: 18px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.results-label {
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.8);
+  margin-left: 6px;
+}
+
 .active-filters-list {
   display: flex;
   flex-direction: column;
@@ -1573,6 +1668,86 @@ watch(() => props.facets, (newFacets) => {
   cursor: pointer;
 }
 
+/* Styles pour le sélecteur de logique ET/OU */
+.logic-selector-wrapper {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.logic-selector-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.logic-toggle-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.logic-toggle-option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 8px;
+  background: white;
+  border: 2px solid #cbd5e1;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logic-toggle-option:hover {
+  border-color: #94a3b8;
+  background: #f1f5f9;
+}
+
+.logic-toggle-option.active {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.logic-toggle-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.logic-toggle-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.logic-toggle-option.active .logic-toggle-text {
+  color: #3b82f6;
+}
+
+.logic-toggle-description {
+  font-size: 11px;
+  color: #64748b;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.logic-toggle-option.active .logic-toggle-description {
+  color: #2563eb;
+  font-weight: 500;
+}
+
 /* Styles pour le select d'auteurs avec validation des données */
 .author-select {
   width: 100%;
@@ -1774,27 +1949,155 @@ watch(() => props.facets, (newFacets) => {
   cursor: pointer;
 }
 
-/* Responsive */
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+/* Bouton flottant mobile */
+.mobile-filter-toggle {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 90;
+  background: linear-gradient(135deg, #02dcde, #0891b2);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(2, 220, 222, 0.4);
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.mobile-filter-toggle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(2, 220, 222, 0.5);
+}
+
+.filter-icon { font-size: 16px; }
+.filter-badge {
+  background: #ef4444;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Bouton fermer mobile */
+.mobile-close-btn {
+  display: none;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: #f3f4f6;
+  border-radius: 50%;
+  font-size: 18px;
+  cursor: pointer;
+  color: #374151;
+  z-index: 10;
+}
+
+.mobile-close-btn:hover {
+  background: #e5e7eb;
+}
+
+/* Overlay */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+}
+
+/* Tablette */
 @media (max-width: 1024px) {
   .filters-sidebar {
     width: 280px;
   }
 }
 
+/* Mobile */
 @media (max-width: 768px) {
+  .mobile-filter-toggle {
+    display: flex;
+  }
+
+  .mobile-close-btn {
+    display: block;
+  }
+
+  .sidebar-overlay {
+    display: block;
+  }
+
   .filters-sidebar {
-    width: 100%;
-    height: auto;
     position: fixed;
     top: 0;
     left: 0;
-    z-index: 1000;
+    width: 85%;
+    max-width: 320px;
+    height: 100vh;
+    z-index: 100;
     transform: translateX(-100%);
     transition: transform 0.3s ease;
+    padding-top: 50px;
   }
 
   .filters-sidebar.open {
     transform: translateX(0);
+  }
+
+  .section-header h3 {
+    font-size: 14px;
+  }
+
+  .filter-card {
+    margin-bottom: 8px;
+  }
+
+  .card-header {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .card-content {
+    padding: 10px 12px;
+  }
+
+  .results-counter {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+}
+
+/* Petit mobile */
+@media (max-width: 480px) {
+  .filters-sidebar {
+    width: 100%;
+    max-width: none;
+  }
+
+  .mobile-filter-toggle {
+    bottom: 16px;
+    left: 16px;
+    padding: 10px 16px;
+    font-size: 13px;
   }
 }
 </style>

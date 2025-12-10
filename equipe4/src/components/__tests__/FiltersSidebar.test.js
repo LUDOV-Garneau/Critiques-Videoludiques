@@ -215,12 +215,12 @@ describe('FiltersSidebar - Tests des filtres', () => {
       const component = wrapper.vm
       
       component.toggleArrayFilter('platformTypes', 'Console')
-      component.toggleArrayFilter('platformTypes', 'Microordinateur')
+      component.toggleArrayFilter('platformTypes', 'Micro-ordinateur')
       component.toggleArrayFilter('platformTypes', 'Portable')
       
       expect(component.localFilters.platformTypes).toHaveLength(3)
       expect(component.localFilters.platformTypes).toContain('Console')
-      expect(component.localFilters.platformTypes).toContain('Microordinateur')
+      expect(component.localFilters.platformTypes).toContain('Micro-ordinateur')
       expect(component.localFilters.platformTypes).toContain('Portable')
     })
 
@@ -387,7 +387,7 @@ describe('FiltersSidebar - Tests des filtres', () => {
       const gameTypesFilter = activeFilters.find(f => f.type === 'gameTypes')
 
       expect(gameTypesFilter).toBeDefined()
-      expect(gameTypesFilter.label).toBe('Types de jeux')
+      expect(gameTypesFilter.label).toBe('Genres LUDOV')
       expect(gameTypesFilter.count).toBe(2)
       expect(gameTypesFilter.value).toContain('Action')
       expect(gameTypesFilter.value).toContain('RPG')
@@ -514,6 +514,201 @@ describe('FiltersSidebar - Tests des filtres', () => {
       expect(active.find(f => f.type === 'authorName')).toBeFalsy()
       expect(active.find(f => f.type === 'showWithoutAuthors')).toBeTruthy()
       expect(active.find(f => f.type === 'imageTypes')).toBeTruthy()
+    })
+  })
+
+  describe('Logique ET/OU pour les types de jeux', () => {
+    it('devrait initialiser gameTypesLogic à "OU" par défaut', () => {
+      const component = wrapper.vm
+      expect(component.localFilters.gameTypesLogic).toBe('OU')
+    })
+
+    it('devrait permettre de changer la logique de OU à ET', async () => {
+      const component = wrapper.vm
+
+      // Changer la logique à ET
+      component.localFilters.gameTypesLogic = 'ET'
+
+      await wrapper.vm.$nextTick()
+
+      expect(component.localFilters.gameTypesLogic).toBe('ET')
+    })
+
+    it('devrait permettre de changer la logique de ET à OU', async () => {
+      const component = wrapper.vm
+
+      // Changer à ET puis revenir à OU
+      component.localFilters.gameTypesLogic = 'ET'
+      await wrapper.vm.$nextTick()
+
+      component.localFilters.gameTypesLogic = 'OU'
+      await wrapper.vm.$nextTick()
+
+      expect(component.localFilters.gameTypesLogic).toBe('OU')
+    })
+
+    it('devrait émettre gameTypesLogic lors de l\'application des filtres', async () => {
+      const component = wrapper.vm
+
+      // Sélectionner des types de jeux (toggleArrayFilter émet automatiquement)
+      component.toggleArrayFilter('gameTypes', 'Action')
+      component.toggleArrayFilter('gameTypes', 'RPG')
+
+      // Changer la logique et émettre manuellement
+      component.localFilters.gameTypesLogic = 'ET'
+      component.emitFilters()
+
+      await wrapper.vm.$nextTick()
+
+      // Vérifier que l'événement a été émis avec gameTypesLogic
+      const emitted = wrapper.emitted('update:filters')
+      expect(emitted).toBeTruthy()
+
+      const lastEmit = emitted[emitted.length - 1][0]
+      expect(lastEmit.gameTypesLogic).toBe('ET')
+      expect(lastEmit.gameTypes).toContain('Action')
+      expect(lastEmit.gameTypes).toContain('RPG')
+    })
+
+    it('devrait réinitialiser gameTypesLogic lors de la réinitialisation des types de jeux', async () => {
+      const component = wrapper.vm
+
+      // Sélectionner des types et changer la logique
+      component.toggleArrayFilter('gameTypes', 'Action')
+      component.localFilters.gameTypesLogic = 'ET'
+      await wrapper.vm.$nextTick()
+
+      // Réinitialiser les types de jeux
+      component.clearFilter('gameTypes')
+      await wrapper.vm.$nextTick()
+
+      // La logique devrait aussi être réinitialisée à OU
+      expect(component.localFilters.gameTypesLogic).toBe('OU')
+      expect(component.localFilters.gameTypes).toHaveLength(0)
+    })
+
+    it('devrait réinitialiser gameTypesLogic à OU lors de clearAllFilters', async () => {
+      const component = wrapper.vm
+
+      // Changer la logique à ET
+      component.localFilters.gameTypesLogic = 'ET'
+      component.toggleArrayFilter('gameTypes', 'Action')
+      await wrapper.vm.$nextTick()
+
+      // Réinitialiser tous les filtres
+      component.clearAllFilters()
+      await wrapper.vm.$nextTick()
+
+      // La logique devrait revenir à OU
+      expect(component.localFilters.gameTypesLogic).toBe('OU')
+      expect(component.localFilters.gameTypes).toHaveLength(0)
+    })
+
+    it('devrait émettre gameTypesLogic même sans types de jeux sélectionnés', async () => {
+      const component = wrapper.vm
+
+      // Changer la logique sans sélectionner de types
+      component.localFilters.gameTypesLogic = 'ET'
+      component.emitFilters()
+
+      await wrapper.vm.$nextTick()
+
+      const emitted = wrapper.emitted('update:filters')
+      const lastEmit = emitted[emitted.length - 1][0]
+
+      expect(lastEmit.gameTypesLogic).toBe('ET')
+      expect(lastEmit.gameTypes).toHaveLength(0)
+    })
+
+    it('devrait maintenir la cohérence entre gameTypes et gameTypesLogic', async () => {
+      const component = wrapper.vm
+
+      // Scénario complet
+      component.toggleArrayFilter('gameTypes', 'Action')
+      component.toggleArrayFilter('gameTypes', 'Aventure')
+      component.localFilters.gameTypesLogic = 'ET'
+      component.emitFilters()
+      await wrapper.vm.$nextTick()
+
+      let emitted = wrapper.emitted('update:filters')
+      let lastEmit = emitted[emitted.length - 1][0]
+
+      expect(lastEmit.gameTypes).toHaveLength(2)
+      expect(lastEmit.gameTypesLogic).toBe('ET')
+
+      // Retirer un type
+      component.toggleArrayFilter('gameTypes', 'Action')
+      await wrapper.vm.$nextTick()
+
+      emitted = wrapper.emitted('update:filters')
+      lastEmit = emitted[emitted.length - 1][0]
+
+      expect(lastEmit.gameTypes).toHaveLength(1)
+      expect(lastEmit.gameTypes).toContain('Aventure')
+      expect(lastEmit.gameTypesLogic).toBe('ET') // La logique reste ET
+    })
+  })
+
+  describe('Compteur de résultats', () => {
+    it('devrait afficher les props totalCount et filteredCount', async () => {
+      const wrapperWithCounts = mount(FiltersSidebar, {
+        props: {
+          facets: defaultFacets,
+          activeFilters: {},
+          totalCount: 1500,
+          filteredCount: 245
+        }
+      })
+
+      // Vérifier que les props sont correctement reçues
+      expect(wrapperWithCounts.props('totalCount')).toBe(1500)
+      expect(wrapperWithCounts.props('filteredCount')).toBe(245)
+    })
+
+    it('devrait avoir des valeurs par défaut à 0 pour les compteurs', () => {
+      // Le wrapper par défaut n'a pas les props de compteur
+      expect(wrapper.props('totalCount')).toBe(0)
+      expect(wrapper.props('filteredCount')).toBe(0)
+    })
+
+    it('devrait afficher le compteur dans le DOM', async () => {
+      const wrapperWithCounts = mount(FiltersSidebar, {
+        props: {
+          facets: defaultFacets,
+          activeFilters: {},
+          totalCount: 1000,
+          filteredCount: 500
+        }
+      })
+
+      // Vérifier que le compteur est rendu
+      const counter = wrapperWithCounts.find('.results-counter')
+      expect(counter.exists()).toBe(true)
+
+      // Vérifier les valeurs affichées
+      expect(counter.find('.results-count').text()).toBe('500')
+      expect(counter.find('.results-total').text()).toBe('1000')
+      expect(counter.find('.results-label').text()).toBe('résultats')
+    })
+
+    it('devrait mettre à jour dynamiquement quand les props changent', async () => {
+      const wrapperWithCounts = mount(FiltersSidebar, {
+        props: {
+          facets: defaultFacets,
+          activeFilters: {},
+          totalCount: 1000,
+          filteredCount: 1000
+        }
+      })
+
+      // Vérifier les valeurs initiales
+      expect(wrapperWithCounts.find('.results-count').text()).toBe('1000')
+
+      // Mettre à jour les props
+      await wrapperWithCounts.setProps({ filteredCount: 250 })
+
+      // Vérifier que la valeur a changé
+      expect(wrapperWithCounts.find('.results-count').text()).toBe('250')
     })
   })
 })

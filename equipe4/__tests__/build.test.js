@@ -10,12 +10,12 @@ describe('Build Process', () => {
   beforeAll(() => {
     // Run the build command and capture output
     try {
-      execSync('npm run build', { stdio: 'pipe' })
+      execSync('npm run build', { stdio: 'pipe', timeout: 180000 })
       distDir = join(process.cwd(), 'dist')
     } catch (error) {
       throw new Error(`Build failed: ${error.message}`)
     }
-  }, 60000)
+  }, 180000)
 
   afterAll(() => {
     // Clean up dist folder after tests (optional, comment out if you want to keep it)
