@@ -4,8 +4,14 @@ import FiltersSidebar from '../components/FiltersSidebar.vue'
 import { extractGenres } from '../utils/genreCleaner.js'
 import { applyDataCorrections, normalizeScore } from '../utils/dataCorrections.js'
 import ChartsGraphique from '../components/Graphique.vue'
-    
-// Clique sur le Graphs 
+
+// État de la carte graphique déroulante (fermée par défaut)
+const isGraphCardOpen = ref(false)
+function toggleGraphCard() {
+  isGraphCardOpen.value = !isGraphCardOpen.value
+}
+
+// Clique sur le Graphs
 const graphClickData = ref(null)
 function handleGraphClick(payload) {
   console.log("Received graph click:", payload)
@@ -27,12 +33,33 @@ const sortDir = ref('desc')
 // Modal state & handlers
 const isModalOpen = ref(false)
 const modalItem = ref(null)
+const modalCard = ref(null)
+const closeButton = ref(null)
+let previousFocusElement = null
+
 function openModal(item) {
+  // Sauvegarder l'élément qui avait le focus avant l'ouverture
+  previousFocusElement = document.activeElement
   modalItem.value = item || null
   isModalOpen.value = true
+  // Focus sur le bouton fermer après l'ouverture
+  setTimeout(() => {
+    if (closeButton.value) {
+      closeButton.value.focus()
+    }
+  }, 50)
+  // Empêcher le scroll du body
+  document.body.style.overflow = 'hidden'
 }
+
 function closeModal() {
   isModalOpen.value = false
+  // Restaurer le scroll du body
+  document.body.style.overflow = ''
+  // Restaurer le focus sur l'élément précédent
+  if (previousFocusElement) {
+    previousFocusElement.focus()
+  }
 }
 
 // Fonction pour formater les auteurs avec leurs tags d'identité
@@ -1391,53 +1418,177 @@ watch(graphClickData, () => {
         </div>
         <div v-else-if="error" class="error">Erreur: {{ error }}</div>
         <template v-else>
-          <div style="max-width:1080px;margin:0 auto;">
-            <ChartsGraphique :items="filteredAndSorted" :filtreActifs="sidebarFilters"
-              @chart-click="handleGraphClick" />
-          </div>
-          <div class="toolbar">
-            <input class="input" type="search" v-model="query" placeholder="Rechercher… (titre, plateforme, etc.)" />
-            <div class="sort">
-              <label>Trier par</label>
-              <select v-model="sortKey" class="select">
-                <option v-for="h in filteredHeaders" :key="h" :value="h">{{ h }}</option>
-              </select>
-              <select v-model="sortDir" class="select">
-                <option value="asc">Asc</option>
-                <option value="desc">Desc</option>
-              </select>
+          <!-- Carte déroulante pour le graphique -->
+          <div class="collapsible-card graph-card">
+            <button
+              class="collapsible-header"
+              @click="toggleGraphCard"
+              :aria-expanded="isGraphCardOpen"
+              aria-controls="graph-content"
+            >
+              <span class="collapsible-icon" :class="{ 'rotated': isGraphCardOpen }">▶</span>
+              <span class="collapsible-title">📊 Graphiques et visualisations</span>
+              <span class="collapsible-hint">{{ isGraphCardOpen ? 'Cliquer pour réduire' : 'Cliquer pour afficher' }}</span>
+            </button>
+            <div
+              id="graph-content"
+              class="collapsible-content"
+              :class="{ 'open': isGraphCardOpen }"
+            >
+              <div style="max-width:1080px;margin:0 auto;">
+                <ChartsGraphique :items="filteredAndSorted" :filtreActifs="sidebarFilters"
+                  @chart-click="handleGraphClick" />
+              </div>
             </div>
           </div>
+          <div class="toolbar" role="search" aria-label="Recherche et tri des critiques">
+            <label for="search-input" class="sr-only">Rechercher dans les critiques</label>
+            <input
+              id="search-input"
+              class="input"
+              type="search"
+              v-model="query"
+              placeholder="Rechercher… (titre, plateforme, etc.)"
+              aria-describedby="search-results-count"
+            />
+            <div class="sort" role="group" aria-label="Options de tri">
+              <label for="sort-key">Trier par</label>
+              <select id="sort-key" v-model="sortKey" class="select" aria-label="Colonne de tri">
+                <option v-for="h in filteredHeaders" :key="h" :value="h">{{ h }}</option>
+              </select>
+              <label for="sort-dir" class="sr-only">Ordre de tri</label>
+              <select id="sort-dir" v-model="sortDir" class="select" aria-label="Ordre de tri">
+                <option value="asc">Ascendant</option>
+                <option value="desc">Descendant</option>
+              </select>
+            </div>
+            <span id="search-results-count" class="sr-only" aria-live="polite">
+              {{ filteredAndSorted.length }} résultats trouvés
+            </span>
+          </div>
+
           <!-- Message quand aucun résultat -->
-          <div v-if="filteredAndSorted.length === 0" class="no-results">
-            <div class="no-results-icon">🔍</div>
+          <div v-if="filteredAndSorted.length === 0" class="no-results" role="status" aria-live="polite">
+            <div class="no-results-icon" aria-hidden="true">🔍</div>
             <h3 class="no-results-title">Aucune donnée correspondante à votre recherche</h3>
             <p class="no-results-text">
               Essayez de modifier vos filtres ou votre recherche pour obtenir des résultats.
             </p>
           </div>
 
-          <!-- Tableau des résultats -->
-          <div class="table-wrap" v-else-if="filteredHeaders.length">
-            <table class="data">
+          <!-- Tableau des résultats (Desktop) -->
+          <div class="table-wrap desktop-only" v-else-if="filteredHeaders.length" role="region" aria-label="Tableau des critiques">
+            <table class="data" aria-describedby="table-description">
+              <caption id="table-description" class="sr-only">
+                Liste des critiques vidéoludiques. Cliquez sur une ligne pour voir les détails.
+              </caption>
               <thead>
                 <tr>
-                  <th v-for="h in filteredHeaders" :key="h">{{ h }}</th>
+                  <th v-for="h in filteredHeaders" :key="h" scope="col">{{ h }}</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(it, i) in pageSlice" :key="i" class="clickable-row" @click="openModal(it._full || it)">
+                <tr
+                  v-for="(it, i) in pageSlice"
+                  :key="i"
+                  class="clickable-row"
+                  @click="openModal(it._full || it)"
+                  @keydown.enter="openModal(it._full || it)"
+                  @keydown.space.prevent="openModal(it._full || it)"
+                  tabindex="0"
+                  role="button"
+                  :aria-label="`Voir les détails de ${getCellValue(it, 'Titre')}`"
+                >
                   <td v-for="h in filteredHeaders" :key="h">{{ getCellValue(it, h) }}</td>
                 </tr>
               </tbody>
             </table>
-            <div class="pager">
-              <button class="btn" :disabled="page <= 1" @click="page = Math.max(1, page - 1)">Précédent</button>
-              <span class="page-info">Page {{ page }} / {{ totalPages }}</span>
-              <button class="btn" :disabled="page >= totalPages"
-                @click="page = Math.min(totalPages, page + 1)">Suivant</button>
-            </div>
+            <nav class="pager" role="navigation" aria-label="Pagination du tableau">
+              <button
+                class="btn"
+                :disabled="page <= 1"
+                @click="page = Math.max(1, page - 1)"
+                aria-label="Page précédente"
+              >
+                Précédent
+              </button>
+              <span class="page-info" aria-current="page">Page {{ page }} / {{ totalPages }}</span>
+              <button
+                class="btn"
+                :disabled="page >= totalPages"
+                @click="page = Math.min(totalPages, page + 1)"
+                aria-label="Page suivante"
+              >
+                Suivant
+              </button>
+            </nav>
           </div>
+
+          <!-- Cartes des résultats (Mobile) -->
+          <div class="cards-wrap mobile-only" v-if="filteredHeaders.length && filteredAndSorted.length > 0" role="region" aria-label="Liste des critiques">
+            <div
+              v-for="(it, i) in pageSlice"
+              :key="i"
+              class="critique-card"
+              @click="openModal(it._full || it)"
+              @keydown.enter="openModal(it._full || it)"
+              @keydown.space.prevent="openModal(it._full || it)"
+              tabindex="0"
+              role="button"
+              :aria-label="`Voir les détails de ${getCellValue(it, 'Titre')}`"
+            >
+              <div class="card-header-info">
+                <h3 class="card-title">{{ getCellValue(it, 'Titre') || 'Sans titre' }}</h3>
+                <span class="card-year">{{ getCellValue(it, 'Année') }}</span>
+              </div>
+              <div class="card-body-info">
+                <div class="card-row">
+                  <span class="card-label">Type de plateformes</span>
+                  <span class="card-value">{{ getCellValue(it, 'Type de Plateformes') || '-' }}</span>
+                </div>
+                <div class="card-row">
+                  <span class="card-label">Magazine</span>
+                  <span class="card-value">{{ getCellValue(it, 'Magazine') || '-' }}</span>
+                </div>
+                <div class="card-row">
+                  <span class="card-label">Auteurs</span>
+                  <span class="card-value">{{ getCellValue(it, 'Auteurs') || '-' }}</span>
+                </div>
+                <div class="card-row">
+                  <span class="card-label">Genre LUDOV</span>
+                  <span class="card-value">{{ getCellValue(it, 'Genre LUDOV') || '-' }}</span>
+                </div>
+                <div class="card-row full-width">
+                  <span class="card-label">Étiquette de genre</span>
+                  <span class="card-value">{{ getCellValue(it, 'Étiquette de genre') || '-' }}</span>
+                </div>
+              </div>
+              <div class="card-footer-info">
+                <span class="view-details">Voir les détails →</span>
+              </div>
+            </div>
+
+            <nav class="pager" role="navigation" aria-label="Pagination">
+              <button
+                class="btn"
+                :disabled="page <= 1"
+                @click="page = Math.max(1, page - 1)"
+                aria-label="Page précédente"
+              >
+                Précédent
+              </button>
+              <span class="page-info" aria-current="page">{{ page }} / {{ totalPages }}</span>
+              <button
+                class="btn"
+                :disabled="page >= totalPages"
+                @click="page = Math.min(totalPages, page + 1)"
+                aria-label="Page suivante"
+              >
+                Suivant
+              </button>
+            </nav>
+          </div>
+
           <section class="panel" v-if="showRaw">
             <h2>Aperçu brut (toutes colonnes)</h2>
             <div class="table-wrap" v-if="headers.length">
@@ -1456,11 +1607,30 @@ watch(graphClickData, () => {
             </div>
           </section>
           <!-- Modal Détail de la critique (version simple) -->
-          <div v-if="isModalOpen" class="modal-overlay" @click.self="closeModal">
-            <div class="modal-card" role="dialog" aria-modal="true">
+          <div
+            v-if="isModalOpen"
+            class="modal-overlay"
+            @click.self="closeModal"
+            @keydown.escape="closeModal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-title"
+            aria-describedby="modal-description"
+          >
+            <div class="modal-card" tabindex="-1" ref="modalCard">
               <header class="modal-header">
-                <h3 class="modal-title">{{ modalItem?.Titre || 'Critique' }}</h3>
-                <button class="modal-close" @click="closeModal" aria-label="Fermer">×</button>
+                <h3 id="modal-title" class="modal-title">{{ modalItem?.Titre || 'Critique' }}</h3>
+                <p id="modal-description" class="sr-only">
+                  Détails de la critique {{ modalItem?.Titre }} du jeu {{ modalItem?.TitreJeu }}
+                </p>
+                <button
+                  class="modal-close"
+                  @click="closeModal"
+                  aria-label="Fermer la fenêtre de détails"
+                  ref="closeButton"
+                >
+                  ×
+                </button>
               </header>
               <div class="modal-body">
                 <!-- Section: Informations générales -->
@@ -1971,6 +2141,83 @@ watch(graphClickData, () => {
     font-size: 14px;
   }
 
+  /* ========================================
+     CARTE DÉROULANTE (COLLAPSIBLE CARD)
+     ======================================== */
+  .collapsible-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  .collapsible-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.2s;
+  }
+
+  .collapsible-header:hover {
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  }
+
+  .collapsible-header:focus-visible {
+    outline: 3px solid #0891b2;
+    outline-offset: -3px;
+  }
+
+  .collapsible-icon {
+    font-size: 12px;
+    color: #6b7280;
+    transition: transform 0.3s ease;
+    flex-shrink: 0;
+  }
+
+  .collapsible-icon.rotated {
+    transform: rotate(90deg);
+  }
+
+  .collapsible-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    flex: 1;
+  }
+
+  .collapsible-hint {
+    font-size: 12px;
+    color: #9ca3af;
+    font-weight: 400;
+  }
+
+  .collapsible-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease-out;
+  }
+
+  .collapsible-content.open {
+    max-height: 2000px; /* Valeur suffisamment grande */
+    transition: max-height 0.5s ease-in;
+  }
+
+  .graph-card .collapsible-content {
+    padding: 0;
+  }
+
+  .graph-card .collapsible-content.open {
+    padding: 0 16px 16px 16px;
+  }
+
   /* Message aucun résultat */
   .no-results {
     display: flex;
@@ -2221,7 +2468,110 @@ watch(graphClickData, () => {
     justify-content: flex-end;
   }
 
-  /* Responsive */
+  /* ========================================
+     RESPONSIVE DESIGN
+     ======================================== */
+
+  /* Affichage conditionnel desktop/mobile */
+  .desktop-only { display: block; }
+  .mobile-only { display: none; }
+
+  /* Style des cartes mobile */
+  .cards-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .critique-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  .critique-card:hover,
+  .critique-card:focus {
+    border-color: #02dcde;
+    box-shadow: 0 4px 12px rgba(2, 220, 222, 0.15);
+    outline: none;
+  }
+
+  .card-header-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+    gap: 12px;
+  }
+
+  .card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+    line-height: 1.3;
+    flex: 1;
+  }
+
+  .card-year {
+    font-size: 12px;
+    font-weight: 600;
+    background: #f3f4f6;
+    color: #6b7280;
+    padding: 4px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  .card-body-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .card-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .card-row.full-width {
+    grid-column: 1 / -1;
+  }
+
+  .card-label {
+    font-size: 11px;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .card-value {
+    font-size: 13px;
+    color: #374151;
+    font-weight: 500;
+    word-break: break-word;
+  }
+
+  .card-footer-info {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #f3f4f6;
+    text-align: right;
+  }
+
+  .view-details {
+    font-size: 12px;
+    color: #02dcde;
+    font-weight: 600;
+  }
+
+  /* Tablette */
   @media (max-width: 1024px) {
     .toolbar {
       flex-direction: column;
@@ -2231,21 +2581,185 @@ watch(graphClickData, () => {
     .sort {
       justify-content: space-between;
     }
+
+    .modal-content {
+      width: 90%;
+      max-width: 600px;
+    }
   }
 
+  /* Mobile */
   @media (max-width: 768px) {
+    /* Basculer vers les cartes sur mobile */
+    .desktop-only { display: none !important; }
+    .mobile-only { display: block !important; }
+
     .page-layout {
       flex-direction: column;
     }
 
+    .main-content {
+      margin-left: 0;
+      padding-bottom: 80px; /* Espace pour le bouton flottant des filtres */
+    }
+
+    /* Carte déroulante mobile */
+    .collapsible-card {
+      margin: 0 -12px 16px -12px;
+      border-radius: 0;
+      border-left: none;
+      border-right: none;
+    }
+
+    .collapsible-header {
+      padding: 14px 16px;
+    }
+
+    .collapsible-title {
+      font-size: 14px;
+    }
+
+    .collapsible-hint {
+      display: none;
+    }
+
+    .graph-card .collapsible-content.open {
+      padding: 0 12px 12px 12px;
+    }
+
     .page-head {
       flex-direction: column;
-      gap: 16px;
-      align-items: stretch;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 16px 12px;
+    }
+
+    .page-head h1 {
+      font-size: 22px;
     }
 
     .container {
+      padding: 0 12px;
+    }
+
+    .toolbar {
       padding: 12px;
+      gap: 12px;
+    }
+
+    .toolbar .input {
+      width: 100%;
+      font-size: 16px; /* Évite le zoom sur iOS */
+    }
+
+    .sort {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .sort label {
+      width: 100%;
+      margin-bottom: 4px;
+    }
+
+    .sort .select {
+      flex: 1;
+      font-size: 16px;
+    }
+
+    .pager {
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 16px 12px;
+    }
+
+    .pager .btn {
+      flex: 1;
+      min-width: 80px;
+      padding: 10px 12px;
+    }
+
+    .page-info {
+      width: 100%;
+      text-align: center;
+      order: -1;
+    }
+
+    /* Modal responsive */
+    .modal-content {
+      width: 95%;
+      max-height: 90vh;
+      margin: 5vh auto;
+    }
+
+    .modal-header {
+      padding: 14px 16px;
+    }
+
+    .modal-header h2 {
+      font-size: 16px;
+    }
+
+    .modal-body {
+      padding: 16px;
+    }
+
+    .info-item {
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .info-label {
+      font-size: 11px;
+    }
+
+    .info-value {
+      font-size: 13px;
+    }
+
+    /* Message aucun résultat */
+    .no-results {
+      padding: 30px 20px;
+    }
+
+    .no-results-icon {
+      font-size: 40px;
+    }
+
+    .no-results-title {
+      font-size: 16px;
+    }
+  }
+
+  /* Petit mobile */
+  @media (max-width: 480px) {
+    .page-head h1 {
+      font-size: 18px;
+    }
+
+    .card-body-info {
+      grid-template-columns: 1fr;
+    }
+
+    .card-title {
+      font-size: 14px;
+    }
+
+    .modal-content {
+      width: 100%;
+      height: 100%;
+      max-height: 100vh;
+      margin: 0;
+      border-radius: 0;
+    }
+
+    .author-tags {
+      gap: 4px;
+    }
+
+    .author-tag {
+      font-size: 10px;
+      padding: 3px 6px;
     }
   }
 }
