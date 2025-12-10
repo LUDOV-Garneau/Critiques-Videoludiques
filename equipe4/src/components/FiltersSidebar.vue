@@ -1,6 +1,20 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 
+// État pour le menu mobile
+const isMobileOpen = ref(false)
+
+function toggleMobileSidebar() {
+  isMobileOpen.value = !isMobileOpen.value
+  // Empêcher le scroll du body quand ouvert
+  document.body.style.overflow = isMobileOpen.value ? 'hidden' : ''
+}
+
+function closeMobileSidebar() {
+  isMobileOpen.value = false
+  document.body.style.overflow = ''
+}
+
 const props = defineProps({
   facets: {
     type: Object,
@@ -690,7 +704,30 @@ watch(() => props.facets, (newFacets) => {
 </script>
 
 <template>
-  <aside class="filters-sidebar">
+  <!-- Bouton flottant pour ouvrir les filtres sur mobile -->
+  <button
+    class="mobile-filter-toggle"
+    @click="toggleMobileSidebar"
+    :aria-expanded="isMobileOpen"
+    aria-label="Ouvrir les filtres"
+  >
+    <span class="filter-icon">🔍</span>
+    <span class="filter-text">Filtres</span>
+    <span v-if="activeFiltersList.length > 0" class="filter-badge">{{ activeFiltersList.length }}</span>
+  </button>
+
+  <!-- Overlay mobile -->
+  <div
+    v-if="isMobileOpen"
+    class="sidebar-overlay"
+    @click="closeMobileSidebar"
+  ></div>
+
+  <aside class="filters-sidebar" :class="{ 'open': isMobileOpen }">
+    <!-- Bouton fermer sur mobile -->
+    <button class="mobile-close-btn" @click="closeMobileSidebar" aria-label="Fermer les filtres">
+      ✕
+    </button>
     <!-- Section des filtres actifs (1/3 supérieur) -->
     <div class="active-filters-section">
       <div class="section-header">
@@ -1910,27 +1947,155 @@ watch(() => props.facets, (newFacets) => {
   cursor: pointer;
 }
 
-/* Responsive */
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+/* Bouton flottant mobile */
+.mobile-filter-toggle {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 90;
+  background: linear-gradient(135deg, #02dcde, #0891b2);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(2, 220, 222, 0.4);
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.mobile-filter-toggle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(2, 220, 222, 0.5);
+}
+
+.filter-icon { font-size: 16px; }
+.filter-badge {
+  background: #ef4444;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Bouton fermer mobile */
+.mobile-close-btn {
+  display: none;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: #f3f4f6;
+  border-radius: 50%;
+  font-size: 18px;
+  cursor: pointer;
+  color: #374151;
+  z-index: 10;
+}
+
+.mobile-close-btn:hover {
+  background: #e5e7eb;
+}
+
+/* Overlay */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+}
+
+/* Tablette */
 @media (max-width: 1024px) {
   .filters-sidebar {
     width: 280px;
   }
 }
 
+/* Mobile */
 @media (max-width: 768px) {
+  .mobile-filter-toggle {
+    display: flex;
+  }
+
+  .mobile-close-btn {
+    display: block;
+  }
+
+  .sidebar-overlay {
+    display: block;
+  }
+
   .filters-sidebar {
-    width: 100%;
-    height: auto;
     position: fixed;
     top: 0;
     left: 0;
-    z-index: 1000;
+    width: 85%;
+    max-width: 320px;
+    height: 100vh;
+    z-index: 100;
     transform: translateX(-100%);
     transition: transform 0.3s ease;
+    padding-top: 50px;
   }
 
   .filters-sidebar.open {
     transform: translateX(0);
+  }
+
+  .section-header h3 {
+    font-size: 14px;
+  }
+
+  .filter-card {
+    margin-bottom: 8px;
+  }
+
+  .card-header {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .card-content {
+    padding: 10px 12px;
+  }
+
+  .results-counter {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+}
+
+/* Petit mobile */
+@media (max-width: 480px) {
+  .filters-sidebar {
+    width: 100%;
+    max-width: none;
+  }
+
+  .mobile-filter-toggle {
+    bottom: 16px;
+    left: 16px;
+    padding: 10px 16px;
+    font-size: 13px;
   }
 }
 </style>

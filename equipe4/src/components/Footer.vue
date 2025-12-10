@@ -1,24 +1,26 @@
 <template>
-  <footer class="site-footer">
+  <footer class="site-footer" role="contentinfo">
     <div class="container footer-inner">
       <p>© {{ new Date().getFullYear() }} Ludov — Critiques vidéoludiques</p>
-      <div class="links">
+      <nav class="links" aria-label="Liens du pied de page">
         <a
           class="ext-link"
           href="https://www.ludov.ca/fr/observation/critique-videoludique/"
           target="_blank"
           rel="noopener noreferrer"
+          aria-label="Visiter le site LUDOV - Critique vidéoludique (ouvre dans un nouvel onglet)"
         >
           <span class="ludov-mark">LUDOV</span>
-          <span class="sep">•</span>
+          <span class="sep" aria-hidden="true">•</span>
           <span>Critique vidéoludique</span>
+          <span class="sr-only">(ouvre dans un nouvel onglet)</span>
         </a>
         <router-link
           to="/guide"
           class="doc-link"
-          title="Guide d'utilisation du site"
+          aria-label="Accéder au guide d'utilisation du site"
         >
-          <svg class="doc-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg class="doc-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
             <polyline points="14 2 14 8 20 8"></polyline>
             <line x1="16" y1="13" x2="8" y2="13"></line>
@@ -27,7 +29,7 @@
           </svg>
           <span>Guide Utilisateur</span>
         </router-link>
-      </div>
+      </nav>
     </div>
   </footer>
 </template>
@@ -35,8 +37,8 @@
 <style scoped>
 .site-footer { margin-top: 40px; border-top: 1px solid #e5e7eb; background: #ffffff; color: #6b7280; }
 .container { max-width: 1040px; margin: 0 auto; padding: 12px 16px; }
-.footer-inner { display: flex; align-items: center; justify-content: space-between; }
-.links { display: flex; gap: 16px; align-items: center; }
+.footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.links { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
 .links a { color: #374151; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: color 0.2s ease; }
 .links a:hover { color: #111827; }
 .ext-link .ludov-mark { font-weight: 800; letter-spacing: 0.5px; color: var(--accent); }
@@ -57,6 +59,53 @@
 }
 .doc-link:hover .doc-icon {
   opacity: 1;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .footer-inner {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .links {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .site-footer {
+    padding-bottom: 80px; /* Espace pour le bouton filtres flottant */
+  }
+
+  .links {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .container {
+    padding: 16px 12px;
+  }
+
+  .footer-inner p {
+    font-size: 13px;
+  }
+
+  .links a {
+    font-size: 13px;
+  }
 }
 </style>
 

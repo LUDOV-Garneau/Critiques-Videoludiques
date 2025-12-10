@@ -1568,6 +1568,7 @@ function customClick(e, chart, opts) {
 
   .radio-group {
     gap: 6px;
+    flex-wrap: wrap;
   }
 
   .radio-item {
@@ -1586,6 +1587,85 @@ function customClick(e, chart, opts) {
   .mode-toggle {
     width: 100%;
     justify-content: center;
+  }
+
+  .section-header h3 {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 525px) {
+  .chart-container {
+    padding: 12px;
+  }
+
+  /* Forcer le graphique à réorganiser son layout */
+  .chart-wrapper {
+    padding: 8px;
+    margin: 16px 0;
+  }
+
+  .chart-wrapper :deep(.apexcharts-toolbar) {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    justify-content: flex-start !important;
+    padding: 8px 0 !important;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .chart-wrapper :deep(.apexcharts-title-text) {
+    font-size: 13px !important;
+  }
+
+  .section-header h3 {
+    font-size: 13px;
+  }
+
+  .radio-group {
+    gap: 4px;
+  }
+
+  .radio-item {
+    padding: 5px 8px;
+  }
+
+  .radio-label {
+    font-size: 11px;
+  }
+
+  .custom-select {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+
+  .select-label {
+    font-size: 12px;
+  }
+
+  .toggle-group {
+    gap: 2px;
+  }
+
+  .toggle-item {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 400px) {
+  .radio-item {
+    padding: 4px 6px;
+  }
+
+  .radio-label {
+    font-size: 10px;
+  }
+
+  .chart-wrapper :deep(.apexcharts-toolbar) {
+    transform: scale(0.85);
+    transform-origin: left center;
   }
 }
 </style>
