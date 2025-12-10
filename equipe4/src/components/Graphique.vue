@@ -6,7 +6,7 @@ let checkedTypeCharts = ref('line')
 let checkedOutData = ref('combine')
 let checkedOutOptions = ref('Année')
 let checkedOutSeries = ref('Pays')
-let histogramBinSize = ref(5) 
+let histogramBinSize = ref(5)
 
 const emit = defineEmits(['chart-click'])
 
@@ -14,47 +14,85 @@ const emit = defineEmits(['chart-click'])
 let isValideGraphsX = ref(false)
 let isValideGraphsY = ref(false)
 
+// const typeArray = [
+//   "Titre", // 0
+//   "TitreJeu", // 1
+//   "Plateforme", // 2
+//   "Modele", //3
+//   "TypePlateforme", //4
+//   "Année", //5
+//   "Magazine", //6
+//   "Auteurs", //7
+//   "Pays", //8
+//   "CritiqueTitre", //9
+//   "PDF", //10
+//   "Consoles", //11
+//   "ImageType",//12
+//   "Mois", //13
+//   "Volume", //14
+//   "Numéro", //15
+//   "Pages", //16
+//   "GenreAuteur" //17
+// ];
+
 const typeArray = [
-  "Titre", // 0
-  "TitreJeu", // 1
-  "Plateforme", // 2
-  "Modele", //3
-  "TypePlateforme", //4
-  "Année", //5
-  "Magazine", //6
-  "Auteurs", //7
-  "Pays", //8
-  "CritiqueTitre", //9
-  "PDF", //10
-  "Consoles", //11
-  "ImageType",//12
-  "Mois", //13
-  "Volume", //14
-  "Numéro", //15
-  "Pages", //16
-  "GenreAuteur" //17
+  "ImageType",          // 0
+  "TitreJeu",           // 1
+  "Plateforme",         // 2
+  "Modele",             // 3
+  "TypePlateforme",     // 4
+  "Genre",              // 5
+  "Note",               // 6
+  "Année",              // 7
+  "Magazine",           // 8
+  "Auteurs",            // 9
+  "GenreAuteur",        // 10
+  "Pays",               // 11
+  "CritiqueTitre",      // 12
+  "PDF",                // 13
+  "NoteGenerale",       // 14
+  "NoteVisuelle",       // 15
+  "NoteSonore",         // 16
+  "NoteContenu",        // 17
+  "NoteJouabilite",     // 18
+  "NoteTempsJeu",       // 19
+  "NoteDifficulte",     // 20
+  "NotePrix",           // 21
+  "NoteAutre",          // 22
+  "Mois",               // 23
+  "Volume",             // 24
+  "Numéro",             // 25
+  "Page",               // 26
+  "NombrePages"         // 27
+
 ];
+
+
+
 let OptionsOriginalArray = []
 let OptionsParameterArray = ref([])
 let SeriesOriginalArray = []
 let SeriesParameterArray = ref([])
 
-// FiltreActifs {
-// magazines: [],
-// countries: [],
-// platformTypes: [],
-// consoles: [],
-// gameTypes: [],
-// imageTypes: [],
-// authorGender: '',
-// authorName: '',
-// showWithoutAuthors: false,
-// yearRange: [1980, 2025],
-// monthRange: [1, 12],
-// scoreTypes: [],
-// scoreRange: [0, 100],
-// includeUnscored: true
-// }
+// const sidebarFilters = ref({
+//   magazines: [],
+//   countries: [],
+//   platformTypes: [],
+//   platforms: [],
+//   gameTypes: [],
+//   gameTypesLogic: 'OU', // Ajout de la logique ET/OU pour les types de jeux
+//   imageTypes: [],
+//   authorGender: '',
+//   authorCharacteristics: [],
+//   authorName: '',
+//   showWithoutAuthors: false,
+//   yearRange: [1980, 2025],
+//   monthRange: [1, 12],
+//   scoreTypes: [],
+//   scoreRange: [0, 100],
+//   includeUnscored: true
+// })
+
 
 const months = [
   "1 (janvier)",
@@ -78,7 +116,7 @@ const props = defineProps({
     required: true
   },
   filtreActifs: {
-    type: Object,
+    type: Array,
     required: false
   }
 })
@@ -213,10 +251,10 @@ const updateData = (type, mode, select) => {
   }
 
   // Génération du graphique avec logique combine/divided
-  if(type === 'histogram') {
-      const histoData = generateHistogramData();
-      ChartGeneration(histoData.categories, histoData.series, type);
-      return;
+  if (type === 'histogram') {
+    const histoData = generateHistogramData();
+    ChartGeneration(histoData.categories, histoData.series, type);
+    return;
   }
 
   const [ArrayX, ArrayY] = dividedY(mode, select)
@@ -232,34 +270,47 @@ const naturalSort = (a, b) => {
   return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
 };
 
+// Fonction helper pour séparer les valeurs multiples
+const splitMultipleValues = (value) => {
+  if (!value || value === '-') return [];
+  return String(value)
+    .split(/\s*;\s*/)  // Séparer par " ; "
+    .map(v => v.trim())
+    .filter(v => v);
+};
+const splitMultipleValuesGenre = (value) => {
+  if (!value || value === '-') return [];
+  return String(value)
+    .split(/\s*,\s*/)  // Séparer par " , "
+    .map(v => v.trim())
+    .filter(v => v);
+};
+
 function dividedY(mode) {
   const keyX = checkedOutOptions.value;
   const keySeries = checkedOutSeries.value;
   const items = filteredAndSorted.value;
 
-  // Fonction helper pour séparer les valeurs multiples
-  const splitMultipleValues = (value) => {
-    if (!value || value === '-') return [];
-    return String(value)
-      .split(/\s*;\s*/)  // Séparer par " ; "
-      .map(v => v.trim())
-      .filter(v => v);
-  };
+
 
   // Initialisation
-  const ValeurUniqueOptions = [...new Set(
-    items.flatMap(i => splitMultipleValues(i[keyX]))
-  )].sort(naturalSort);
+  const ValeurUniqueOptions = limiteGraphs(items, keyX)
 
-  const ValeurUniqueSeries = [...new Set(
-    items.flatMap(i => splitMultipleValues(i[keySeries]))
-  )].sort(naturalSort);
+  // BUG FIXES
+  const ValeurUniqueSeries = limiteGraphs(items, keySeries)
 
   const map = Object.create(null);
 
   for (const item of items) {
     const valeursX = splitMultipleValues(item[keyX]);
-    const valeursY = splitMultipleValues(item[keySeries]);
+
+    let valeursY = []
+    if (checkedOutSeries.value === "Genre") {
+      valeursY = splitMultipleValuesGenre(item[keySeries]);
+    } else {
+      valeursY = splitMultipleValues(item[keySeries]);
+    }
+
 
     // Si pas de valeurs valides, skip
     if (valeursX.length === 0 || valeursY.length === 0) continue;
@@ -280,7 +331,7 @@ function dividedY(mode) {
   const arrayX01 = ValeurUniqueOptions.map(v => v.toString());
   const arrayY01 = [];
 
-  if (ValeurUniqueSeries.length === 1 || mode === "combine") {
+  if (mode === "combine") {
     // Combiner
     const data = ValeurUniqueOptions.map(valX => {
       const row = map[valX];
@@ -309,6 +360,79 @@ function dividedY(mode) {
 
   return [arrayX01, arrayY01];
 }
+
+function sameValuesIgnoringOrder(a, b) {
+  const setA = new Set(a);
+  const setB = new Set(b);
+
+  if (setA.size !== setB.size) return false;
+
+  for (const val of setA) {
+    if (!setB.has(val)) return false;
+  }
+  return true;
+}
+
+// Cas si plusieures parametres sont possible (ex. Plateforme)
+function limiteGraphs(items, parameter) {
+  let ValeursUniques = []
+  let ValeursTrier = []
+
+  const test = props.filtreActifs
+  let critereSelectionner = []
+
+  switch (parameter) {
+    case "Plateforme": //
+      critereSelectionner = test.platforms
+      break;
+    case "TypePlateforme": //
+      critereSelectionner = test.platformTypes
+      break;
+    case "TypeImageUtilise": //
+      critereSelectionner = test.imageTypes
+      break;
+    case "Genre": //
+      critereSelectionner = test.gameTypes
+      break;
+    case "GenreAuteur": // Probleme avec le La lettre majuscule
+      function capitalizeFirstLetter(str) {
+        if (!str) return "";
+        str = str.toString().toLowerCase();
+        return str.charAt(0).toUpperCase() + str.slice(1);
+      }
+      if (test.authorGender === "") {
+        critereSelectionner = []
+      } else {
+        critereSelectionner.push(capitalizeFirstLetter(test.authorGender));
+      }
+
+
+      break;
+    default:
+      critereSelectionner = []
+      break;
+  }
+
+  if (parameter === "Genre") {
+    ValeursTrier = [...new Set(
+      items.flatMap(i => splitMultipleValuesGenre(i[parameter]))
+    )].sort(naturalSort);
+  } else {
+    ValeursTrier = [...new Set(
+      items.flatMap(i => splitMultipleValues(i[parameter]))
+    )].sort(naturalSort);
+  }
+
+  if (critereSelectionner.length > 0) {
+    ValeursUniques = critereSelectionner
+  } else {
+    ValeursUniques = ValeursTrier
+  }
+
+  return ValeursUniques
+}
+
+
 
 function generateHeatmapData() {
   const keyX = checkedOutOptions.value;  // Année
@@ -373,82 +497,82 @@ function generateHeatmapData() {
 
 // logique du histogramme basée sur la taille d'intervalle (années)
 function generateHistogramData() {
-    const items = filteredAndSorted.value;
-    const minYear = 1981;
-    const maxYear = 2021;
-    
-    // On récupère la taille du saut (ex: 2 ans, 5 ans)
-    const step = parseInt(histogramBinSize.value) || 5;
-    
-    // Calcul dynamique du nombre de buckets nécessaires
-    const totalRange = maxYear - minYear;
-    const binCount = Math.ceil(totalRange / step) + 1; // +1 pour être sûr de couvrir le maxYear si pas diviseur exact
+  const items = filteredAndSorted.value;
+  const minYear = 1981;
+  const maxYear = 2021;
 
-    // Helper pour séparer les valeurs multiples
-    const splitMultipleValues = (value) => {
-        if (!value || value === '-') return [];
-        return String(value).split(/\s*;\s*/).map(v => v.trim()).filter(v => v);
-    };
+  // On récupère la taille du saut (ex: 2 ans, 5 ans)
+  const step = parseInt(histogramBinSize.value) || 5;
 
-    // Préparer les catégories (Labels des Bins)
-    let categories = [];
-    for (let i = 0; i < binCount; i++) {
-        let start = minYear + (i * step);
-        let end = start + step;
-        
-        // Si step = 1, on affiche juste l'année. Sinon "1981-1983"
-        let label = (step === 1) ? `${start}` : `${start}-${end-1}`;
-        categories.push(label);
-    }
+  // Calcul dynamique du nombre de buckets nécessaires
+  const totalRange = maxYear - minYear;
+  const binCount = Math.ceil(totalRange / step) + 1; // +1 pour être sûr de couvrir le maxYear si pas diviseur exact
 
-    // Si mode "Combiné" ou pas de série sélectionnée
-    if (checkedOutData.value === 'combine') {
-        let counts = new Array(binCount).fill(0);
-        for (const item of items) {
-            const valYear = parseInt(item.Année);
-            if (isNaN(valYear) || valYear < minYear || valYear > maxYear) continue;
-            
-            // Calcul index
-            let index = Math.floor((valYear - minYear) / step);
-            // Sécurité
-            if (index >= binCount) index = binCount - 1;
-            if (index < 0) index = 0;
-            
-            counts[index]++;
-        }
-        return { categories, series: [{ name: 'Fréquence', data: counts }] };
-    }
+  // Helper pour séparer les valeurs multiples
+  const splitMultipleValues = (value) => {
+    if (!value || value === '-') return [];
+    return String(value).split(/\s*;\s*/).map(v => v.trim()).filter(v => v);
+  };
 
-    // mode divisé : sépare par la valeur Y
-    const keySeries = checkedOutSeries.value; 
-    const seriesMap = {}; 
+  // Préparer les catégories (Labels des Bins)
+  let categories = [];
+  for (let i = 0; i < binCount; i++) {
+    let start = minYear + (i * step);
+    let end = start + step;
 
+    // Si step = 1, on affiche juste l'année. Sinon "1981-1983"
+    let label = (step === 1) ? `${start}` : `${start}-${end - 1}`;
+    categories.push(label);
+  }
+
+  // Si mode "Combiné" ou pas de série sélectionnée
+  if (checkedOutData.value === 'combine') {
+    let counts = new Array(binCount).fill(0);
     for (const item of items) {
-        const valYear = parseInt(item.Année);
-        if (isNaN(valYear) || valYear < minYear || valYear > maxYear) continue;
+      const valYear = parseInt(item.Année);
+      if (isNaN(valYear) || valYear < minYear || valYear > maxYear) continue;
 
-        let binIndex = Math.floor((valYear - minYear) / step);
-        if (binIndex >= binCount) binIndex = binCount - 1;
-        if (binIndex < 0) binIndex = 0;
+      // Calcul index
+      let index = Math.floor((valYear - minYear) / step);
+      // Sécurité
+      if (index >= binCount) index = binCount - 1;
+      if (index < 0) index = 0;
 
-        const seriesValues = splitMultipleValues(item[keySeries]);
-
-        if (seriesValues.length === 0) continue;
-
-        for (const valY of seriesValues) {
-            if (!seriesMap[valY]) {
-                seriesMap[valY] = new Array(binCount).fill(0);
-            }
-            seriesMap[valY][binIndex] += 1 / seriesValues.length;
-        }
+      counts[index]++;
     }
+    return { categories, series: [{ name: 'Fréquence', data: counts }] };
+  }
 
-    const finalSeries = Object.entries(seriesMap).map(([name, data]) => ({
-        name: name,
-        data: data.map(d => Math.round(d)) 
-    })).sort((a, b) => a.name.localeCompare(b.name));
+  // mode divisé : sépare par la valeur Y
+  const keySeries = checkedOutSeries.value;
+  const seriesMap = {};
 
-    return { categories, series: finalSeries };
+  for (const item of items) {
+    const valYear = parseInt(item.Année);
+    if (isNaN(valYear) || valYear < minYear || valYear > maxYear) continue;
+
+    let binIndex = Math.floor((valYear - minYear) / step);
+    if (binIndex >= binCount) binIndex = binCount - 1;
+    if (binIndex < 0) binIndex = 0;
+
+    const seriesValues = splitMultipleValues(item[keySeries]);
+
+    if (seriesValues.length === 0) continue;
+
+    for (const valY of seriesValues) {
+      if (!seriesMap[valY]) {
+        seriesMap[valY] = new Array(binCount).fill(0);
+      }
+      seriesMap[valY][binIndex] += 1 / seriesValues.length;
+    }
+  }
+
+  const finalSeries = Object.entries(seriesMap).map(([name, data]) => ({
+    name: name,
+    data: data.map(d => Math.round(d))
+  })).sort((a, b) => a.name.localeCompare(b.name));
+
+  return { categories, series: finalSeries };
 }
 
 function ChartGeneration(arrayX01, arrayY01, type) {
@@ -469,7 +593,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
             }
           }
         },
-        title: { text: 'Nombre Critique selon Année', align: 'left' },
+        title: { text: 'Nombre de critiques selon Année', align: 'left' },
         xaxis: { categories: arrayX01 },
         legend: { position: 'right', horizontalAlign: 'center' },
         noData: {
@@ -499,7 +623,7 @@ function ChartGeneration(arrayX01, arrayY01, type) {
             }
           }
         },
-        title: { text: 'Nombre de critiques par année', align: 'left' },
+        title: { text: `Nombre de critiques par ${checkedOutOptions.value}`, align: 'left' },
         xaxis: { categories: arrayX01 },
         legend: { position: 'right', horizontalAlign: 'center' },
         noData: {
@@ -515,18 +639,18 @@ function ChartGeneration(arrayX01, arrayY01, type) {
         }
       };
       break;
-    
+
     case 'histogram':
-      isValideGraphsX = false 
-      isValideGraphsY = true  
-      
+      isValideGraphsX = false
+      isValideGraphsY = true
+
       chartSeriesFinal.value = arrayY01;
 
       chartOptionsFinal.value = {
         chart: {
-          type: 'bar', 
+          type: 'bar',
           height: 300,
-          stacked: true, 
+          stacked: true,
           events: {
             dataPointSelection: (e, chart, opts) => {
               customClick(e, chart, opts)
@@ -534,26 +658,26 @@ function ChartGeneration(arrayX01, arrayY01, type) {
           }
         },
         plotOptions: {
-            bar: {
-                horizontal: false,
-                columnWidth: '98%', 
-                borderRadius: 0
-            }
+          bar: {
+            horizontal: false,
+            columnWidth: '98%',
+            borderRadius: 0
+          }
         },
         dataLabels: {
-            enabled: false
+          enabled: false
         },
         title: { text: `Histogramme (Intervalle: ${histogramBinSize.value} ans) par ${checkedOutSeries.value}`, align: 'left' },
-        xaxis: { 
-            categories: arrayX01,
-            title: { text: 'Périodes (Années)' }
+        xaxis: {
+          categories: arrayX01,
+          title: { text: 'Périodes (Années)' }
         },
         yaxis: {
-            title: { text: 'Nombre' }
+          title: { text: 'Nombre' }
         },
-        legend: { 
-            show: true,
-            position: 'right' 
+        legend: {
+          show: true,
+          position: 'right'
         },
         noData: {
           text: 'Donnée indisponible',
@@ -561,9 +685,9 @@ function ChartGeneration(arrayX01, arrayY01, type) {
           style: { fontSize: '16px', color: '#999' }
         },
         tooltip: {
-          shared: true, 
+          shared: true,
           intersect: false,
-          custom: coloredTooltip(5, true) 
+          custom: coloredTooltip(5, true)
         }
       };
       break;
@@ -642,76 +766,93 @@ function ChartGeneration(arrayX01, arrayY01, type) {
       break;
 
     case 'treemap':
-      isValideGraphsX = false
-      isValideGraphsY = true
-      const keySeriesTM = checkedOutSeries.value;
-      const itemsTM = filteredAndSorted.value;
+  isValideGraphsX = false
+  isValideGraphsY = true
+  const keySeriesTM = checkedOutSeries.value;
+  const itemsTM = filteredAndSorted.value;
 
-      const splitValuesTM = (value) => {
-        if (!value || value === '-') return [];
-        return String(value).split(/\s*;\s*/).map(v => v.trim()).filter(v => v);
-      };
+  const splitValuesTM = (value) => {
+    if (!value || value === '-') return [];
+    return String(value).split(/\s*;\s*/).map(v => v.trim()).filter(v => v);
+  };
 
-      const countMapTM = {};
-      for (const item of itemsTM) {
-        const values = splitValuesTM(item[keySeriesTM]);
-        for (const value of values) {
-          if (value) {
-            countMapTM[value] = (countMapTM[value] || 0) + (1 / values.length);
-          }
+  const countMapTM = {};
+  for (const item of itemsTM) {
+    const values = splitValuesTM(item[keySeriesTM]);
+    for (const value of values) {
+      if (value) {
+        countMapTM[value] = (countMapTM[value] || 0) + (1 / values.length);
+      }
+    }
+  }
+
+  const tmData = Object.entries(countMapTM)
+    .map(([key, value]) => ({
+      x: key,
+      y: Math.round(value)
+    }))
+    .sort((a, b) => b.y - a.y);
+
+  // Calculer le total pour les pourcentages
+  const totalTM = tmData.reduce((sum, item) => sum + item.y, 0);
+
+  chartSeriesFinal.value = [{ data: tmData }];
+  chartOptionsFinal.value = {
+    chart: {
+      type: 'treemap',
+      height: 300,
+      events: {
+        dataPointSelection: (e, chart, opts) => {
+          customClick(e, chart, opts)
         }
       }
-
-      const tmData = Object.entries(countMapTM)
-        .map(([key, value]) => ({
-          x: key,
-          y: Math.round(value)
-        }))
-        .sort((a, b) => b.y - a.y);
-
-      chartSeriesFinal.value = [{ data: tmData }];
-      chartOptionsFinal.value = {
-        chart: {
-          type: 'treemap',
-          height: 300,
-          events: {
-            dataPointSelection: (e, chart, opts) => {
-              customClick(e, chart, opts)
-            }
-          }
-        },
-        title: {
-          text: `Treemap: ${keySeriesTM}`,
-          align: 'left'
-        },
-        legend: {
-          show: true
-        },
-        colors: [
-          '#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0',
-          '#3F51B5', '#546E7A', '#D4526E', '#8D5B4C', '#F86624'
-        ],
-        plotOptions: {
-          treemap: {
-            distributed: true,
-            enableShades: false
-          }
-        },
-        noData: {
-          text: 'Donnée indisponible',
-          align: 'center',
-          style: { fontSize: '16px', color: '#999' }
-        },
-        tooltip: {
-          enabled: true,
-          y: {
-            formatter: function (val) {
-              return val + ' critiques'
-            }
-          }
+    },
+    title: {
+      text: `Treemap: ${keySeriesTM}`,
+      align: 'left'
+    },
+    legend: {
+      show: true
+    },
+    colors: [
+      '#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0',
+      '#3F51B5', '#546E7A', '#D4526E', '#8D5B4C', '#F86624'
+    ],
+    plotOptions: {
+      treemap: {
+        distributed: true,
+        enableShades: false
+      }
+    },
+    dataLabels: {
+      enabled: true,
+      style: {
+        fontSize: '12px',
+        fontWeight: 'bold'
+      },
+      formatter: function(text, op) {
+        const value = op.value;
+        const percent = ((value / totalTM) * 100).toFixed(1);
+        return [text, `${value} (${percent}%)`];
+      },
+      offsetY: -2
+    },
+    noData: {
+      text: 'Donnée indisponible',
+      align: 'center',
+      style: { fontSize: '16px', color: '#999' }
+    },
+    tooltip: {
+      enabled: true,
+      y: {
+        formatter: function (val) {
+          const percent = ((val / totalTM) * 100).toFixed(1);
+          return `${val} critiques (${percent}%)`
         }
-      };
-      break;
+      }
+    }
+  };
+  break;
 
     case 'heatmap':
       isValideGraphsX = true
@@ -745,9 +886,15 @@ function ChartGeneration(arrayX01, arrayY01, type) {
               ranges: [
                 {
                   from: 0,
+                  to: 0,
+                  color: '#799EB2',
+                  name: '0'
+                },
+                {
+                  from: 1,
                   to: 10,
                   color: '#008FFB',
-                  name: '0-10'
+                  name: '1-10'
                 },
                 {
                   from: 11,
@@ -832,14 +979,13 @@ function updateChartSpecific(newChart) {
     case 'line':
       checkedOutOptions.value = 'Année';
       SeriesOriginalArray.value = [
-        typeArray[2],
-        typeArray[3],
-        typeArray[4],
-        typeArray[6],
-        typeArray[8],
-        typeArray[12],
-        typeArray[13],
-        typeArray[17]
+        typeArray[0], // TypeImage
+        typeArray[2], // Plateforme
+        typeArray[4], // TypePlateforme
+        typeArray[5], // TypeJeu
+        typeArray[8], // Magazine
+        typeArray[10], // GenreAuteur
+        typeArray[11], // Pays 
       ].sort();
 
       if (!SeriesOriginalArray.value.includes(checkedOutSeries.value)) {
@@ -850,12 +996,14 @@ function updateChartSpecific(newChart) {
 
     case 'bar':
       SeriesOriginalArray.value = [
-        typeArray[4],
-        typeArray[6],
-        typeArray[8],
-        typeArray[12],
-        typeArray[13],
-        typeArray[17]
+        typeArray[0], // Type d'image
+        typeArray[2], // Plateforme 
+        typeArray[4], // TypePlateforme
+        typeArray[5], // TypeJeu
+        typeArray[8], // Magazine
+        typeArray[10], // GenreAuteur
+        typeArray[11], // Pays
+        typeArray[23] // Mois
       ].sort();
 
       if (!SeriesOriginalArray.value.includes(checkedOutSeries.value)) {
@@ -866,6 +1014,11 @@ function updateChartSpecific(newChart) {
 
       if (!OptionsOriginalArray.value.includes(checkedOutOptions.value)) {
         checkedOutOptions.value = 'ImageType';
+      }
+
+      if (checkedOutOptions.value === checkedOutSeries.value) {
+        checkedOutOptions.value = 'ImageType'
+        checkedOutSeries.value = 'Pays'
       }
 
       SeriesParameterArray.value = SeriesOriginalArray.value.filter(
@@ -879,13 +1032,14 @@ function updateChartSpecific(newChart) {
     case 'pie':
     case 'treemap':
       SeriesParameterArray.value = [
-        typeArray[2],
-        typeArray[4],
-        typeArray[6],
-        typeArray[8],
-        typeArray[12],
-        typeArray[13],
-        typeArray[17]
+        typeArray[0], // Type Image
+        typeArray[2], // Plateforme
+        typeArray[4], // Type plateforme
+        typeArray[8], // Magazine
+        typeArray[10], // GenreAuteur
+        typeArray[11], // Pays
+        typeArray[23] // Mois
+
       ].sort();
 
       if (!SeriesParameterArray.value.includes(checkedOutSeries.value)) {
@@ -895,12 +1049,13 @@ function updateChartSpecific(newChart) {
 
     case 'heatmap':
       SeriesOriginalArray.value = [
-        typeArray[4],
-        typeArray[6],
-        typeArray[8],
-        typeArray[12],
-        typeArray[13],
-        typeArray[17]
+        typeArray[0], // Type Image
+        typeArray[4], // Type plateforme
+        typeArray[7], // Année
+        typeArray[8], // Magazine
+        typeArray[10], // GenreAuteur
+        typeArray[11], // Pays
+        typeArray[23] // Mois
       ].sort();
 
       if (!SeriesOriginalArray.value.includes(checkedOutSeries.value)) {
@@ -908,8 +1063,8 @@ function updateChartSpecific(newChart) {
       }
 
       OptionsOriginalArray.value = [
-        typeArray[5],
-        typeArray[13]
+        typeArray[7], // Année
+        typeArray[23] // Mois
       ].sort();
 
       if (!OptionsOriginalArray.value.includes(checkedOutOptions.value)) {
@@ -923,16 +1078,16 @@ function updateChartSpecific(newChart) {
         item => item !== checkedOutSeries.value
       );
       break;
-    
+
     // Configuration Histogramme
     case 'histogram':
       SeriesOriginalArray.value = [
+        typeArray[0], // ImageType
         typeArray[4], // TypePlateforme
-        typeArray[6], // Magazine
-        typeArray[8], // Pays
-        typeArray[12], // ImageType
-        typeArray[13], // Mois
-        typeArray[17]  // GenreAuteur
+        typeArray[8], // Magazine
+        typeArray[10],  // GenreAuteur
+        typeArray[11], // Pays
+        typeArray[23] // Mois
       ].sort();
 
       if (!SeriesOriginalArray.value.includes(checkedOutSeries.value)) {
@@ -958,6 +1113,9 @@ onMounted(() => {
 watch(
   [filteredAndSorted, checkedTypeCharts, checkedOutData, checkedOutOptions, checkedOutSeries, histogramBinSize],
   () => {
+    if (checkedTypeCharts.value === 'pie' || checkedTypeCharts.value === 'heatmap' || checkedTypeCharts.value === 'treemap') {
+      checkedOutData.value = 'combine'
+    }
     updateChartSpecific(checkedTypeCharts.value);
     updateData(
       checkedTypeCharts.value,
@@ -973,7 +1131,7 @@ watch(
       indexY: clickIndexSeries.value,
       nameX: clickNameOptions.value,
       nameY: clickNameSeries.value
-  })
+    })
   }
 );
 
@@ -1048,33 +1206,41 @@ function customClick(e, chart, opts) {
   clickIndexOptions.value = opts.dataPointIndex
   clickIndexSeries.value = opts.seriesIndex
 
-  switch(checkedTypeCharts.value) {
+  switch (checkedTypeCharts.value) {
     case 'line':
-        clickNameOptions.value = opts.w.globals.categoryLabels[clickIndexOptions.value];
-        clickNameSeries.value = opts.w.config.series[clickIndexSeries.value].name;
+      clickNameOptions.value = opts.w.globals.categoryLabels[clickIndexOptions.value];
+      clickNameSeries.value = opts.w.config.series[clickIndexSeries.value].name;
       break;
     case 'bar':
     case 'heatmap':
-        clickNameOptions.value = chartOptionsFinal.value.xaxis.categories[clickIndexOptions.value];
-        clickNameSeries.value = opts.w.config.series[clickIndexSeries.value].name;
+      clickNameOptions.value = chartOptionsFinal.value.xaxis.categories[clickIndexOptions.value];
+      clickNameSeries.value = opts.w.config.series[clickIndexSeries.value].name;
       break;
     case 'histogram':
-        clickNameOptions.value = chartOptionsFinal.value.xaxis.categories[clickIndexOptions.value];
-        if(opts.w.config.series[clickIndexSeries.value]) {
-             clickNameSeries.value = opts.w.config.series[clickIndexSeries.value].name;
-        } else {
-             clickNameSeries.value = "Total";
-        }
+      clickNameOptions.value = chartOptionsFinal.value.xaxis.categories[clickIndexOptions.value];
+      if (opts.w.config.series[clickIndexSeries.value]) {
+        clickNameSeries.value = opts.w.config.series[clickIndexSeries.value].name;
+      } else {
+        clickNameSeries.value = "Total";
+      }
       break;
     case 'pie':
+      clickIndexSeries.value = 0;
       clickNameOptions.value = opts.w.config.labels[clickIndexOptions.value];
+      // MERGED: Keep both logic for drill-down (BugFixes) and Label display (Dev)
+      checkedOutOptions.value = checkedOutSeries.value;
+      clickNameSeries.value = "Critiques";
       break;
     case 'treemap':
       // Pour le treemap, le nom se trouve dans data[index].x
+      clickIndexSeries.value = 0;
       const tmData = opts.w.config.series[0].data;
       if (tmData && tmData[clickIndexOptions.value]) {
         clickNameOptions.value = tmData[clickIndexOptions.value].x;
       }
+      // MERGED: Keep both logic for drill-down (BugFixes) and Label display (Dev)
+      checkedOutOptions.value = checkedOutSeries.value;
+      clickNameSeries.value = "Critiques";
       break;
   }
   let isClicked = false
@@ -1085,7 +1251,9 @@ function customClick(e, chart, opts) {
     isClick: isClicked,
     nameX: clickNameOptions.value,
     nameY: clickNameSeries.value,
-    critereTrieX: checkedOutOptions.value,
+    critereTrieX: (checkedTypeCharts.value === 'pie' || checkedTypeCharts.value === 'treemap')
+      ? checkedOutSeries.value
+      : checkedOutOptions.value,
     critereTrieY: checkedOutSeries.value
   })
 
@@ -1095,75 +1263,329 @@ function customClick(e, chart, opts) {
 </script>
 
 <template>
-  <div>
-    <div>
-      <!-- <div v-for="(item, index) in filteredAndSorted" :key="index">
-        {{ item }}
-      </div> -->
+  <div class="chart-container">
+    <div class="control-section">
+      <h3 class="section-title">Type de graphique</h3>
+      <div class="radio-group">
+        <label class="radio-item" :class="{ active: checkedTypeCharts === 'line' }">
+          <input type="radio" id="line" name="charts" value="line" v-model="checkedTypeCharts" />
+          <span class="radio-label">Ligne</span>
+        </label>
 
-      <div>Type de graphique</div>
-      <input type="radio" id="line" name="charts" value="line" v-model="checkedTypeCharts" checked />
-      <label for="line">Ligne du Temps</label>
+        <label class="radio-item" :class="{ active: checkedTypeCharts === 'bar' }">
+          <input type="radio" id="bar" name="charts" value="bar" v-model="checkedTypeCharts" />
+          <span class="radio-label">Barres</span>
+        </label>
 
-      <input type="radio" id="bar" name="charts" value="bar" v-model="checkedTypeCharts" />
-      <label for="bar">Barres</label>
+        <label class="radio-item" :class="{ active: checkedTypeCharts === 'pie' }">
+          <input type="radio" id="pie" name="charts" value="pie" v-model="checkedTypeCharts" />
+          <span class="radio-label">Pie</span>
+        </label>
 
-      <input type="radio" id="pie" name="charts" value="pie" v-model="checkedTypeCharts" />
-      <label for="pie">Pie</label>
+        <label class="radio-item" :class="{ active: checkedTypeCharts === 'heatmap' }">
+          <input type="radio" id="heatmap" name="charts" value="heatmap" v-model="checkedTypeCharts" />
+          <span class="radio-label">Heatmap</span>
+        </label>
 
-      <input type="radio" id="heatmap" name="charts" value="heatmap" v-model="checkedTypeCharts" />
-      <label for="heatmap">Heatmap</label>
+        <label class="radio-item" :class="{ active: checkedTypeCharts === 'treemap' }">
+          <input type="radio" id="treemap" name="charts" value="treemap" v-model="checkedTypeCharts" />
+          <span class="radio-label">Treemap</span>
+        </label>
 
-      <input type="radio" id="treemap" name="charts" value="treemap" v-model="checkedTypeCharts" />
-      <label for="treemap">Treemap</label>
-
-      <input type="radio" id="histogram" name="charts" value="histogram" v-model="checkedTypeCharts" />
-      <label for="histogram">Histogramme</label>
+        <label class="radio-item" :class="{ active: checkedTypeCharts === 'histogram' }">
+          <input type="radio" id="histogram" name="charts" value="histogram" v-model="checkedTypeCharts" />
+          <span class="radio-label">Histogramme</span>
+        </label>
+      </div>
     </div>
 
-    <div v-if="checkedTypeCharts === 'histogram'" style="margin-top: 10px;">
-        <label for="histoSize">Intervalle (Années) : </label>
-        <select id="histoSize" v-model="histogramBinSize">
-             <option :value="1">1 an</option>
-             <option :value="2">2 ans</option>
-             <option :value="3">3 ans</option>
-             <option :value="4">4 ans</option>
-             <option :value="5">5 ans</option>
-             <option :value="6">6 ans</option>
-             <option :value="7">7 ans</option>
-             <option :value="8">8 ans</option>
-             <option :value="9">9 ans</option>
-             <option :value="10">10 ans</option>
+    <!-- Section Histogramme -->
+    <div v-if="checkedTypeCharts === 'histogram'" class="control-section histogram-controls">
+      <label for="histoSize" class="select-label">Intervalle (Années)</label>
+      <select id="histoSize" v-model="histogramBinSize" class="custom-select">
+        <option :value="1">1 an</option>
+        <option :value="2">2 ans</option>
+        <option :value="3">3 ans</option>
+        <option :value="4">4 ans</option>
+        <option :value="5">5 ans</option>
+        <option :value="6">6 ans</option>
+        <option :value="7">7 ans</option>
+        <option :value="8">8 ans</option>
+        <option :value="9">9 ans</option>
+        <option :value="10">10 ans</option>
+      </select>
+    </div>
+
+    <!-- Section Axe Y / Séries -->
+    <div v-if="isValideGraphsY" class="control-section axis-controls">
+      <div class="axis-row">
+        <label class="select-label">Axe Y (Séries)</label>
+        <select v-model="checkedOutSeries" class="custom-select">
+          <option v-for="type in SeriesParameterArray" :key="type" :value="type">
+            {{ type }}
+          </option>
         </select>
+      </div>
+
+      <div class="mode-toggle" v-if="checkedTypeCharts !== 'pie' && checkedTypeCharts !== 'heatmap' && checkedTypeCharts !== 'treemap'">
+        <label class="toggle-item" :class="{ active: checkedOutData === 'combine' }">
+          <input type="radio" id="combine" name="Data" value="combine" v-model="checkedOutData" />
+          <span>Combiner</span>
+        </label>
+
+        <label class="toggle-item" :class="{ active: checkedOutData === 'divided' }">
+          <input type="radio" id="divided" name="Data" value="divided" v-model="checkedOutData" />
+          <span>Diviser</span>
+        </label>
+      </div>
     </div>
 
-    <div v-if="isValideGraphsY">Ligne Y
-      <select v-model="checkedOutSeries">
-        <option v-for="type in SeriesParameterArray" :key="type" :value="type">
-          {{ type }}
-        </option>
-      </select>
-      <input type="radio" id="combine" name="Data" value="combine" v-model="checkedOutData" />
-      <label for="combine">Combiner</label>
-
-      <input type="radio" id="divided" name="Data" value="divided" v-model="checkedOutData" />
-      <label for="divided">Diviser</label>
+    <!-- Graphique -->
+    <div class="chart-wrapper">
+      <apexchart 
+        :key="checkedTypeCharts" 
+        width="100%" 
+        height="350" 
+        :options="chartOptionsFinal"
+        :series="chartSeriesFinal" 
+      />
     </div>
 
-    <div>
-      <apexchart :key="checkedTypeCharts" width="100%" height="300" :options="chartOptionsFinal"
-        :series="chartSeriesFinal" />
+    <!-- Section Axe X -->
+    <div v-if="isValideGraphsX" class="control-section axis-controls">
+      <div class="axis-row">
+        <label class="select-label">Axe X (Catégories)</label>
+        <select v-model="checkedOutOptions" class="custom-select">
+          <option v-for="type in OptionsParameterArray" :key="type" :value="type">
+            {{ type }}
+          </option>
+        </select>
+      </div>
     </div>
 
-    <div v-if="isValideGraphsX">Ligne X
-      <select v-model="checkedOutOptions">
-        <option v-for="type in OptionsParameterArray" :key="type" :value="type">
-          {{ type }}
-        </option>
-      </select>
-    </div>
-          <div v-if="clickIndexOptions !== -1 && clickIndexSeries !== -1">
-        <p>Sélection : {{ clickNameOptions }}<span v-if="clickNameSeries !== 'Critiques' && checkedTypeCharts !== 'pie' && checkedTypeCharts !== 'treemap' && checkedTypeCharts !== 'histogram'">, {{ clickNameSeries }}</span></p>
+    <!-- Sélection actuelle -->
+    <div v-if="clickIndexOptions !== -1 && clickIndexSeries !== -1" class="selection-info">
+      <span class="selection-text">
+        Sélection : <strong>{{ clickNameOptions }}</strong>
+        <span v-if="clickNameSeries !== 'Critiques' && checkedTypeCharts !== 'pie' && checkedTypeCharts !== 'treemap' && checkedTypeCharts !== 'histogram'">
+          , <strong>{{ clickNameSeries }}</strong>
+        </span>
+      </span>
     </div>
   </div>
 </template>
+
+<style scoped>
+.chart-container {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.control-section {
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Radio Group pour types de graphiques */
+.radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.radio-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+  background: #f3f4f6;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.radio-item:hover {
+  background: #e5e7eb;
+}
+
+.radio-item.active {
+  background: #dbeafe;
+  border-color: #3b82f6;
+}
+
+.radio-item input[type="radio"] {
+  display: none;
+}
+
+.radio-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.radio-item.active .radio-label {
+  color: #1d4ed8;
+}
+
+/* Histogramme Controls */
+.histogram-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #fef3c7;
+  border-radius: 8px;
+  border-left: 4px solid #f59e0b;
+}
+
+/* Axis Controls */
+.axis-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.axis-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.select-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.custom-select {
+  padding: 8px 32px 8px 12px;
+  font-size: 14px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+.custom-select:hover {
+  border-color: #9ca3af;
+}
+
+.custom-select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Mode Toggle (Combiner/Diviser) */
+.mode-toggle {
+  display: flex;
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.toggle-item {
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-item:hover {
+  color: #374151;
+}
+
+.toggle-item.active {
+  background: #ffffff;
+  color: #3b82f6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-item input[type="radio"] {
+  display: none;
+}
+
+/* Chart Wrapper */
+.chart-wrapper {
+  margin: 24px 0;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+/* Selection Info */
+.selection-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border-radius: 8px;
+  border-left: 4px solid #10b981;
+  margin-top: 16px;
+}
+
+.selection-icon {
+  font-size: 18px;
+}
+
+.selection-text {
+  font-size: 14px;
+  color: #065f46;
+}
+
+.selection-text strong {
+  color: #047857;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .chart-container {
+    padding: 16px;
+  }
+
+  .radio-group {
+    gap: 6px;
+  }
+
+  .radio-item {
+    padding: 6px 10px;
+  }
+
+  .radio-label {
+    font-size: 12px;
+  }
+
+  .axis-controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mode-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+}
+</style>
