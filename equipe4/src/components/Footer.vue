@@ -1,26 +1,35 @@
 <template>
   <footer class="site-footer" role="contentinfo">
     <div class="container footer-inner">
-      <p>© {{ new Date().getFullYear() }} Ludov — Critiques vidéoludiques</p>
+      
+      <div class="footer-info">
+        <p class="copyright">© {{ new Date().getFullYear() }} Ludov — Critiques vidéoludiques</p>
+        
+        <p class="credits">
+          <span class="credits-label">Travail réalisé par :</span>
+          <span class="credits-names">Koffi Divin Sogbadji, Ahmed-Yassine Lehachi, Ludovyk Allard et Nazarie Miron</span>
+        </p>
+      </div>
+
       <nav class="links" aria-label="Liens du pied de page">
         <a
           class="ext-link"
           href="https://www.ludov.ca/fr/observation/critique-videoludique/"
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="Visiter le site LUDOV - Critique vidéoludique (ouvre dans un nouvel onglet)"
+          aria-label="Visiter le site LUDOV"
         >
           <span class="ludov-mark">LUDOV</span>
           <span class="sep" aria-hidden="true">•</span>
           <span>Critique vidéoludique</span>
-          <span class="sr-only">(ouvre dans un nouvel onglet)</span>
         </a>
+        
         <router-link
           to="/guide"
           class="doc-link"
-          aria-label="Accéder au guide d'utilisation du site"
+          aria-label="Accéder au guide"
         >
-          <svg class="doc-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg class="doc-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
             <polyline points="14 2 14 8 20 8"></polyline>
             <line x1="16" y1="13" x2="8" y2="13"></line>
@@ -35,78 +44,135 @@
 </template>
 
 <style scoped>
-.site-footer { margin-top: 40px; border-top: 1px solid #e5e7eb; background: #ffffff; color: #6b7280; }
-.container { max-width: 1040px; margin: 0 auto; padding: 12px 16px; }
-.footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-.links { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
-.links a { color: #374151; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: color 0.2s ease; }
-.links a:hover { color: #111827; }
-.ext-link .ludov-mark { font-weight: 800; letter-spacing: 0.5px; color: var(--accent); }
-.ext-link .sep { opacity: 0.6; }
-.doc-link {
-  padding: 6px 12px;
-  border-radius: 6px;
-  background: #f3f4f6;
-  transition: all 0.2s ease;
+.site-footer {
+  margin-top: auto; /* Garde le footer en bas si la page est courte */
+  border-top: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #6b7280;
+  font-size: 0.9rem;
+  padding: 16px 0;
 }
-.doc-link:hover {
-  background: #e5e7eb;
+
+.container {
+  max-width: 1200px; /* Un peu plus large pour laisser respirer */
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.footer-inner {
+  display: flex;
+  align-items: center; /* Centre verticalement gauche et droite */
+  justify-content: space-between;
+  gap: 20px;
+}
+
+/* --- Partie Gauche (Textes) --- */
+.footer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px; /* Espace très réduit entre copyright et crédits */
+  flex: 1; /* Prend l'espace disponible pour éviter le wrapping précoce */
+}
+
+.footer-info p {
+  margin: 0; /* Important: supprime les marges par défaut */
+  line-height: 1.4;
+}
+
+.copyright {
+  color: #111827; /* Plus foncé pour le titre principal */
+  font-weight: 500;
+}
+
+.credits {
+  font-size: 0.85em; /* Légèrement plus petit pour la hiérarchie */
+  color: #6b7280;
+}
+
+.credits-label {
+  font-weight: 600;
+  margin-right: 4px;
+  text-transform: uppercase;
+  font-size: 0.9em;
+  letter-spacing: 0.03em;
+}
+
+/* --- Partie Droite (Liens) --- */
+.links {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-shrink: 0; /* Empêche les liens d'être écrasés */
+}
+
+.links a {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.2s;
+}
+
+.ext-link {
+  color: #4b5563;
+  font-size: 0.9em;
+}
+.ext-link:hover {
   color: #111827;
 }
+
+.ext-link .ludov-mark {
+  font-weight: 700;
+  color: #0ea5e9; /* Bleu cyan comme sur ton image */
+}
+
+.doc-link {
+  padding: 8px 16px;
+  border-radius: 6px;
+  background: #f3f4f6;
+  color: #374151;
+  font-weight: 500;
+  font-size: 0.9em;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.doc-link:hover {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+  color: #111827;
+}
+
 .doc-icon {
-  flex-shrink: 0;
-  opacity: 0.7;
-}
-.doc-link:hover .doc-icon {
-  opacity: 1;
+  opacity: 0.6;
 }
 
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
+/* --- Responsive --- */
+@media (max-width: 900px) {
   .footer-inner {
     flex-direction: column;
-    text-align: center;
+    align-items: flex-start; /* Aligne tout à gauche sur mobile */
+    gap: 16px;
   }
-
+  
   .links {
+    width: 100%;
+    justify-content: space-between; /* Écarte les boutons sur mobile */
+    padding-top: 12px;
+    border-top: 1px dashed #e5e7eb;
+  }
+}
+
+@media (max-width: 600px) {
+  .links {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .doc-link {
+    width: 100%;
     justify-content: center;
   }
 }
-
-@media (max-width: 480px) {
-  .site-footer {
-    padding-bottom: 80px; /* Espace pour le bouton filtres flottant */
-  }
-
-  .links {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .container {
-    padding: 16px 12px;
-  }
-
-  .footer-inner p {
-    font-size: 13px;
-  }
-
-  .links a {
-    font-size: 13px;
-  }
-}
 </style>
-
-
